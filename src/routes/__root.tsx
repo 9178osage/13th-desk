@@ -7,7 +7,7 @@ import { htmlLang, type Lang } from "@/lib/text";
 import { useDesk } from "@/lib/store";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "13th Desk";
+const APP_NAME = "河谷校园仪表盘";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -18,9 +18,9 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "A student desk for Eugene, Oregon — fall deadlines, study spots, your week, and the town.",
+          "河谷校园仪表盘 · Eugene student portal — courses, todos, announcements, and campus shortcuts.",
       },
-      { name: "theme-color", content: "#146b45" },
+      { name: "theme-color", content: "#10243d" },
       { name: "referrer", content: "strict-origin-when-cross-origin" },
     ],
     links: [
