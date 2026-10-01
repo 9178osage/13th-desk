@@ -272,7 +272,7 @@ function createDeferredJsonStorage(): PersistStorage<PersistedDesk> {
 export const useDesk = create<DeskState>()(
   persist(
     (set, get) => ({
-      lang: "en",
+      lang: "zh",
       langSet: false,
       level: "uni",
       levelSet: false,
