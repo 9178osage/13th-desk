@@ -51,7 +51,7 @@ function SetupSheet() {
       aria-labelledby="setup-title"
     >
       <Card className="w-full max-w-md p-5 shadow-lift">
-        <p className="text-xs uppercase tracking-widest text-muted">13th Desk · 河谷</p>
+        <p className="text-xs uppercase tracking-widest text-muted">Eugene Desk</p>
         <h2 id="setup-title" className="mt-1 font-display text-3xl text-ink">
           {tr(pickLang, { en: "A quick pick", zh: "先选一下" })}
         </h2>
@@ -144,14 +144,14 @@ export function Shell({ children }: { children: ReactNode }) {
           <Link
             to="/"
             className="brand-lockup"
-            aria-label={tr(lang, { en: "13th Desk · Valley home", zh: "13th Desk · 河谷首页" })}
+            aria-label={tr(lang, { en: "Eugene Desk home", zh: "Eugene Desk首页" })}
           >
             <span className="brand-mark">
               <GraduationCap size={20} strokeWidth={1.8} aria-hidden="true" />
             </span>
             <span>
               <span className="brand-name">
-                {tr(lang, { en: "13th Desk · Valley", zh: "13th Desk · 河谷" })}
+                {tr(lang, { en: "Eugene Desk", zh: "Eugene Desk" })}
               </span>
               <span className="brand-subtitle">
                 {tr(lang, { en: "Eugene student desk", zh: "尤金学生网" })}
