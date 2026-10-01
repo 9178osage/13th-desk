@@ -3,7 +3,7 @@ import { PlaceBrowser } from "@/components/place-browser";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/town")({
-  head: () => ({ meta: [{ title: "Town · 13th Desk" }] }),
+  head: () => ({ meta: [{ title: "Town · Eugene Desk" }] }),
   component: TownPage,
 });
 
