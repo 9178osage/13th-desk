@@ -46,12 +46,14 @@ type DeskState = {
   lang: Lang;
   langSet: boolean;
   level: Level;
+  levelSet: boolean;
   buckets: Record<Level, Bucket>;
   hydrated: boolean;
   earlyStart: boolean;
   district: DistrictId | null;
   setLang: (lang: Lang) => void;
   setLevel: (level: Level) => void;
+  setSetup: (patch: { lang?: Lang; level?: Level }) => void;
   setEarlyStart: (on: boolean) => void;
   setDistrict: (id: DistrictId | null) => void;
   toggleFav: (id: string) => void;
@@ -197,6 +199,7 @@ export const useDesk = create<DeskState>()(
       lang: "en",
       langSet: false,
       level: "uni",
+      levelSet: false,
       buckets: blankBuckets(),
       hydrated: false,
       earlyStart: false,
@@ -207,7 +210,21 @@ export const useDesk = create<DeskState>()(
       },
       setLevel: (level) => {
         if (!isLevel(level)) return;
-        set({ level });
+        set({ level, levelSet: true });
+      },
+      setSetup: (patch) => {
+        const next: Partial<DeskState> = {};
+        if (patch.lang !== undefined) {
+          if (!isLang(patch.lang)) return;
+          next.lang = patch.lang;
+          next.langSet = true;
+        }
+        if (patch.level !== undefined) {
+          if (!isLevel(patch.level)) return;
+          next.level = patch.level;
+          next.levelSet = true;
+        }
+        if (Object.keys(next).length) set(next);
       },
       setEarlyStart: (on) => set({ earlyStart: on }),
       setDistrict: (id) => {
@@ -383,6 +400,7 @@ export const useDesk = create<DeskState>()(
         lang: state.lang,
         langSet: state.langSet,
         level: state.level,
+        levelSet: state.levelSet,
         earlyStart: state.earlyStart,
         district: state.district,
         buckets: state.buckets,
@@ -390,9 +408,19 @@ export const useDesk = create<DeskState>()(
       merge: (persisted, current) => {
         if (!persisted || typeof persisted !== "object") return current;
         const raw = persisted as Record<string, unknown>;
-        const langSet = raw.langSet === true;
-        const lang = langSet && isLang(raw.lang) ? raw.lang : "en";
-        const level = isLevel(raw.level) ? raw.level : "uni";
+        // Prefer in-memory choices made before rehydrate finishes (fast lang switch).
+        const langSet = current.langSet || raw.langSet === true;
+        const lang = current.langSet
+          ? current.lang
+          : langSet && isLang(raw.lang)
+            ? raw.lang
+            : "en";
+        const levelSet = current.levelSet || raw.levelSet === true || isLevel(raw.level);
+        const level = current.levelSet
+          ? current.level
+          : isLevel(raw.level)
+            ? raw.level
+            : "uni";
         const earlyStart = raw.earlyStart === true;
         const district = isDistrict(raw.district) ? raw.district : null;
         const buckets = blankBuckets();
@@ -406,7 +434,16 @@ export const useDesk = create<DeskState>()(
           const legacy = asBucket(raw);
           if (legacy) buckets.uni = legacy;
         }
-        return { ...current, lang, langSet, level, earlyStart, district, buckets };
+        return {
+          ...current,
+          lang,
+          langSet,
+          level,
+          levelSet,
+          earlyStart,
+          district,
+          buckets,
+        };
       },
     },
   ),
@@ -414,4 +451,24 @@ export const useDesk = create<DeskState>()(
 
 export function useLang(): Lang {
   return useDesk((state) => state.lang);
+}
+
+let hydratePromise: Promise<void> | null = null;
+
+/** Rehydrate once; safe to call from multiple mounts. */
+export function ensureDeskHydrated(): Promise<void> {
+  if (useDesk.getState().hydrated) return Promise.resolve();
+  if (!hydratePromise) {
+    hydratePromise = (async () => {
+      try {
+        if (!useDesk.persist.hasHydrated()) {
+          await useDesk.persist.rehydrate();
+        }
+      } catch {
+        /* broken storage should not blank the desk */
+      }
+      useDesk.setState({ hydrated: true });
+    })();
+  }
+  return hydratePromise;
 }
