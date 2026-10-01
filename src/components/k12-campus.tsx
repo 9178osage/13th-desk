@@ -32,8 +32,8 @@ function SchoolGrid({ schools }: { schools: SchoolCard[] }) {
               {school.bellGroup ? (
                 <Chip>
                   {school.bellGroup === "early"
-                    ? tr(lang, { en: "Early bell", zh: "较早作息" })
-                    : tr(lang, { en: "Later bell", zh: "较晚作息" })}
+                    ? tr(lang, { en: "Earlier schedule", zh: "较早作息" })
+                    : tr(lang, { en: "Later schedule", zh: "较晚作息" })}
                 </Chip>
               ) : null}
             </div>
@@ -79,8 +79,8 @@ export function K12Campus({ level }: { level: Exclude<Level, "uni"> }) {
         <>
           <section className="flex flex-col gap-3">
             <SectionHeader
-              kicker={tr(lang, { en: "Bell groups", zh: "作息分组" })}
-              title={tr(lang, { en: "Two Wednesday outs", zh: "两种周三放学" })}
+              kicker={tr(lang, { en: "Schedule groups", zh: "作息分组" })}
+              title={tr(lang, { en: "Two Wednesday dismissal times", zh: "两种周三放学时间" })}
             />
             <div className="grid gap-3 md:grid-cols-2">
               {elemBells.map((group) => (
@@ -89,7 +89,7 @@ export function K12Campus({ level }: { level: Exclude<Level, "uni"> }) {
                   <p className="mt-1 text-sm text-moss">{tr(lang, group.wed)}</p>
                   <p className="mt-2 text-xs text-muted">
                     {group.schools.length}{" "}
-                    {tr(lang, { en: "schools on this bell", zh: "所学校用这组时间" })}
+                    {tr(lang, { en: "schools on this schedule", zh: "所学校用这组时间" })}
                   </p>
                 </Card>
               ))}
