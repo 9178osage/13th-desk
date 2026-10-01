@@ -16,8 +16,8 @@ function TownPage() {
       page="town"
       kicker={
         young
-          ? { en: "After the bell", zh: "放学以后" }
-          : { en: "Eugene, off the timetable", zh: "校园外面的尤金" }
+          ? { en: "After school", zh: "放学以后" }
+          : { en: "Eugene, off the clock", zh: "校园外面的尤金" }
       }
       title={young ? { en: "Out of school", zh: "放学之后" } : { en: "The town", zh: "尤金市区" }}
       lead={

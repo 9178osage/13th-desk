@@ -15,10 +15,10 @@ function CampusPage() {
     <PlaceBrowser
       page="campus"
       kicker={{ en: "University of Oregon & Lane", zh: "俄勒冈大学和莱恩社区学院" }}
-      title={{ en: "Where to sit", zh: "在哪坐" }}
+      title={{ en: "Places to sit", zh: "坐哪儿" }}
       lead={{
-        en: "Libraries, atriums, and the dining rooms that actually feed people. Hours move. The link is the authority, not this card.",
-        zh: "图书馆、中庭，还有能正经吃饭的餐厅。时间会变。以链接里的官网为准，别只看这张卡片。",
+        en: "Libraries, atriums, and dining halls that actually feed you. Hours change — trust the official link, not this card.",
+        zh: "图书馆、中庭，还有能正经吃饭的餐厅。时间会变——以官网链接为准，别只看这张卡片。",
       }}
       cats={[
         { id: "all", label: { en: "All", zh: "全部" } },
