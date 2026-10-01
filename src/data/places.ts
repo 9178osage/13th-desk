@@ -20,6 +20,8 @@ export type Place = {
   name: string;
   blurb: Copy;
   href?: string;
+  /** Human hours hint — not a live feed; verify before you go. */
+  hours?: string;
 };
 
 export const areaName: Record<AreaId, Copy> = {
@@ -39,6 +41,7 @@ export const places: Place[] = [
     cat: "study",
     area: "campus",
     name: "Knight Library",
+    hours: "Varies · check library hours (finals shift)",
     href: "https://library.uoregon.edu/hours",
     blurb: {
       en: "The default. Learn which floor is actually quiet. Hours shift in finals week — check before you cross campus in the rain.",
@@ -51,6 +54,7 @@ export const places: Place[] = [
     cat: "study",
     area: "campus",
     name: "Price Science Commons",
+    hours: "Weekdays daytime · quieter evenings than Knight",
     blurb: {
       en: "The science library. Better group rooms than Knight when everyone in your lab shows up at once.",
       zh: "理科图书馆。几个人一起讨论，这里比 Knight 好订房间。",
@@ -62,6 +66,7 @@ export const places: Place[] = [
     cat: "study",
     area: "campus",
     name: "EMU Fishbowl",
+    hours: "EMU open hours · late on weeknights in term",
     href: "https://emu.uoregon.edu/",
     blurb: {
       en: "Tables and outlets under the student union. Fine between classes. A bad place to write the paper you have been avoiding.",
@@ -74,6 +79,7 @@ export const places: Place[] = [
     cat: "study",
     area: "campus",
     name: "Lillis Hall",
+    hours: "Building hours · atrium open most weekdays",
     blurb: {
       en: "Business-school atrium. Open, bright, and usually an outlet within reach.",
       zh: "商学院中庭。敞亮，插座一般够用。",
@@ -85,6 +91,7 @@ export const places: Place[] = [
     cat: "study",
     area: "campus",
     name: "Jordan Schnitzer Museum of Art",
+    hours: "Tue–Sun · often free for students",
     href: "https://jsma.uoregon.edu/",
     blurb: {
       en: "When another fluorescent room sounds unbearable. Ask at the desk — students are often admitted free.",
@@ -97,6 +104,7 @@ export const places: Place[] = [
     cat: "study",
     area: "campus",
     name: "Memorial Quad",
+    hours: "Daylight · weather permitting",
     blurb: {
       en: "Grass, not a power plan. Use it on the rare afternoon the sky is actually blue.",
       zh: "草坪上没有插座。等真出太阳再去。",
@@ -108,6 +116,7 @@ export const places: Place[] = [
     cat: "study",
     area: "campus",
     name: "Knight Law Library",
+    hours: "Law school hours · quietest midweek",
     blurb: {
       en: "Very quiet. If the law school is in exams, leave the seats to them.",
       zh: "这里很安静。法学院考试的时候，把位子让给他们。",
@@ -119,6 +128,7 @@ export const places: Place[] = [
     cat: "study",
     area: "lcc",
     name: "LCC Library",
+    hours: "See Lane calendar · closed some Fridays in summer",
     href: "https://www.lanecc.edu/",
     blurb: {
       en: "Main campus on East 30th. A real room when the UO libraries are full, and the home library if you go to Lane.",
@@ -131,6 +141,7 @@ export const places: Place[] = [
     cat: "dining",
     area: "campus",
     name: "EMU food court",
+    hours: "Lunch through dinner · weekends shorter",
     href: "https://emu.uoregon.edu/",
     blurb: {
       en: "Fast and central, mostly chains. Little Big Burger is the one that started in Portland rather than a national counter.",
@@ -143,6 +154,7 @@ export const places: Place[] = [
     cat: "dining",
     area: "campus",
     name: "Carson Dining",
+    hours: "Meal-plan hours · weekends move",
     href: "https://housing.uoregon.edu/",
     blurb: {
       en: "Residence dining. Meal-plan territory, and weekend hours move — check housing before you walk over hungry.",
@@ -155,6 +167,7 @@ export const places: Place[] = [
     cat: "dining",
     area: "campus",
     name: "Hamilton Dining",
+    hours: "Meal-plan hours · check housing",
     href: "https://housing.uoregon.edu/",
     blurb: {
       en: "The other big dining room, on the west side of the quads. Same rule: trust this term's hours, not last year's memory.",
@@ -167,6 +180,7 @@ export const places: Place[] = [
     cat: "dining",
     area: "campus",
     name: "Agate Street Market",
+    hours: "Evenings in Unthank · limited groceries",
     blurb: {
       en: "Inside Unthank Hall. Snacks and a few real groceries, so tonight does not have to be another campus pastry.",
       zh: "在 Unthank 楼里。有零食，也有一点能当饭的东西。今晚不必再吃一块校园点心。",
@@ -178,6 +192,7 @@ export const places: Place[] = [
     cat: "coffee",
     area: "campus",
     name: "Espresso Roma",
+    hours: "Morning through evening · 13th Ave",
     blurb: {
       en: "The 13th Avenue campus coffee shop. Hazelnut mocha is the cliché because people keep ordering it.",
       zh: "13 街上的校园咖啡馆。很多人点榛果摩卡。",
@@ -189,6 +204,7 @@ export const places: Place[] = [
     cat: "coffee",
     area: "west",
     name: "Vero Espresso House",
+    hours: "Weekday cafe hours · laptop-friendly",
     blurb: {
       en: "205 East 14th. About fifteen minutes off Knight. Laptops are normal; the library crush is not.",
       zh: "东 14 街 205 号，离 Knight 大约走一刻钟。可以打开电脑坐着，没有图书馆那么挤。",
@@ -200,6 +216,7 @@ export const places: Place[] = [
     cat: "coffee",
     area: "downtown",
     name: "Noisette",
+    hours: "Morning pastry · closes mid-afternoon",
     blurb: {
       en: "Pastry on Broadway. A slow morning, not a four-hour bunker.",
       zh: "百老汇街上的面包店。适合慢慢吃早饭，不适合坐四个小时写作业。",
@@ -211,6 +228,7 @@ export const places: Place[] = [
     cat: "coffee",
     area: "downtown",
     name: "Full City Coffee",
+    hours: "Cafe hours · downtown pour",
     blurb: {
       en: "A Eugene roaster, not a national chain. Drink it where they pour it.",
       zh: "尤金本地烘焙的咖啡，不是全国连锁。建议在店里喝。",
@@ -222,6 +240,7 @@ export const places: Place[] = [
     cat: "eat",
     area: "whit",
     name: "Tacovore",
+    hours: "Lunch & dinner · Whiteaker",
     blurb: {
       en: "Whiteaker tacos. The neighborhood that feels like Eugene rather than just campus.",
       zh: "Whiteaker 的塔可。这边更像尤金这座城，不只是校园。",
@@ -233,6 +252,7 @@ export const places: Place[] = [
     cat: "eat",
     area: "campus",
     name: "Café Yumm!",
+    hours: "Lunch through early evening",
     blurb: {
       en: "Rice bowls, born in Eugene. The place you take a visitor when you do not want to explain the menu.",
       zh: "米饭碗，这家店从尤金做起来的。带朋友来就行，菜单很好懂。",
@@ -244,6 +264,7 @@ export const places: Place[] = [
     cat: "eat",
     area: "west",
     name: "Off the Waffle",
+    hours: "Brunch stretch · Sunday wait",
     blurb: {
       en: "Liège waffles as a study reward. Sundays mean a wait. Budget for that, not a reservation fantasy.",
       zh: "自习结束后可以来吃列日华夫。周日要排队，不能订位。",
@@ -255,6 +276,7 @@ export const places: Place[] = [
     cat: "eat",
     area: "downtown",
     name: "The Glenwood",
+    hours: "Breakfast all day · booth hours",
     blurb: {
       en: "Booths and breakfast all day. The restaurant people mention once they have actually lived here.",
       zh: "有卡座，全天供应早餐。在尤金住过一阵的人，才会跟你提这家。",
@@ -266,6 +288,7 @@ export const places: Place[] = [
     cat: "eat",
     area: "west",
     name: "Prince Puckler's",
+    hours: "Afternoon & evening scoops",
     blurb: {
       en: "Ice cream on 13th. Not dinner. Still part of being a student here.",
       zh: "13 街上的冰淇淋。不是正餐，不过学生经常去。",
@@ -277,6 +300,7 @@ export const places: Place[] = [
     cat: "eat",
     area: "downtown",
     name: "Saturday Market carts",
+    hours: "Saturdays in season · ~10–4",
     href: "https://eugenesaturdaymarket.org/",
     blurb: {
       en: "Park Blocks, Saturdays in season, about 10 to 4. The Jamaican cart is the one people text you about.",
@@ -289,6 +313,7 @@ export const places: Place[] = [
     cat: "eat",
     area: "downtown",
     name: "Marché",
+    hours: "Dinner · reservations help",
     blurb: {
       en: "Inside 5th Street Public Market. A nicer dinner, ideally when someone else is paying.",
       zh: "在第五街公共市场里面。比较正式的一顿，适合别人请客的时候去。",
@@ -300,6 +325,7 @@ export const places: Place[] = [
     cat: "eat",
     area: "downtown",
     name: "Provisions Market Hall",
+    hours: "Daytime stalls · same building as Marché",
     blurb: {
       en: "Same building as Marché, more stalls, easier to split a meal without dressing up.",
       zh: "和 Marché 同一栋楼，摊位更多。不用穿正式，几个人分着吃也方便。",
@@ -311,6 +337,7 @@ export const places: Place[] = [
     cat: "out",
     area: "river",
     name: "Pre's Trail",
+    hours: "Dawn to dusk · lights help after dark",
     blurb: {
       en: "Alton Baker Park, across the river. Flat, famous, and full of people running in weather you would call a reason to stay in.",
       zh: "河对岸的 Alton Baker 公园。地很平，人也多。天气很差的时候，这里还是有人在跑步。",
@@ -322,6 +349,7 @@ export const places: Place[] = [
     cat: "out",
     area: "south",
     name: "Spencer Butte",
+    hours: "Daylight hike · ~1 hr up",
     blurb: {
       en: "The south hill. About an hour up if you do not rush. On a clear hour you can see the whole town.",
       zh: "南边的山。不赶路的话，大约一小时到顶。云散开时能看见整座城。",
@@ -333,6 +361,7 @@ export const places: Place[] = [
     cat: "out",
     area: "downtown",
     name: "Skinner Butte",
+    hours: "Short climb · sunset worth it",
     blurb: {
       en: "A short climb over downtown. Come for the light, not for a workout.",
       zh: "市中心旁边的一座小山。来看风景就行，不必当成锻炼。",
@@ -344,6 +373,7 @@ export const places: Place[] = [
     cat: "out",
     area: "river",
     name: "Ruth Bascom Riverbank Path",
+    hours: "All day · lights after dusk",
     blurb: {
       en: "The bike highway along the Willamette. Use lights after dusk. This is how a lot of campus reaches Alton Baker.",
       zh: "沿着威拉米特河的自行车道。天黑后要开车灯。很多人从校园去 Alton Baker 走这条路。",
@@ -355,6 +385,7 @@ export const places: Place[] = [
     cat: "out",
     area: "south",
     name: "Hendricks Park",
+    hours: "Park hours · rhododendrons in spring",
     blurb: {
       en: "Rhododendrons in spring, a quiet forest the rest of the year. East of campus, up the hill.",
       zh: "春天有杜鹃花，其他季节是安静的林子。在校园东边的山上。",
@@ -366,6 +397,7 @@ export const places: Place[] = [
     cat: "errand",
     area: "downtown",
     name: "Eugene Saturday Market",
+    hours: "Sat in season · ~Apr–Nov, 10–4",
     href: "https://eugenesaturdaymarket.org/",
     blurb: {
       en: "Handmade goods, produce, and food on the Park Blocks. Free to walk. Regular season runs roughly April through November.",
@@ -378,6 +410,7 @@ export const places: Place[] = [
     cat: "errand",
     area: "downtown",
     name: "5th Street Public Market",
+    hours: "Indoor · useful Oct–May",
     blurb: {
       en: "Indoors, which matters from October on. Food, a few shops, and a place to wait out a squall.",
       zh: "在室内。从十月开始这很重要。有吃的、几家店，下雨也能躲一会儿。",
@@ -389,6 +422,7 @@ export const places: Place[] = [
     cat: "errand",
     area: "campus",
     name: "Duck Store",
+    hours: "Retail hours · textbook rush weeks",
     href: "https://www.uoduckstore.com/",
     blurb: {
       en: "Textbooks, and the sweatshirt you said you would not buy. Compare the ISBN before you pay campus prices.",
@@ -401,6 +435,7 @@ export const places: Place[] = [
     cat: "errand",
     area: "downtown",
     name: "Eugene Station",
+    hours: "LTD hub · EmX all day",
     href: "https://www.ltd.org/",
     blurb: {
       en: "The downtown LTD hub. EmX along Franklin is the student line: campus, downtown, Springfield.",
@@ -413,6 +448,7 @@ export const places: Place[] = [
     cat: "errand",
     area: "west",
     name: "A real grocery",
+    hours: "Supermarket hours · not campus snack",
     blurb: {
       en: "Agate Street Market covers tonight. Fred Meyer or Market of Choice is the actual shop. The Duck Store is not a grocery plan.",
       zh: "今晚临时要买的，可以去 Agate Street Market。正经买菜去 Fred Meyer 或 Market of Choice。Duck Store 不是超市。",
