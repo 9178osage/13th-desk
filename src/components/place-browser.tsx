@@ -1,11 +1,24 @@
 import { useMemo, useState } from "react";
-import { ExternalLink, Heart, Search } from "lucide-react";
-import { areaName, forLevel, places, type PlaceCat } from "@/data/places";
+import { ExternalLink, Heart, MapPinned, Search } from "lucide-react";
+import { areaName, forLevel, places, type AreaId, type Place, type PlaceCat } from "@/data/places";
+import { Card, Chip, EmptyState, Input, SectionHeader } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { useDesk, useLang } from "@/lib/store";
-import { tr, type Copy, type Lang } from "@/lib/text";
+import { tr, type Copy } from "@/lib/text";
 
 type Filter = "all" | "saved" | PlaceCat;
+
+const AREA_ORDER: AreaId[] = ["campus", "west", "downtown", "whit", "river", "south", "lcc"];
+
+function mapsUrl(place: Place): string {
+  const q = encodeURIComponent(`${place.name} Eugene OR`);
+  return `https://maps.apple.com/?q=${q}`;
+}
+
+function googleMapsUrl(place: Place): string {
+  const q = encodeURIComponent(`${place.name} Eugene, OR`);
+  return `https://www.google.com/maps/search/?api=1&query=${q}`;
+}
 
 export function PlaceBrowser({
   page,
@@ -39,104 +52,143 @@ export function PlaceBrowser({
       })
       .filter((place) => {
         if (!q) return true;
-        const hay = `${place.name} ${place.blurb.en} ${place.blurb.zh} ${areaName[place.area].en} ${areaName[place.area].zh}`.toLowerCase();
+        const hay =
+          `${place.name} ${place.blurb.en} ${place.blurb.zh ?? ""} ${areaName[place.area].en} ${areaName[place.area].zh ?? ""} ${place.hours ?? ""}`.toLowerCase();
         return hay.includes(q);
       });
   }, [page, cat, query, favs, level]);
 
+  const grouped = useMemo(() => {
+    const map = new Map<AreaId, Place[]>();
+    for (const place of list) {
+      const bucket = map.get(place.area) ?? [];
+      bucket.push(place);
+      map.set(place.area, bucket);
+    }
+    return AREA_ORDER.filter((id) => map.has(id)).map((id) => ({
+      id,
+      places: map.get(id)!,
+    }));
+  }, [list]);
+
   return (
     <div>
-      <header className="mb-6 border-b border-ink pb-4">
-        <p className="text-xs uppercase tracking-widest text-muted">{tr(lang, kicker)}</p>
+      <header className="mb-6 border-b border-ink/80 pb-4">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{tr(lang, kicker)}</p>
         <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">{tr(lang, title)}</h1>
         <p className="mt-3 max-w-2xl text-muted">{tr(lang, lead)}</p>
       </header>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <label className="relative min-w-0 flex-1">
+
+      <div className="mb-4">
+        <label className="relative block min-w-0">
           <span className="sr-only">{tr(lang, { en: "Search places", zh: "搜索地点" })}</span>
           <Search className="pointer-events-none absolute left-3 top-3 size-5 text-muted" aria-hidden />
-          <input
+          <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={tr(lang, { en: "Search a room, a meal, a hill", zh: "搜教室、吃饭的地方、山" })}
-            className="min-h-11 w-full rounded-md border border-line bg-card pr-3 pl-10 text-ink placeholder:text-muted"
+            className="pl-10"
           />
         </label>
       </div>
+
       <div className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
-        {cats.map((item) => {
-          const on = cat === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              aria-pressed={on}
-              onClick={() => setCat(item.id)}
-              className={cn(
-                "min-h-11 shrink-0 rounded-full px-4 text-sm",
-                on ? "bg-ink text-card" : "border border-line bg-card text-ink",
-              )}
-            >
-              {tr(lang, item.label)}
-            </button>
-          );
-        })}
+        {cats.map((item) => (
+          <Chip key={item.id} active={cat === item.id} pressed={cat === item.id} onClick={() => setCat(item.id)}>
+            {tr(lang, item.label)}
+          </Chip>
+        ))}
       </div>
+
       {list.length === 0 ? (
-        <p className="rounded-lg border border-line bg-card px-4 py-8 text-center text-muted">
-          {tr(lang, {
-            en: "Nothing under that filter. Try another word, or pin a place first.",
-            zh: "这个筛选下面是空的。换个词，或者先收藏一个地方。",
+        <EmptyState
+          title={tr(lang, { en: "Nothing in this filter", zh: "这个筛选是空的" })}
+          body={tr(lang, {
+            en: "Try another word, clear the search, or pin a place from Campus or Town first.",
+            zh: "换个词，清空搜索，或者先从校园/城里收藏一个地方。",
           })}
-        </p>
+        />
       ) : (
-        <ul className="grid gap-3 md:grid-cols-2">
-          {list.map((place) => {
-            const saved = favs.includes(place.id);
-            return (
-              <li key={place.id}>
-                <article className="flex h-full flex-col gap-3 rounded-lg border border-line bg-card p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-widest text-muted">
-                        {tr(lang, areaName[place.area])}
-                      </p>
-                      <h2 className="font-display text-2xl text-ink">{place.name}</h2>
-                    </div>
-                    <button
-                      type="button"
-                      aria-pressed={saved}
-                      aria-label={
-                        saved
-                          ? tr(lang, { en: "Unpin", zh: "取消收藏" }) + " " + place.name
-                          : tr(lang, { en: "Pin", zh: "收藏" }) + " " + place.name
-                      }
-                      onClick={() => toggleFav(place.id)}
-                      className={cn(
-                        "grid size-11 shrink-0 place-items-center rounded-full border",
-                        saved ? "border-moss bg-moss-soft text-moss" : "border-line text-muted",
-                      )}
-                    >
-                      <Heart className={cn("size-5", saved && "fill-current")} aria-hidden />
-                    </button>
-                  </div>
-                  <p className="text-sm text-muted">{tr(lang, place.blurb)}</p>
-                  {place.href ? (
-                    <a
-                      href={place.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-auto inline-flex min-h-11 items-center gap-1 text-sm text-moss"
-                    >
-                      {tr(lang, { en: "Official page", zh: "官方页面" })}
-                      <ExternalLink className="size-4" aria-hidden />
-                    </a>
-                  ) : null}
-                </article>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="flex flex-col gap-8">
+          {grouped.map((group) => (
+            <section key={group.id}>
+              <SectionHeader
+                className="mb-3"
+                kicker={tr(lang, { en: "Area", zh: "片区" })}
+                title={tr(lang, areaName[group.id])}
+              />
+              <ul className="grid gap-3 md:grid-cols-2">
+                {group.places.map((place) => {
+                  const saved = favs.includes(place.id);
+                  return (
+                    <li key={place.id}>
+                      <Card className="lift-hover flex h-full flex-col gap-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="mb-1.5 flex flex-wrap gap-1.5">
+                              <Chip>{tr(lang, areaName[place.area])}</Chip>
+                              {place.hours ? <Chip>{place.hours}</Chip> : null}
+                            </div>
+                            <h2 className="font-display text-2xl text-ink">{place.name}</h2>
+                          </div>
+                          <button
+                            type="button"
+                            aria-pressed={saved}
+                            aria-label={
+                              (saved
+                                ? tr(lang, { en: "Unpin", zh: "取消收藏" })
+                                : tr(lang, { en: "Pin", zh: "收藏" })) +
+                              " " +
+                              place.name
+                            }
+                            onClick={() => toggleFav(place.id)}
+                            className={cn(
+                              "grid size-11 shrink-0 place-items-center rounded-full border",
+                              saved ? "border-moss bg-moss-soft text-moss" : "border-line text-muted",
+                            )}
+                          >
+                            <Heart className={cn("size-5", saved && "fill-current")} aria-hidden />
+                          </button>
+                        </div>
+                        <p className="text-sm text-muted">{tr(lang, place.blurb)}</p>
+                        <div className="mt-auto flex flex-wrap gap-x-3 gap-y-1 pt-1">
+                          <a
+                            href={mapsUrl(place)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex min-h-11 items-center gap-1 text-sm text-moss"
+                          >
+                            <MapPinned className="size-4" aria-hidden />
+                            {tr(lang, { en: "Maps", zh: "地图" })}
+                          </a>
+                          <a
+                            href={googleMapsUrl(place)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex min-h-11 items-center gap-1 text-sm text-muted hover:text-moss"
+                          >
+                            {tr(lang, { en: "Google Maps", zh: "谷歌地图" })}
+                          </a>
+                          {place.href ? (
+                            <a
+                              href={place.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex min-h-11 items-center gap-1 text-sm text-moss"
+                            >
+                              {tr(lang, { en: "Official page", zh: "官方页面" })}
+                              <ExternalLink className="size-4" aria-hidden />
+                            </a>
+                          ) : null}
+                        </div>
+                      </Card>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
     </div>
   );
