@@ -1,8 +1,9 @@
+import { useEffect } from "react";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Shell } from "@/components/shell";
-import { htmlLang } from "@/lib/text";
+import { htmlLang, type Lang } from "@/lib/text";
 import { useDesk } from "@/lib/store";
 import appCss from "../styles.css?url";
 
@@ -33,9 +34,17 @@ export const Route = createRootRoute({
 });
 
 function Root() {
-  const lang = useDesk((state) => state.lang);
+  useEffect(() => {
+    const sync = (lang: Lang) => {
+      if (typeof document === "undefined") return;
+      document.documentElement.lang = htmlLang(lang);
+    };
+    sync(useDesk.getState().lang);
+    return useDesk.subscribe((state) => sync(state.lang));
+  }, []);
+
   return (
-    <html lang={htmlLang(lang)} className="antialiased" suppressHydrationWarning>
+    <html lang="en" className="antialiased" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
