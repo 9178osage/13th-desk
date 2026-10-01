@@ -2,14 +2,18 @@ import { useState } from "react";
 import { DISTRICTS, districtAt, districtCopy, isDistrict } from "@/data/districts";
 import { useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
+import { cn } from "@/lib/cn";
 
-export function DistrictBar() {
+export function DistrictBar({ compact = false }: { compact?: boolean }) {
   const lang = useLang();
   const level = useDesk((state) => state.level);
   const district = useDesk((state) => state.district);
   const setDistrict = useDesk((state) => state.setDistrict);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [open, setOpen] = useState(false);
+
+  if (level === "uni") return null;
 
   function locate() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -74,13 +78,116 @@ export function DistrictBar() {
   }
 
   const picked = district ? DISTRICTS.find((item) => item.id === district) : null;
-  const mismatch = level !== "uni" && picked && picked.id !== "4j";
+  const mismatch = picked && picked.id !== "4j";
+  const summary = picked
+    ? tr(lang, districtCopy(picked.id))
+    : tr(lang, {
+        en: "District",
+        zh: "学区",
+        es: "Distrito",
+        ko: "학구",
+        vi: "Học khu",
+        ja: "学区",
+      });
+
+  if (compact) {
+    return (
+      <div className="min-w-0 sm:max-w-[16rem] sm:shrink-0">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className={cn(
+            "flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-card px-2.5 text-left text-xs text-ink shadow-sm md:min-h-10",
+            open && "border-moss",
+          )}
+        >
+          <span className="truncate font-medium">{summary}</span>
+          <span className="shrink-0 text-muted">{open ? "▴" : "▾"}</span>
+        </button>
+        {open ? (
+          <div className="mt-1.5 space-y-1.5 rounded-md border border-line bg-card p-2 shadow-paper">
+            <label className="block">
+              <span className="sr-only">
+                {tr(lang, { en: "District", zh: "学区", es: "Distrito", ko: "학구", vi: "Học khu", ja: "学区" })}
+              </span>
+              <select
+                value={district ?? ""}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setDistrict(isDistrict(next) ? next : null);
+                  setNote("");
+                }}
+                className="min-h-10 w-full rounded-md border border-line bg-paper px-2 text-sm text-ink"
+              >
+                <option value="">
+                  {tr(lang, {
+                    en: "Not chosen",
+                    zh: "还没选",
+                    es: "Sin elegir",
+                    ko: "아직 안 골랐어요",
+                    vi: "Chưa chọn",
+                    ja: "未選択",
+                  })}
+                </option>
+                {DISTRICTS.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {tr(lang, districtCopy(item.id))}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={locate}
+              disabled={busy}
+              className="min-h-10 w-full rounded-md border border-line bg-paper px-2 text-sm text-ink disabled:opacity-50"
+            >
+              {busy
+                ? tr(lang, {
+                    en: "Locating…",
+                    zh: "正在定位…",
+                    es: "Buscando…",
+                    ko: "위치 찾는 중…",
+                    vi: "Đang định vị…",
+                    ja: "位置を確認中…",
+                  })
+                : tr(lang, {
+                    en: "Use location",
+                    zh: "用定位",
+                    es: "Usar ubicación",
+                    ko: "위치로 찾기",
+                    vi: "Dùng vị trí",
+                    ja: "位置で見る",
+                  })}
+            </button>
+            {note ? <p className="text-xs text-muted">{note}</p> : null}
+            {mismatch && picked ? (
+              <p className="text-xs text-muted">
+                {tr(lang, {
+                  en: `Dates here follow Eugene 4J. ${picked.en} prints its own calendar.`,
+                  zh: `这里的日期按尤金 4J。${picked.zh}有自己的校历。`,
+                })}{" "}
+                {picked.href ? (
+                  <a href={picked.href} target="_blank" rel="noopener noreferrer" className="text-moss underline">
+                    {tr(lang, { en: "Their site", zh: "去他们的网站" })}
+                  </a>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-3 pb-2">
       <div className="flex flex-wrap items-center gap-2">
         <label className="min-w-0 flex-1">
-          <span className="sr-only">{tr(lang, { en: "District", zh: "学区", es: "Distrito", ko: "학구", vi: "Học khu", ja: "学区" })}</span>
+          <span className="sr-only">
+            {tr(lang, { en: "District", zh: "学区", es: "Distrito", ko: "학구", vi: "Học khu", ja: "学区" })}
+          </span>
           <select
             value={district ?? ""}
             onChange={(event) => {
@@ -91,7 +198,14 @@ export function DistrictBar() {
             className="min-h-11 w-full rounded-md border border-line bg-card px-3 text-sm text-ink"
           >
             <option value="">
-              {tr(lang, { en: "District not chosen", zh: "还没选学区", es: "Distrito sin elegir", ko: "학구를 아직 안 골랐어요", vi: "Chưa chọn học khu", ja: "学区はまだ選んでいません" })}
+              {tr(lang, {
+                en: "District not chosen",
+                zh: "还没选学区",
+                es: "Distrito sin elegir",
+                ko: "학구를 아직 안 골랐어요",
+                vi: "Chưa chọn học khu",
+                ja: "学区はまだ選んでいません",
+              })}
             </option>
             {DISTRICTS.map((item) => (
               <option key={item.id} value={item.id}>
@@ -107,8 +221,22 @@ export function DistrictBar() {
           className="min-h-11 shrink-0 rounded-md border border-line bg-card px-3 text-sm text-ink disabled:opacity-50"
         >
           {busy
-            ? tr(lang, { en: "Locating…", zh: "正在定位…", es: "Buscando…", ko: "위치 찾는 중…", vi: "Đang định vị…", ja: "位置を確認中…" })
-            : tr(lang, { en: "Use location", zh: "用定位", es: "Usar ubicación", ko: "위치로 찾기", vi: "Dùng vị trí", ja: "位置で見る" })}
+            ? tr(lang, {
+                en: "Locating…",
+                zh: "正在定位…",
+                es: "Buscando…",
+                ko: "위치 찾는 중…",
+                vi: "Đang định vị…",
+                ja: "位置を確認中…",
+              })
+            : tr(lang, {
+                en: "Use location",
+                zh: "用定位",
+                es: "Usar ubicación",
+                ko: "위치로 찾기",
+                vi: "Dùng vị trí",
+                ja: "位置で見る",
+              })}
         </button>
       </div>
       {note ? <p className="mt-1 text-sm text-muted">{note}</p> : null}
@@ -124,7 +252,14 @@ export function DistrictBar() {
           })}{" "}
           {picked.href ? (
             <a href={picked.href} target="_blank" rel="noopener noreferrer" className="text-moss underline">
-              {tr(lang, { en: "Their site", zh: "去他们的网站", es: "Su sitio", ko: "그 학구 사이트", vi: "Trang của họ", ja: "その学区のサイト" })}
+              {tr(lang, {
+                en: "Their site",
+                zh: "去他们的网站",
+                es: "Su sitio",
+                ko: "그 학구 사이트",
+                vi: "Trang của họ",
+                ja: "その学区のサイト",
+              })}
             </a>
           ) : null}
         </p>
