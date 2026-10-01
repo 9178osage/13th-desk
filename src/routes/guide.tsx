@@ -16,7 +16,7 @@ import { tr } from "@/lib/text";
 import { eugeneClock, formatWhen, hmToMin } from "@/lib/time";
 
 export const Route = createFileRoute("/guide")({
-  head: () => ({ meta: [{ title: "Guide · 13th Desk" }] }),
+  head: () => ({ meta: [{ title: "Guide · Eugene Desk" }] }),
   component: GuidePage,
 });
 
