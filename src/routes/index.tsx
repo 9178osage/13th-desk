@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, Trash2 } from "lucide-react";
+import { Check, CloudSun, MapPin, NotebookPen, Trash2 } from "lucide-react";
 import { deadlines } from "@/data/guide";
 import { deadlinesFor, releaseLine } from "@/data/k12";
 import { areaName, forLevel, places } from "@/data/places";
 import { WeatherCard } from "@/components/weather";
-import { Button } from "@/components/ui";
+import { WeekSchedule } from "@/components/week-schedule";
+import { Button, Card, EmptyState, Input, SectionHeader, Stat } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { LEVELS } from "@/lib/levels";
 import { tf, tr } from "@/lib/text";
@@ -60,6 +61,7 @@ function Home() {
 
   const dateList = level === "uni" ? deadlines : deadlinesFor(level);
   const upcoming = dateList.filter((item) => !passed(item, clock)).slice(0, 3);
+  const nextDeadline = upcoming[0] ?? null;
   const pins = places.filter((place) => favs.includes(place.id) && forLevel(place, level)).slice(0, 4);
   const levelName = LEVELS.find((item) => item.id === level);
 
@@ -178,21 +180,24 @@ function Home() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <header className="border-b border-ink pb-6" suppressHydrationWarning>
+    <div className="flex flex-col gap-7">
+      <header
+        className="overflow-hidden rounded-xl border border-ink/10 bg-gradient-to-br from-card via-card to-moss-soft/40 p-5 shadow-paper md:p-6"
+        suppressHydrationWarning
+      >
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-widest text-muted">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
               {formatDateline(new Date(), lang)}
               {levelName ? ` · ${tr(lang, levelName)}` : ""}
             </p>
             <h1 className="mt-2 font-display text-4xl text-ink md:text-6xl">{greet}</h1>
           </div>
           {phase.kind === "during" ? (
-            <p className="shrink-0 text-right font-display text-5xl leading-none tabular-nums text-moss md:text-6xl">
-              {String(phase.day).padStart(2, "0")}
-              <span className="mt-1 block text-xs font-sans uppercase tracking-widest text-muted">
-                {level === "uni"
+            <Stat
+              value={String(phase.day).padStart(2, "0")}
+              label={
+                level === "uni"
                   ? tr(lang, { en: "Fall day", zh: "秋季第几天" })
                   : earlyStart
                     ? tr(lang, {
@@ -203,76 +208,161 @@ function Home() {
                         vi: "Từ 8 tháng 9",
                         ja: "9月8日から",
                       })
-                    : tr(lang, { en: "Since Sept 9", zh: "从 9 月 9 日算" })}
-              </span>
-            </p>
+                    : tr(lang, { en: "Since Sept 9", zh: "从 9 月 9 日算" })
+              }
+              className="shrink-0 text-right"
+            />
           ) : null}
         </div>
         <p className="mt-3 max-w-xl text-base text-ink md:text-lg">{termLine}</p>
-          {level !== "uni" ? (
-            <p className="mt-2 max-w-xl text-sm text-muted">
-              {tr(lang, releaseLine(level, clock.weekday === 3))}
-            </p>
-          ) : null}
-          {level !== "uni" && phase.kind !== "after" && (district === null || district === "4j") ? (
-            <button
-              type="button"
-              aria-pressed={earlyStart}
-              onClick={() => setEarlyStart(!earlyStart)}
-              className="mt-3 inline-flex min-h-11 max-w-xl items-center rounded-md border border-line bg-card px-3 py-2 text-left text-sm text-ink"
-            >
-              {earlyStart
-                ? tr(lang, {
-                    en: "Counting from September 8. Most students started September 9.",
-                    zh: "正在按 9 月 8 日算。多数学生是 9 月 9 日开学。",
-                    es: "Contando desde el 8 de septiembre. La mayoría empezó el 9.",
-                    ko: "9월 8일부터 세고 있어요. 대부분은 9월 9일에 시작해요.",
-                    vi: "Đang tính từ ngày 8 tháng 9. Hầu hết khai giảng ngày 9 tháng 9.",
-                    ja: "9月8日から数えています。ほとんどの生徒は9月9日です。",
-                  })
-                : tr(lang, {
-                    en: "Kindergarten, 6th, and 9th started September 8. Count from that day.",
-                    zh: "幼儿园、六年级、九年级是 9 月 8 日开学。按那天算。",
-                    es: "Kínder, 6.º y 9.º empezaron el 8 de septiembre. Contar desde ese día.",
-                    ko: "유치원, 6학년, 9학년은 9월 8일에 시작해요. 그 날부터 세요.",
-                    vi: "Mẫu giáo, lớp 6 và lớp 9 khai giảng ngày 8 tháng 9. Tính từ ngày đó.",
-                    ja: "幼稚園、6年生、9年生は9月8日です。その日から数えます。",
-                  })}
-            </button>
-          ) : null}
+        {level !== "uni" ? (
+          <p className="mt-2 max-w-xl text-sm text-muted">{tr(lang, releaseLine(level, clock.weekday === 3))}</p>
+        ) : null}
+        {level !== "uni" && phase.kind !== "after" && (district === null || district === "4j") ? (
+          <button
+            type="button"
+            aria-pressed={earlyStart}
+            onClick={() => setEarlyStart(!earlyStart)}
+            className="mt-3 inline-flex min-h-11 max-w-xl items-center rounded-md border border-line bg-card/90 px-3 py-2 text-left text-sm text-ink shadow-sm"
+          >
+            {earlyStart
+              ? tr(lang, {
+                  en: "Counting from September 8. Most students started September 9.",
+                  zh: "正在按 9 月 8 日算。多数学生是 9 月 9 日开学。",
+                  es: "Contando desde el 8 de septiembre. La mayoría empezó el 9.",
+                  ko: "9월 8일부터 세고 있어요. 대부분은 9월 9일에 시작해요.",
+                  vi: "Đang tính từ ngày 8 tháng 9. Hầu hết khai giảng ngày 9 tháng 9.",
+                  ja: "9月8日から数えています。ほとんどの生徒は9月9日です。",
+                })
+              : tr(lang, {
+                  en: "Kindergarten, 6th, and 9th started September 8. Count from that day.",
+                  zh: "幼儿园、六年级、九年级是 9 月 8 日开学。按那天算。",
+                  es: "Kínder, 6.º y 9.º empezaron el 8 de septiembre. Contar desde ese día.",
+                  ko: "유치원, 6학년, 9학년은 9월 8일에 시작해요. 그 날부터 세요.",
+                  vi: "Mẫu giáo, lớp 6 và lớp 9 khai giảng ngày 8 tháng 9. Tính từ ngày đó.",
+                  ja: "幼稚園、6年生、9年生は9月8日です。その日から数えます。",
+                })}
+          </button>
+        ) : null}
       </header>
 
-      <div className="grid items-start gap-8 lg:grid-cols-5">
-        <div className="order-2 flex flex-col gap-8 lg:order-1 lg:col-span-3">
-          <section>
-            <h2 className="font-display text-3xl text-ink">
-              {tr(lang, { en: "Due soon", zh: "快到的日子" })}
-            </h2>
-            {upcoming.length === 0 ? (
-              <p className="mt-3 text-muted">
-                {level === "uni"
-                  ? tr(lang, {
-                      en: "Nothing from the fall list is still ahead. Check the registrar before you trust a screenshot.",
-                      zh: "秋季这张清单里，还没到的日期已经没有了。别拿截图当校历，去教务处看。",
-                    })
-                  : tr(lang, {
-                      en: "Nothing left on this 4J list. The district PDF is newer than a screenshot.",
-                      zh: "这张 4J 清单里，还没到的日期已经没有了。学区 PDF 比截图新，以 PDF 为准。",
-                    })}
-              </p>
+      <section>
+        <SectionHeader
+          className="mb-3"
+          kicker={tr(lang, { en: "Glance", zh: "一眼" })}
+          title={tr(lang, { en: "Next up", zh: "接下来" })}
+        />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Card className="flex flex-col gap-2" tone={nextDeadline ? "gold" : "paper"}>
+            <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+              <NotebookPen className="size-3.5" aria-hidden />
+              {tr(lang, { en: "Next deadline", zh: "下一个日子" })}
+            </p>
+            {nextDeadline ? (
+              <>
+                <p className="font-display text-2xl text-ink">{formatWhen(nextDeadline.ymd, clock.ymd, lang)}</p>
+                <p className="text-sm font-medium text-ink">{tr(lang, nextDeadline.title)}</p>
+                <p className="text-xs text-muted">{tr(lang, nextDeadline.detail)}</p>
+              </>
             ) : (
-              <ol className="mt-3 divide-y divide-line border-y border-line">
+              <p className="text-sm text-muted">
+                {tr(lang, { en: "Nothing left on this list.", zh: "这张清单里没有还没到的。" })}
+              </p>
+            )}
+          </Card>
+
+          <Card className="flex flex-col gap-2 overflow-hidden p-0 sm:col-span-1">
+            <div className="px-4 pt-3">
+              <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+                <CloudSun className="size-3.5" aria-hidden />
+                {tr(lang, { en: "Weather", zh: "天气" })}
+              </p>
+            </div>
+            <div className="px-2 pb-2 [&_>_*]:shadow-none [&_>_*]:border-0">
+              <WeatherCard />
+            </div>
+          </Card>
+
+          <Card className="flex flex-col gap-2">
+            <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+              <MapPin className="size-3.5" aria-hidden />
+              {tr(lang, { en: "Pinned place", zh: "收藏地点" })}
+            </p>
+            {pins[0] ? (
+              <>
+                <p className="text-xs uppercase tracking-widest text-muted">{tr(lang, areaName[pins[0].area])}</p>
+                <p className="font-display text-2xl text-ink">{pins[0].name}</p>
+                {pins[0].hours ? <p className="text-xs text-muted">{pins[0].hours}</p> : null}
+              </>
+            ) : (
+              <p className="text-sm text-muted">
+                {tr(lang, {
+                  en: "Pin a room or cafe from Campus or Town.",
+                  zh: "从校园或城里收藏一个地方。",
+                })}
+              </p>
+            )}
+            <Link to="/campus" className="mt-auto inline-flex min-h-10 items-center text-sm text-moss">
+              {level === "uni"
+                ? tr(lang, { en: "Campus list", zh: "校园清单" })
+                : tr(lang, { en: "School list", zh: "学校名单" })}
+            </Link>
+          </Card>
+
+          <Card className="flex flex-col gap-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+              {tr(lang, { en: "Open notes", zh: "未完成笔记" })}
+            </p>
+            <p className="font-display text-4xl tabular-nums text-moss">
+              {notes.filter((n) => !n.done).length}
+            </p>
+            <p className="text-sm text-muted">
+              {tr(lang, { en: "Kept in this browser only.", zh: "只存在这台浏览器里。" })}
+            </p>
+          </Card>
+        </div>
+      </section>
+
+      <div className="grid items-start gap-7 lg:grid-cols-5">
+        <div className="order-2 flex flex-col gap-7 lg:order-1 lg:col-span-3">
+          <section>
+            <SectionHeader
+              className="mb-3"
+              title={tr(lang, { en: "Due soon", zh: "快到的日子" })}
+              action={
+                <Link to="/guide" className="inline-flex min-h-11 items-center text-sm text-moss">
+                  {level === "uni"
+                    ? tr(lang, { en: "Full fall list", zh: "整张秋季清单" })
+                    : tr(lang, { en: "The whole year", zh: "全年的日子" })}
+                </Link>
+              }
+            />
+            {upcoming.length === 0 ? (
+              <EmptyState
+                title={tr(lang, { en: "List is clear", zh: "清单清空了" })}
+                body={
+                  level === "uni"
+                    ? tr(lang, {
+                        en: "Nothing from the fall list is still ahead. Check the registrar before you trust a screenshot.",
+                        zh: "秋季这张清单里，还没到的日期已经没有了。别拿截图当校历，去教务处看。",
+                      })
+                    : tr(lang, {
+                        en: "Nothing left on this 4J list. The district PDF is newer than a screenshot.",
+                        zh: "这张 4J 清单里，还没到的日期已经没有了。学区 PDF 比截图新，以 PDF 为准。",
+                      })
+                }
+              />
+            ) : (
+              <ol className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card shadow-paper">
                 {upcoming.map((item, index) => (
                   <li
                     key={item.id}
                     className={cn(
-                      "grid gap-1 py-3 sm:grid-cols-[8rem_1fr] sm:gap-4",
-                      index === 0 && "-mx-3 bg-gold-soft px-3",
+                      "grid gap-1 px-4 py-3 sm:grid-cols-[8rem_1fr] sm:gap-4",
+                      index === 0 && "bg-gold-soft/70",
                     )}
                   >
-                    <p className="font-display text-lg text-ink">
-                      {formatWhen(item.ymd, clock.ymd, lang)}
-                    </p>
+                    <p className="font-display text-lg text-ink">{formatWhen(item.ymd, clock.ymd, lang)}</p>
                     <div>
                       <p className="font-medium text-ink">{tr(lang, item.title)}</p>
                       <p className="text-sm text-muted">{tr(lang, item.detail)}</p>
@@ -281,22 +371,20 @@ function Home() {
                 ))}
               </ol>
             )}
-            <Link to="/guide" className="mt-3 inline-flex min-h-11 items-center text-sm text-moss">
-              {level === "uni"
-                ? tr(lang, { en: "Full fall list", zh: "整张秋季清单" })
-                : tr(lang, { en: "The whole year", zh: "全年的日子" })}
-            </Link>
           </section>
 
+          <WeekSchedule compact />
+
           <section>
-            <h2 className="font-display text-3xl text-ink">
-              {tr(lang, { en: "On this desk", zh: "笔记" })}
-            </h2>
-            <p className="mt-1 text-sm text-muted">
+            <SectionHeader
+              className="mb-1"
+              title={tr(lang, { en: "On this desk", zh: "笔记" })}
+            />
+            <p className="mb-3 text-sm text-muted">
               {tr(lang, { en: "Kept in this browser only.", zh: "只存在这台浏览器里。" })}
             </p>
             <form
-              className="mt-3 flex gap-2"
+              className="flex gap-2"
               onSubmit={(event) => {
                 event.preventDefault();
                 addNote(draft);
@@ -305,7 +393,7 @@ function Home() {
             >
               <label className="min-w-0 flex-1">
                 <span className="sr-only">{tr(lang, { en: "Note", zh: "笔记" })}</span>
-                <input
+                <Input
                   value={draft}
                   maxLength={140}
                   onChange={(event) => setDraft(event.target.value)}
@@ -316,7 +404,6 @@ function Home() {
                         ? tr(lang, { en: "Textbook, ISSS appointment, call home", zh: "教材、ISSS 预约、给家里打电话" })
                         : tr(lang, { en: "Practice, permission slip, project", zh: "训练、家长签名、作业" })
                   }
-                  className="min-h-11 w-full rounded-md border border-line bg-card px-3 text-ink placeholder:text-muted"
                 />
               </label>
               <Button type="submit" disabled={!draft.trim() || notes.length >= 20}>
@@ -324,9 +411,7 @@ function Home() {
               </Button>
             </form>
             {notes.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">
-                {tr(lang, { en: "The desk is clear.", zh: "还没有笔记。" })}
-              </p>
+              <p className="mt-3 text-sm text-muted">{tr(lang, { en: "The desk is clear.", zh: "还没有笔记。" })}</p>
             ) : (
               <ul className="mt-3 flex flex-col gap-2">
                 {notes.map((note) => (
@@ -335,7 +420,7 @@ function Home() {
                       type="button"
                       aria-pressed={note.done}
                       onClick={() => toggleNote(note.id)}
-                      className="flex min-h-11 flex-1 items-start gap-3 rounded-md border border-line bg-card px-3 py-2 text-left"
+                      className="flex min-h-11 flex-1 items-start gap-3 rounded-md border border-line bg-card px-3 py-2 text-left shadow-sm"
                     >
                       <span
                         className={cn(
@@ -365,13 +450,10 @@ function Home() {
         </div>
 
         <aside className="order-1 flex flex-col gap-4 lg:order-2 lg:col-span-2">
-          <WeatherCard />
-          <section className="rounded-lg bg-moss p-4 text-card">
-            <p className="text-xs uppercase tracking-widest">Saturday Market</p>
-            <h2 className="mt-1 font-display text-3xl">
-              {tr(lang, { en: "Park Blocks", zh: "Park Blocks" })}
-            </h2>
-            <p className="mt-2 text-sm">{market}</p>
+          <Card tone="moss">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-card/80">Saturday Market</p>
+            <h2 className="mt-1 font-display text-3xl">{tr(lang, { en: "Park Blocks", zh: "Park Blocks" })}</h2>
+            <p className="mt-2 text-sm text-card/90">{market}</p>
             <a
               href="https://eugenesaturdaymarket.org/"
               target="_blank"
@@ -380,51 +462,40 @@ function Home() {
             >
               {tr(lang, { en: "This week's market", zh: "看这周开不开" })}
             </a>
-          </section>
+          </Card>
+
           <section>
-            <h2 className="font-display text-2xl text-ink">
-              {tr(lang, { en: "Pinned", zh: "收藏" })}
-            </h2>
+            <SectionHeader className="mb-2" title={tr(lang, { en: "Pinned", zh: "收藏" })} />
             {pins.length === 0 ? (
-              <p className="mt-2 text-sm text-muted">
-                {level === "uni"
-                  ? tr(lang, {
-                      en: "Pin the rooms you actually use. They stay on this desk.",
-                      zh: "把你会去的地方收藏起来。它们会留在这里。",
-                    })
-                  : tr(lang, {
-                      en: "Save the places you actually go. They stay in this browser.",
-                      zh: "把你会去的地方收藏起来。它们只留在这台浏览器里。",
-                      es: "Guarda los lugares a los que sí vas. Se quedan en este navegador.",
-                      ko: "실제로 가는 장소를 저장해요. 이 브라우저에만 남아요.",
-                      vi: "Lưu những chỗ bạn thật sự hay đến. Chỉ ở trên trình duyệt này.",
-                      ja: "本当に行く場所を保存してください。このブラウザにだけ残ります。",
-                    })}
-              </p>
+              <EmptyState
+                title={tr(lang, { en: "No pins yet", zh: "还没有收藏" })}
+                body={
+                  level === "uni"
+                    ? tr(lang, {
+                        en: "Pin the rooms you actually use. They stay on this desk.",
+                        zh: "把你会去的地方收藏起来。它们会留在这里。",
+                      })
+                    : tr(lang, {
+                        en: "Save the places you actually go. They stay in this browser.",
+                        zh: "把你会去的地方收藏起来。它们只留在这台浏览器里。",
+                      })
+                }
+              />
             ) : (
-              <ul className="mt-2 flex flex-col gap-2">
+              <ul className="flex flex-col gap-2">
                 {pins.map((place) => (
-                  <li key={place.id} className="rounded-md border border-line bg-card px-3 py-2">
-                    <p className="text-xs uppercase tracking-widest text-muted">
-                      {tr(lang, areaName[place.area])}
-                    </p>
-                    <p className="font-medium text-ink">{place.name}</p>
+                  <li key={place.id}>
+                    <Card padding="sm" className="!p-3">
+                      <p className="text-[11px] uppercase tracking-widest text-muted">
+                        {tr(lang, areaName[place.area])}
+                      </p>
+                      <p className="font-medium text-ink">{place.name}</p>
+                      {place.hours ? <p className="text-xs text-muted">{place.hours}</p> : null}
+                    </Card>
                   </li>
                 ))}
               </ul>
             )}
-            <Link to="/campus" className="mt-2 inline-flex min-h-11 items-center text-sm text-moss">
-              {level === "uni"
-                ? tr(lang, { en: "Campus list", zh: "校园清单" })
-                : tr(lang, {
-                    en: "School list",
-                    zh: "学校名单",
-                    es: "Lista de escuelas",
-                    ko: "학교 목록",
-                    vi: "Danh sách trường",
-                    ja: "学校一覧",
-                  })}
-            </Link>
           </section>
         </aside>
       </div>
