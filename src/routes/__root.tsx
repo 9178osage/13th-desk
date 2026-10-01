@@ -40,7 +40,10 @@ function Root() {
       document.documentElement.lang = htmlLang(lang);
     };
     sync(useDesk.getState().lang);
-    return useDesk.subscribe((state) => sync(state.lang));
+    // Only touch DOM when lang actually changes (persist writes touch other fields).
+    return useDesk.subscribe((state, prev) => {
+      if (state.lang !== prev.lang) sync(state.lang);
+    });
   }, []);
 
   return (
