@@ -4,7 +4,7 @@ import { PlaceBrowser } from "@/components/place-browser";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/campus")({
-  head: () => ({ meta: [{ title: "Campus · 13th Desk" }] }),
+  head: () => ({ meta: [{ title: "Campus · Eugene Desk" }] }),
   component: CampusPage,
 });
 
