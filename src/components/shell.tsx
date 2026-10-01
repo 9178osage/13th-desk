@@ -57,64 +57,66 @@ export function Shell({ children }: { children: ReactNode }) {
       >
         {tr(lang, { en: "Skip to content", zh: "跳到正文" })}
       </a>
-      <header className="sticky top-0 z-30 border-b-2 border-ink bg-paper">
-        <div className="border-b border-ink">
-          <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-            <Link to="/" className="min-w-0">
-              <span className="block font-display text-2xl leading-none tracking-tight text-ink md:text-3xl">
-                13th Desk
-              </span>
-              <span className="mt-1 hidden text-xs uppercase tracking-widest text-muted sm:block">
-                {tr(lang, { en: "Eugene student web", zh: "尤金学生网" })}
-              </span>
-            </Link>
-            <div className="flex shrink-0 items-center gap-2">
-              <label className="shrink-0">
-              <span className="sr-only">{tr(lang, { en: "Language", zh: "语言" })}</span>
-              <select
-                value={lang}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  if (isLang(next)) setLang(next);
-                }}
-                className="min-h-11 max-w-[9.5rem] rounded-full border border-line bg-card px-3 text-sm text-ink"
-              >
-                {LANGS.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-              </label>
+      <header className="sticky top-0 z-30 border-b border-ink/80 bg-paper/95 backdrop-blur-md pt-safe">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
+          <Link to="/" className="min-w-0">
+            <span className="block font-display text-xl leading-none tracking-tight text-ink md:text-2xl">
+              13th Desk
+            </span>
+            <span className="mt-0.5 hidden text-[10px] uppercase tracking-[0.16em] text-muted sm:block">
+              {tr(lang, { en: "Eugene student web", zh: "尤金学生网" })}
+            </span>
+          </Link>
+          <label className="shrink-0">
+            <span className="sr-only">{tr(lang, { en: "Language", zh: "语言" })}</span>
+            <select
+              value={lang}
+              onChange={(event) => {
+                const next = event.target.value;
+                if (isLang(next)) setLang(next);
+              }}
+              className="min-h-9 max-w-[8.5rem] rounded-full border border-line bg-card px-2.5 text-xs text-ink shadow-sm md:min-h-10 md:text-sm"
+            >
+              {LANGS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="border-t border-line/80 bg-paper-deep/40">
+          <div className="mx-auto flex max-w-5xl flex-col gap-1.5 px-3 py-1.5 sm:flex-row sm:items-center sm:gap-3">
+            <div
+              className="grid min-w-0 flex-1 grid-cols-4 gap-0.5 rounded-md bg-card/70 p-0.5 shadow-sm"
+              role="group"
+              aria-label={tr(lang, { en: "Level", zh: "学段" })}
+            >
+              {LEVELS.map((item) => {
+                const on = level === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setLevel(item.id)}
+                    className={cn(
+                      "min-h-9 rounded-[0.4rem] px-1 text-[11px] whitespace-nowrap md:min-h-10 md:px-2 md:text-sm",
+                      on ? "bg-moss text-card shadow-sm" : "text-muted hover:text-ink",
+                    )}
+                  >
+                    <span className="md:hidden">{lang === "zh" ? item.zh : item.shortEn}</span>
+                    <span className="hidden md:inline">{tr(lang, { en: item.en, zh: item.zh })}</span>
+                  </button>
+                );
+              })}
             </div>
+            <DistrictBar compact />
           </div>
         </div>
-        <div
-          className="mx-auto grid max-w-5xl grid-cols-4 gap-1 px-3 py-2"
-          role="group"
-          aria-label={tr(lang, { en: "Level", zh: "学段" })}
-        >
-          {LEVELS.map((item) => {
-            const on = level === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setLevel(item.id)}
-                className={cn(
-                  "min-h-11 rounded-md px-1 text-xs whitespace-nowrap md:px-2 md:text-sm",
-                  on ? "bg-moss text-card" : "text-muted hover:text-ink",
-                )}
-              >
-                <span className="md:hidden">{lang === "zh" ? item.zh : item.shortEn}</span>
-                <span className="hidden md:inline">{tr(lang, { en: item.en, zh: item.zh })}</span>
-              </button>
-            );
-          })}
-        </div>
-        <DistrictBar />
-        <nav className="mx-auto hidden max-w-5xl gap-6 px-4 md:flex" aria-label="Primary">
+
+        <nav className="mx-auto hidden max-w-5xl gap-5 px-4 md:flex" aria-label="Primary">
           {NAV.map((item) => {
             const on = item.to === "/" ? path === "/" : path.startsWith(item.to);
             return (
@@ -123,8 +125,8 @@ export function Shell({ children }: { children: ReactNode }) {
                 to={item.to}
                 aria-current={on ? "page" : undefined}
                 className={cn(
-                  "inline-flex min-h-11 items-center border-b-2 text-sm",
-                  on ? "border-moss text-ink" : "border-transparent text-muted hover:text-ink",
+                  "inline-flex min-h-10 items-center border-b-2 text-sm",
+                  on ? "border-moss font-medium text-ink" : "border-transparent text-muted hover:text-ink",
                 )}
               >
                 {navText(item, level, lang)}
@@ -133,11 +135,13 @@ export function Shell({ children }: { children: ReactNode }) {
           })}
         </nav>
       </header>
-      <main id="content" className="mx-auto min-h-screen max-w-5xl px-4 pb-28 pt-6 md:pb-16">
+
+      <main id="content" className="mx-auto min-h-screen max-w-5xl px-4 pb-28 pt-5 md:pb-16 md:pt-6">
         {children}
       </main>
+
       <nav
-        className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card md:hidden"
+        className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 shadow-[0_-8px_24px_-16px_rgba(20,33,27,0.25)] backdrop-blur-md md:hidden"
         aria-label="Primary"
       >
         <ul className="grid grid-cols-5">
@@ -149,10 +153,26 @@ export function Shell({ children }: { children: ReactNode }) {
                 <Link
                   to={item.to}
                   aria-current={on ? "page" : undefined}
-                  className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[11px] leading-tight"
+                  className={cn(
+                    "relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[11px] leading-tight",
+                    on && "text-ink",
+                  )}
                 >
-                  <Icon className={on ? "size-5 text-moss" : "size-5 text-muted"} aria-hidden />
-                  <span className={cn("max-w-full truncate", on ? "font-medium text-ink" : "text-muted")}>
+                  {on ? (
+                    <span
+                      className="absolute top-1 h-1 w-6 rounded-full bg-moss"
+                      aria-hidden
+                    />
+                  ) : null}
+                  <span
+                    className={cn(
+                      "grid size-8 place-items-center rounded-full",
+                      on && "bg-moss-soft",
+                    )}
+                  >
+                    <Icon className={on ? "size-5 text-moss" : "size-5 text-muted"} aria-hidden />
+                  </span>
+                  <span className={cn("max-w-full truncate", on ? "font-semibold text-ink" : "text-muted")}>
                     {navText(item, level, lang)}
                   </span>
                 </Link>
