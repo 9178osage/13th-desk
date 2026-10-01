@@ -109,7 +109,7 @@ export function HomeLowerSection() {
         <div>
           <LibraryBig size={17} aria-hidden="true" />
           <span>
-            <strong>{tr(lang, { en: "13th Desk · Valley.", zh: "13th Desk · 河谷。" })}</strong>{" "}
+            <strong>{tr(lang, { en: "Eugene Desk.", zh: "Eugene Desk。" })}</strong>{" "}
             {tr(lang, {
               en: "A warm desk with a clear dashboard — schedule, places, GPA, and today's list in one place.",
               zh: "一张有温度的书桌，配上清爽的仪表盘：课表、地点、绩点，还有今天的清单。",
