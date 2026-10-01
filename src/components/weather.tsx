@@ -154,7 +154,7 @@ export function WeatherCard() {
   }, []);
 
   return (
-    <section className="min-h-48 rounded-lg border border-line bg-card p-4 md:w-72">
+    <section className="rounded-lg border border-line bg-card p-4 md:min-h-48 md:w-72">
       <p className="text-xs uppercase tracking-widest text-muted">Eugene</p>
       {failed ? (
         <p className="mt-3 text-sm text-ink">

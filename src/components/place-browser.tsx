@@ -63,7 +63,7 @@ export function PlaceBrowser({
           />
         </label>
       </div>
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
         {cats.map((item) => {
           const on = cat === item.id;
           return (
@@ -73,7 +73,7 @@ export function PlaceBrowser({
               aria-pressed={on}
               onClick={() => setCat(item.id)}
               className={cn(
-                "min-h-11 rounded-full px-4 text-sm",
+                "min-h-11 shrink-0 rounded-full px-4 text-sm",
                 on ? "bg-ink text-card" : "border border-line bg-card text-ink",
               )}
             >

@@ -61,10 +61,10 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="border-b border-ink">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
             <Link to="/" className="min-w-0">
-              <span className="block font-display text-3xl leading-none tracking-tight text-ink">
+              <span className="block font-display text-2xl leading-none tracking-tight text-ink md:text-3xl">
                 13th Desk
               </span>
-              <span className="mt-1 block text-xs uppercase tracking-widest text-muted">
+              <span className="mt-1 hidden text-xs uppercase tracking-widest text-muted sm:block">
                 {tr(lang, { en: "Eugene student web", zh: "尤金学生网" })}
               </span>
             </Link>
@@ -103,11 +103,12 @@ export function Shell({ children }: { children: ReactNode }) {
                 aria-pressed={on}
                 onClick={() => setLevel(item.id)}
                 className={cn(
-                  "min-h-11 rounded-md px-2 text-sm",
+                  "min-h-11 rounded-md px-1 text-xs whitespace-nowrap md:px-2 md:text-sm",
                   on ? "bg-moss text-card" : "text-muted hover:text-ink",
                 )}
               >
-                {tr(lang, { en: item.en, zh: item.zh })}
+                <span className="md:hidden">{lang === "zh" ? item.zh : item.shortEn}</span>
+                <span className="hidden md:inline">{tr(lang, { en: item.en, zh: item.zh })}</span>
               </button>
             );
           })}
@@ -148,10 +149,10 @@ export function Shell({ children }: { children: ReactNode }) {
                 <Link
                   to={item.to}
                   aria-current={on ? "page" : undefined}
-                  className="flex min-h-14 flex-col items-center justify-center gap-1 text-xs"
+                  className="flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[11px] leading-tight"
                 >
                   <Icon className={on ? "size-5 text-moss" : "size-5 text-muted"} aria-hidden />
-                  <span className={on ? "font-medium text-ink" : "text-muted"}>
+                  <span className={cn("max-w-full truncate", on ? "font-medium text-ink" : "text-muted")}>
                     {navText(item, level, lang)}
                   </span>
                 </Link>

@@ -179,14 +179,36 @@ function Home() {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="grid items-end gap-4 border-b border-ink pb-6 md:grid-cols-[1fr_auto]" suppressHydrationWarning>
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted">
-            {formatDateline(new Date(), lang)}
-            {levelName ? ` · ${tr(lang, levelName)}` : ""}
-          </p>
-          <h1 className="mt-2 font-display text-5xl text-ink md:text-6xl">{greet}</h1>
-          <p className="mt-3 max-w-xl text-lg text-ink">{termLine}</p>
+      <header className="border-b border-ink pb-6" suppressHydrationWarning>
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs uppercase tracking-widest text-muted">
+              {formatDateline(new Date(), lang)}
+              {levelName ? ` · ${tr(lang, levelName)}` : ""}
+            </p>
+            <h1 className="mt-2 font-display text-4xl text-ink md:text-6xl">{greet}</h1>
+          </div>
+          {phase.kind === "during" ? (
+            <p className="shrink-0 text-right font-display text-5xl leading-none tabular-nums text-moss md:text-6xl">
+              {String(phase.day).padStart(2, "0")}
+              <span className="mt-1 block text-xs font-sans uppercase tracking-widest text-muted">
+                {level === "uni"
+                  ? tr(lang, { en: "Fall day", zh: "秋季第几天" })
+                  : earlyStart
+                    ? tr(lang, {
+                        en: "Since Sept 8",
+                        zh: "从 9 月 8 日算",
+                        es: "Desde el 8 de sept.",
+                        ko: "9월 8일부터",
+                        vi: "Từ 8 tháng 9",
+                        ja: "9月8日から",
+                      })
+                    : tr(lang, { en: "Since Sept 9", zh: "从 9 月 9 日算" })}
+              </span>
+            </p>
+          ) : null}
+        </div>
+        <p className="mt-3 max-w-xl text-base text-ink md:text-lg">{termLine}</p>
           {level !== "uni" ? (
             <p className="mt-2 max-w-xl text-sm text-muted">
               {tr(lang, releaseLine(level, clock.weekday === 3))}
@@ -218,30 +240,10 @@ function Home() {
                   })}
             </button>
           ) : null}
-        </div>
-        {phase.kind === "during" ? (
-          <p className="font-display text-6xl leading-none tabular-nums text-moss md:text-right">
-            {String(phase.day).padStart(2, "0")}
-            <span className="mt-1 block text-xs font-sans uppercase tracking-widest text-muted">
-              {level === "uni"
-                ? tr(lang, { en: "Fall day", zh: "秋季第几天" })
-                : earlyStart
-                  ? tr(lang, {
-                      en: "Since Sept 8",
-                      zh: "从 9 月 8 日算",
-                      es: "Desde el 8 de sept.",
-                      ko: "9월 8일부터",
-                      vi: "Từ 8 tháng 9",
-                      ja: "9月8日から",
-                    })
-                  : tr(lang, { en: "Since Sept 9", zh: "从 9 月 9 日算" })}
-            </span>
-          </p>
-        ) : null}
       </header>
 
       <div className="grid items-start gap-8 lg:grid-cols-5">
-        <div className="flex flex-col gap-8 lg:col-span-3">
+        <div className="order-2 flex flex-col gap-8 lg:order-1 lg:col-span-3">
           <section>
             <h2 className="font-display text-3xl text-ink">
               {tr(lang, { en: "Due soon", zh: "快到的日子" })}
@@ -362,7 +364,7 @@ function Home() {
           </section>
         </div>
 
-        <aside className="flex flex-col gap-4 lg:col-span-2">
+        <aside className="order-1 flex flex-col gap-4 lg:order-2 lg:col-span-2">
           <WeatherCard />
           <section className="rounded-lg bg-moss p-4 text-card">
             <p className="text-xs uppercase tracking-widest">Saturday Market</p>
