@@ -31,7 +31,7 @@ import { useDesk, useLang } from "@/lib/store";
 import { tr, type Copy, type Lang } from "@/lib/text";
 
 export const Route = createFileRoute("/gpa")({
-  head: () => ({ meta: [{ title: "GPA · 13th Desk" }] }),
+  head: () => ({ meta: [{ title: "GPA · Eugene Desk" }] }),
   component: GpaPage,
 });
 
