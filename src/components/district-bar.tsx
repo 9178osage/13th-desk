@@ -122,7 +122,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
               >
                 <option value="">
                   {tr(lang, {
-                    en: "Not chosen",
+                    en: "Not set",
                     zh: "还没选",
                     es: "Sin elegir",
                     ko: "아직 안 골랐어요",
@@ -153,8 +153,8 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
                     ja: "位置を確認中…",
                   })
                 : tr(lang, {
-                    en: "Use location",
-                    zh: "用定位",
+                    en: "Use my location",
+                    zh: "用我的定位",
                     es: "Usar ubicación",
                     ko: "위치로 찾기",
                     vi: "Dùng vị trí",
@@ -170,7 +170,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
                 })}{" "}
                 {picked.href ? (
                   <a href={picked.href} target="_blank" rel="noopener noreferrer" className="text-moss underline">
-                    {tr(lang, { en: "Their site", zh: "去他们的网站" })}
+                    {tr(lang, { en: "District site", zh: "学区网站" })}
                   </a>
                 ) : null}
               </p>
@@ -199,7 +199,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
           >
             <option value="">
               {tr(lang, {
-                en: "District not chosen",
+                en: "No district yet",
                 zh: "还没选学区",
                 es: "Distrito sin elegir",
                 ko: "학구를 아직 안 골랐어요",
@@ -230,8 +230,8 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
                 ja: "位置を確認中…",
               })
             : tr(lang, {
-                en: "Use location",
-                zh: "用定位",
+                en: "Use my location",
+                zh: "用我的定位",
                 es: "Usar ubicación",
                 ko: "위치로 찾기",
                 vi: "Dùng vị trí",
@@ -253,7 +253,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
           {picked.href ? (
             <a href={picked.href} target="_blank" rel="noopener noreferrer" className="text-moss underline">
               {tr(lang, {
-                en: "Their site",
+                en: "District site",
                 zh: "去他们的网站",
                 es: "Su sitio",
                 ko: "그 학구 사이트",

@@ -102,7 +102,7 @@ export function PlaceBrowser({
 
       {list.length === 0 ? (
         <EmptyState
-          title={tr(lang, { en: "Nothing in this filter", zh: "这个筛选是空的" })}
+          title={tr(lang, { en: "Nothing matches", zh: "没有匹配的" })}
           body={tr(lang, {
             en: "Try another word, clear the search, or pin a place from Campus or Town first.",
             zh: "换个词，清空搜索，或者先从校园/城里收藏一个地方。",
@@ -176,7 +176,7 @@ export function PlaceBrowser({
                               rel="noopener noreferrer"
                               className="inline-flex min-h-11 items-center gap-1 text-sm text-moss"
                             >
-                              {tr(lang, { en: "Official page", zh: "官方页面" })}
+                              {tr(lang, { en: "Official site", zh: "官网" })}
                               <ExternalLink className="size-4" aria-hidden />
                             </a>
                           ) : null}

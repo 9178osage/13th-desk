@@ -227,8 +227,8 @@ function Home() {
           >
             {earlyStart
               ? tr(lang, {
-                  en: "Counting from September 8. Most students started September 9.",
-                  zh: "正在按 9 月 8 日算。多数学生是 9 月 9 日开学。",
+                  en: "Counting from September 8. Most students started the 9th.",
+                  zh: "按 9 月 8 日算。多数学生是 9 月 9 日开学。",
                   es: "Contando desde el 8 de septiembre. La mayoría empezó el 9.",
                   ko: "9월 8일부터 세고 있어요. 대부분은 9월 9일에 시작해요.",
                   vi: "Đang tính từ ngày 8 tháng 9. Hầu hết khai giảng ngày 9 tháng 9.",
@@ -249,14 +249,14 @@ function Home() {
       <section>
         <SectionHeader
           className="mb-3"
-          kicker={tr(lang, { en: "Glance", zh: "一眼" })}
-          title={tr(lang, { en: "Next up", zh: "接下来" })}
+          kicker={tr(lang, { en: "At a glance", zh: "一眼看完看完" })}
+          title={tr(lang, { en: "Up next", zh: "接下来" })}
         />
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Card className="flex flex-col gap-2" tone={nextDeadline ? "gold" : "paper"}>
             <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
               <NotebookPen className="size-3.5" aria-hidden />
-              {tr(lang, { en: "Next deadline", zh: "下一个日子" })}
+              {tr(lang, { en: "Next date", zh: "下一个日子" })}
             </p>
             {nextDeadline ? (
               <>
@@ -297,7 +297,7 @@ function Home() {
             ) : (
               <p className="text-sm text-muted">
                 {tr(lang, {
-                  en: "Pin a room or cafe from Campus or Town.",
+                  en: "Pin a room or café from Campus or Town.",
                   zh: "从校园或城里收藏一个地方。",
                 })}
               </p>
@@ -339,7 +339,7 @@ function Home() {
             />
             {upcoming.length === 0 ? (
               <EmptyState
-                title={tr(lang, { en: "List is clear", zh: "清单清空了" })}
+                title={tr(lang, { en: "All done", zh: "都勾完了" })}
                 body={
                   level === "uni"
                     ? tr(lang, {
@@ -407,11 +407,11 @@ function Home() {
                 />
               </label>
               <Button type="submit" disabled={!draft.trim() || notes.length >= 20}>
-                {tr(lang, { en: "Save note", zh: "记下" })}
+                {tr(lang, { en: "Save", zh: "记下" })}
               </Button>
             </form>
             {notes.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">{tr(lang, { en: "The desk is clear.", zh: "还没有笔记。" })}</p>
+              <p className="mt-3 text-sm text-muted">{tr(lang, { en: "Nothing on the desk yet.", zh: "桌上桌上还没有笔记。" })}</p>
             ) : (
               <ul className="mt-3 flex flex-col gap-2">
                 {notes.map((note) => (
@@ -472,8 +472,8 @@ function Home() {
                 body={
                   level === "uni"
                     ? tr(lang, {
-                        en: "Pin the rooms you actually use. They stay on this desk.",
-                        zh: "把你会去的地方收藏起来。它们会留在这里。",
+                        en: "Pin the places you actually use. They stay on this desk.",
+                        zh: "把常去的地方收藏起来。它们会留在这张桌上。",
                       })
                     : tr(lang, {
                         en: "Save the places you actually go. They stay in this browser.",

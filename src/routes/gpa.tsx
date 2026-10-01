@@ -148,7 +148,10 @@ function GpaPage() {
     const addCredits = parseCredits(whatIfCredits, 1000);
     const base = combined ?? plain;
     if (!base || targetH == null || addCredits == null) return null;
+    // Rough: needed average points (tenths) on the next block to hit target
+    // target = (currentPoints + needed*credits) / (currentCredits + credits)
     const currentPoints = base.gpaHundredths * base.creditHundredths;
+    // needed is in gpa-hundredths (same units as priorGpaH / gpaHundredths)
     const needed =
       (targetH * (base.creditHundredths + addCredits) - currentPoints) / addCredits;
     if (!Number.isFinite(needed)) return null;
@@ -173,8 +176,8 @@ function GpaPage() {
     if (grades.length >= 40) {
       setError(
         tr(lang, {
-          en: "40 classes is the limit. Put the older GPA in the box below instead.",
-          zh: "最多 40 门。更早的 GPA 填在下面那一栏。",
+          en: "40 classes is the limit. Put an older GPA in the box below instead.",
+          zh: "最多 40 门。更早的 GPA 填到下面那栏。",
           es: "El límite es 40 clases. El GPA anterior va en el recuadro de abajo.",
           ko: "수업은 40개가 한도예요. 예전 GPA는 아래 칸에 적어요.",
           vi: "Tối đa 40 môn. GPA cũ điền vào ô bên dưới.",
@@ -224,7 +227,7 @@ function GpaPage() {
         <EmptyState
           title={tr(lang, { en: "No classes yet", zh: "还没有课" })}
           body={tr(lang, {
-            en: "Add one and the number shows up here.",
+            en: "Add a class and the number shows up here.",
             zh: "加上一门，数字会出现在这里。",
             es: "Agrega una y el número aparece aquí.",
             ko: "하나 더하면 숫자가 여기 나와요.",
@@ -239,7 +242,7 @@ function GpaPage() {
           <SectionHeader
             className="mb-3"
             kicker={tr(lang, { en: "Visual", zh: "图示" })}
-            title={tr(lang, { en: "Grade points by credits", zh: "绩点分布（按学分）" })}
+            title={tr(lang, { en: "Grade points by credit", zh: "绩点分布（按学分）" })}
           />
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -294,7 +297,7 @@ function GpaPage() {
         <Card>
           <SectionHeader
             className="mb-3"
-            kicker={tr(lang, { en: "What-if", zh: "如果" })}
+            kicker={tr(lang, { en: "What if", zh: "假如" })}
             title={tr(lang, { en: "Target GPA", zh: "目标绩点" })}
           />
           <div className="grid gap-3 sm:grid-cols-2">
@@ -326,8 +329,8 @@ function GpaPage() {
           {whatIfHint != null ? (
             <p className="mt-3 text-sm text-ink">
               {tr(lang, {
-                en: "To land near that target on the next block, you’d need about",
-                zh: "要在接下来这段学分接近目标，大约需要平均",
+                en: "To land near that target on the next credits, you’d need about",
+                zh: "接下来这段学分要接近目标，大概需要平均",
               })}{" "}
               <span className="font-display text-xl text-moss tabular-nums">
                 {whatIfHint.toFixed(2)}
@@ -337,8 +340,8 @@ function GpaPage() {
           ) : (
             <p className="mt-3 text-sm text-muted">
               {tr(lang, {
-                en: "Enter a target between 0 and 5 to see a rough need.",
-                zh: "填一个 0 到 5 的目标，看大概需要多少。",
+                en: "Enter a target between 0 and 5 to see what you’d need.",
+                zh: "填一个 0 到 5 的目标，看看大概需要多少。",
               })}
             </p>
           )}
@@ -350,8 +353,8 @@ function GpaPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block text-sm font-medium text-ink sm:col-span-2">
             {tr(lang, {
-              en: "Class name, optional",
-              zh: "课名，可以不写",
+              en: "Class name (optional)",
+              zh: "课名（可不写）",
               es: "Nombre de la clase, opcional",
               ko: "수업 이름, 비워도 돼요",
               vi: "Tên môn, có thể bỏ trống",
@@ -431,8 +434,8 @@ function GpaPage() {
           >
             {boost
               ? tr(lang, {
-                  en: "Counted as AP, IB, or College Now. Tap to turn that off.",
-                  zh: "这门按 AP、IB 或 College Now 算。点一下取消。",
+                  en: "Counted as AP, IB, or College Now. Tap to turn off.",
+                  zh: "按 AP、IB 或 College Now 算。再点一下取消。",
                 })
               : tr(lang, {
                   en: "This is AP, IB, or College Now",
@@ -447,7 +450,7 @@ function GpaPage() {
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2">
           <Button type="submit">
-            {tr(lang, { en: "Add class", zh: "加上", es: "Agregar", ko: "추가", vi: "Thêm", ja: "追加" })}
+            {tr(lang, { en: "Add", zh: "加上", es: "Agregar", ko: "추가", vi: "Thêm", ja: "追加" })}
           </Button>
           {grades.length > 0 ? (
             <Button variant="ghost" onClick={clearGrades}>
@@ -495,7 +498,7 @@ function GpaPage() {
         <SectionHeader
           className="mb-2"
           title={tr(lang, {
-            en: "Already on the transcript",
+            en: "Already on your transcript",
             zh: "成绩单上已有的",
             es: "Lo que ya está en el expediente",
             ko: "성적표에 이미 있는 것",
@@ -505,8 +508,8 @@ function GpaPage() {
         />
         <p className="mb-3 max-w-xl text-sm text-muted">
           {tr(lang, {
-            en: "Optional. Fill both the old GPA and the old credits, and this list is added on top.",
-            zh: "可以不填。旧 GPA 和旧学分都填上，上面这几门课会叠上去。",
+            en: "Optional. Fill both old GPA and old credits, and this list stacks on top.",
+            zh: "可不填。旧 GPA 和旧学分都填上，上面这几门会叠上去。",
             es: "Opcional. Llena el GPA viejo y los créditos viejos, y estas clases se suman.",
             ko: "안 써도 돼요. 예전 GPA와 예전 학점을 둘 다 쓰면, 위 수업이 그 위에 더해져요.",
             vi: "Không bắt buộc. Điền cả GPA cũ và tín chỉ cũ, những môn ở trên sẽ được cộng vào.",
@@ -580,8 +583,8 @@ function GpaPage() {
         {priorBad ? (
           <p role="alert" className="mt-3 text-sm text-ink">
             {tr(lang, {
-              en: "The old GPA and the old credits have to go together. GPA is 0 to 5. Credits start at 0.5, up to 400, in steps of 0.5.",
-              zh: "旧 GPA 和旧学分要一起填。GPA 从 0 到 5。学分从 0.5 起，最多 400，按 0.5 加。",
+              en: "Old GPA and old credits go together. GPA is 0–5. Credits from 0.5 up to 400, in steps of 0.5.",
+              zh: "旧 GPA 和旧学分要一起填。GPA 是 0–5。学分从 0.5 到 400，按 0.5 加。",
             })}
           </p>
         ) : null}
@@ -593,7 +596,7 @@ function GpaPage() {
               plain={combined}
               weighted={combinedWeighted}
               label={tr(lang, {
-                en: "Old plus these classes",
+                en: "Old GPA plus these",
                 zh: "旧的加上这几门",
                 es: "Lo viejo más estas clases",
                 ko: "예전 것에 이 수업을 더한 값",

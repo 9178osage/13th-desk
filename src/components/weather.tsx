@@ -54,8 +54,8 @@ function hint(kind: Kind, lang: Lang, level: Level): string {
   if (kind === "rain" || kind === "storm") {
     if (level !== "uni") {
       return tr(lang, {
-        en: "Take a jacket. Don't stand in the rain.",
-        zh: "带外套。别站在雨里。",
+        en: "Grab a jacket. Don't stand in the rain.",
+        zh: "带件外套。别站在雨里淋着。",
         es: "Lleva chamarra. No te quedes bajo la lluvia.",
         ko: "겉옷을 챙겨요. 비 맞으며 서 있지 말아요.",
         vi: "Mang áo khoác. Đừng đứng dưới mưa.",

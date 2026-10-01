@@ -51,12 +51,12 @@ function SetupSheet() {
       <Card className="w-full max-w-md p-5 shadow-lift">
         <p className="text-xs uppercase tracking-widest text-muted">13th Desk</p>
         <h2 id="setup-title" className="mt-1 font-display text-3xl text-ink">
-          {tr(pickLang, { en: "Quick setup", zh: "先选一下" })}
+          {tr(pickLang, { en: "A quick pick", zh: "先选一下" })}
         </h2>
         <p className="mt-2 text-sm text-muted">
           {tr(pickLang, {
-            en: "Language and school level — you can change both anytime in the header.",
-            zh: "先选语言和学段。之后随时能在顶栏改，不用先切到别的学段。",
+            en: "Pick a language and school level. You can change both anytime in the header.",
+            zh: "先选语言和学段。之后顶栏随时能改。",
           })}
         </p>
 
@@ -111,7 +111,7 @@ function SetupSheet() {
         </div>
 
         <Button className="mt-5 w-full" disabled={!pickLevel} onClick={confirm}>
-          {tr(pickLang, { en: "Start", zh: "开始用" })}
+          {tr(pickLang, { en: "Let's go", zh: "开始用" })}
         </Button>
       </Card>
     </div>
@@ -145,7 +145,7 @@ export function Shell({ children }: { children: ReactNode }) {
               13th Desk
             </span>
             <span className="mt-0.5 hidden text-[10px] uppercase tracking-[0.16em] text-muted sm:block">
-              {tr(lang, { en: "Eugene student web", zh: "尤金学生网" })}
+              {tr(lang, { en: "Eugene student desk", zh: "尤金学生网" })}
             </span>
           </Link>
           <label className="relative z-40 shrink-0">

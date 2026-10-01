@@ -51,8 +51,8 @@ function UniGuide() {
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
           {tr(lang, {
-            en: "University of Oregon and Lane Community College. Dates below are the fall 2026 UO calendar. Your checklist stays in this browser.",
-            zh: "俄勒冈大学和莱恩社区学院。下面的日期是 2026 秋季 UO 校历。清单只存在这台浏览器里。",
+            en: "University of Oregon and Lane Community College. Dates below are fall 2026 UO. Your checklist stays in this browser.",
+            zh: "俄勒冈大学和莱恩社区学院。下面是 2026 秋季 UO 校历。清单只存在这台浏览器里。",
           })}
         </p>
       </header>
@@ -110,7 +110,7 @@ function UniGuide() {
           rel="noopener noreferrer"
           className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-moss"
         >
-          {tr(lang, { en: "Confirm on the registrar", zh: "到教务处核对" })}
+          {tr(lang, { en: "Check with the registrar", zh: "去教务处核对" })}
           <ExternalLink className="size-4" aria-hidden />
         </a>
       </section>
@@ -183,14 +183,14 @@ function UniGuide() {
 
       <section className="rounded-lg border border-line bg-card p-4">
         <h2 className="font-display text-3xl text-ink">
-          {tr(lang, { en: "If you just landed", zh: "刚到尤金" })}
+          {tr(lang, { en: "Just got here", zh: "刚到尤金" })}
         </h2>
         <p className="mt-3 max-w-2xl text-sm text-muted">{tr(lang, arrival)}</p>
       </section>
 
       <section>
         <h2 className="font-display text-3xl text-ink">
-          {tr(lang, { en: "Offices", zh: "该找的办公室" })}
+          {tr(lang, { en: "Who to ask", zh: "该找谁" })}
         </h2>
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
           {helpLinks.map((item) => (
@@ -214,8 +214,8 @@ function UniGuide() {
 
       <p className="text-sm text-muted">
         {tr(lang, {
-          en: "Fall dates come from the University of Oregon 2026–27 catalog and the registrar. Bus rules, library hours, and market days change. Check the office before you bet a grade on a card.",
-          zh: "秋季日期来自俄勒冈大学 2026–27 校历和教务处。公交、图书馆和市集的时间会变。别拿这页上的字当正式依据，去官网核对。",
+          en: "Fall dates come from the UO 2026–27 catalog and the registrar. Bus rules, library hours, and market days change. Check the official site before you bet a grade on a card.",
+          zh: "秋季日期来自俄勒冈大学 2026–27 校历和教务处。公交、图书馆和市集时间会变。别拿这页当正式依据，去官网核对。",
         })}
       </p>
     </div>

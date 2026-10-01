@@ -80,7 +80,7 @@ export function WeekSchedule({ compact = false }: { compact?: boolean }) {
             value={title}
             maxLength={60}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={tr(lang, { en: "Class, practice, shift…", zh: "课、训练、打工…" })}
+            placeholder={tr(lang, { en: "Class, practice, work…", zh: "课、训练、打工…" })}
           />
         </label>
         <label>
@@ -101,7 +101,7 @@ export function WeekSchedule({ compact = false }: { compact?: boolean }) {
           />
         </label>
         <Button type="submit" disabled={!title.trim() || schedule.length >= 40} className="sm:col-span-2">
-          {tr(lang, { en: "Add block", zh: "加上这段" })}
+          {tr(lang, { en: "Add to week", zh: "加到本周" })}
         </Button>
       </form>
 
@@ -109,8 +109,8 @@ export function WeekSchedule({ compact = false }: { compact?: boolean }) {
         <EmptyState
           title={tr(lang, { en: "Nothing on this day", zh: "这一天还没有" })}
           body={tr(lang, {
-            en: "Blocks stay in this browser. Pin ones you want on Today.",
-            zh: "课段只留在这台浏览器。钉住的会显示在今日。",
+            en: "Blocks stay in this browser. Pin the ones you want on Today.",
+            zh: "课段只留在这台浏览器。想在今日看到的，钉一下。",
           })}
         />
       ) : (
@@ -130,7 +130,7 @@ export function WeekSchedule({ compact = false }: { compact?: boolean }) {
               <button
                 type="button"
                 aria-pressed={block.pinned}
-                aria-label={tr(lang, { en: "Pin on Today", zh: "钉在今日" })}
+                aria-label={tr(lang, { en: "Show on Today", zh: "显示在今日" })}
                 onClick={() => toggleSchedulePin(block.id)}
                 className={cn(
                   "grid size-11 place-items-center rounded-md border",
@@ -172,8 +172,8 @@ export function WeekSchedule({ compact = false }: { compact?: boolean }) {
         {show.length === 0 ? (
           <p className="text-sm text-muted">
             {tr(lang, {
-              en: "Add Mon–Fri blocks. Pinned ones stay on Today.",
-              zh: "加上周一到周五的课段。钉住的会留在今日。",
+              en: "Add Mon–Fri blocks. Pinned ones show up on Today.",
+              zh: "加上周一到周五的课段。钉住的会出现在今日。",
             })}
           </p>
         ) : (
@@ -205,7 +205,7 @@ export function WeekSchedule({ compact = false }: { compact?: boolean }) {
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader
-        kicker={tr(lang, { en: "Local only", zh: "只在本机" })}
+        kicker={tr(lang, { en: "On this device only", zh: "只在这台设备" })}
         title={tr(lang, { en: "Week schedule", zh: "一周课表" })}
       />
       {editor}

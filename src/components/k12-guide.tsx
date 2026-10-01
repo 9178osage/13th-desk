@@ -35,7 +35,7 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
           {tr(lang, {
-            en: "Dates below are Eugene School District 4J for 2026–27. Bethel and Springfield print their own. The checklist stays in this browser.",
+            en: "Dates below are Eugene 4J for 2026–27. Bethel and Springfield print their own. The checklist stays in this browser.",
             zh: "下面的日期是尤金 4J 学区 2026–27。Bethel 和 Springfield 有自己的校历。清单只存在这台浏览器里。",
           })}
         </p>
