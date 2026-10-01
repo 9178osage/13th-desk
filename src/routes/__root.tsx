@@ -7,7 +7,7 @@ import { htmlLang, type Lang } from "@/lib/text";
 import { useDesk } from "@/lib/store";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "13th Desk · 河谷";
+const APP_NAME = "Eugene Desk";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -18,7 +18,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "13th Desk · 河谷 — Eugene student desk: today tasks, schedule, places, GPA, and campus shortcuts.",
+          "Eugene Desk — Eugene student desk: today tasks, schedule, places, GPA, and campus shortcuts.",
       },
       { name: "theme-color", content: "#f1ebe3" },
       { name: "referrer", content: "strict-origin-when-cross-origin" },
