@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { DistrictBar } from "@/components/district-bar";
 import { LEVELS, type Level } from "@/lib/levels";
 import { ensureDeskHydrated, useDesk, useLang } from "@/lib/store";
-import { LANGS, isLang, tr, type Lang } from "@/lib/text";
+import { LANGS, htmlLang, isLang, tr, type Lang } from "@/lib/text";
 import { Button, Card } from "@/components/ui";
 
 const NAV = [
@@ -155,11 +155,11 @@ export function Shell({ children }: { children: ReactNode }) {
               onChange={(event) => {
                 const next = event.target.value;
                 if (!isLang(next)) return;
-                // Sync update — do not wait on level or route changes.
-                setLang(next);
+                // DOM lang first (cheap), then sync in-memory store — persist is deferred.
                 if (typeof document !== "undefined") {
-                  document.documentElement.lang = next === "zh" ? "zh-CN" : next;
+                  document.documentElement.lang = htmlLang(next);
                 }
+                setLang(next);
               }}
               className="min-h-9 max-w-[8.5rem] rounded-full border border-line bg-card px-2.5 text-xs text-ink shadow-sm md:min-h-10 md:text-sm"
             >
