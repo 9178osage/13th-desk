@@ -1,11 +1,12 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Calculator, Compass, Library, MapPin, Sun } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { DistrictBar } from "@/components/district-bar";
-import { LEVELS } from "@/lib/levels";
-import { useDesk, useLang } from "@/lib/store";
-import { LANGS, isLang, tr } from "@/lib/text";
+import { LEVELS, type Level } from "@/lib/levels";
+import { ensureDeskHydrated, useDesk, useLang } from "@/lib/store";
+import { LANGS, isLang, tr, type Lang } from "@/lib/text";
+import { Button, Card } from "@/components/ui";
 
 const NAV = [
   { to: "/", en: "Today", zh: "今日", icon: Sun },
@@ -24,6 +25,99 @@ function navText(
   return tr(lang, item);
 }
 
+function SetupSheet() {
+  const lang = useLang();
+  const langSet = useDesk((s) => s.langSet);
+  const levelSet = useDesk((s) => s.levelSet);
+  const setSetup = useDesk((s) => s.setSetup);
+  const hydrated = useDesk((s) => s.hydrated);
+  const [pickLang, setPickLang] = useState<Lang>(lang);
+  const [pickLevel, setPickLevel] = useState<Level | null>(null);
+
+  if (!hydrated || (langSet && levelSet)) return null;
+
+  function confirm() {
+    if (!pickLevel) return;
+    setSetup({ lang: pickLang, level: pickLevel });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/35 p-4 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="setup-title"
+    >
+      <Card className="w-full max-w-md p-5 shadow-lift">
+        <p className="text-xs uppercase tracking-widest text-muted">13th Desk</p>
+        <h2 id="setup-title" className="mt-1 font-display text-3xl text-ink">
+          {tr(pickLang, { en: "Quick setup", zh: "先选一下" })}
+        </h2>
+        <p className="mt-2 text-sm text-muted">
+          {tr(pickLang, {
+            en: "Language and school level — you can change both anytime in the header.",
+            zh: "先选语言和学段。之后随时能在顶栏改，不用先切到别的学段。",
+          })}
+        </p>
+
+        <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted">
+          {tr(pickLang, { en: "Language", zh: "语言" })}
+        </p>
+        <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          {LANGS.map((item) => {
+            const on = pickLang === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setPickLang(item.id);
+                  // Apply language immediately so the sheet (and whole app) update now.
+                  setSetup({ lang: item.id });
+                }}
+                className={cn(
+                  "min-h-10 rounded-md border px-2 text-sm",
+                  on ? "border-moss bg-moss-soft text-ink" : "border-line bg-card text-muted",
+                )}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted">
+          {tr(pickLang, { en: "Level", zh: "学段" })}
+        </p>
+        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+          {LEVELS.map((item) => {
+            const on = pickLevel === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setPickLevel(item.id)}
+                className={cn(
+                  "min-h-11 rounded-md border px-2 text-sm",
+                  on ? "border-moss bg-moss text-card" : "border-line bg-card text-ink",
+                )}
+              >
+                {tr(pickLang, { en: item.en, zh: item.zh })}
+              </button>
+            );
+          })}
+        </div>
+
+        <Button className="mt-5 w-full" disabled={!pickLevel} onClick={confirm}>
+          {tr(pickLang, { en: "Start", zh: "开始用" })}
+        </Button>
+      </Card>
+    </div>
+  );
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const lang = useLang();
   const setLang = useDesk((state) => state.setLang);
@@ -33,20 +127,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = pathname.replace(/\/$/, "") || "/";
 
   useEffect(() => {
-    let live = true;
-    void (async () => {
-      try {
-        if (!useDesk.persist.hasHydrated()) {
-          await useDesk.persist.rehydrate();
-        }
-      } catch {
-        /* broken storage should not blank the desk */
-      }
-      if (live) useDesk.setState({ hydrated: true });
-    })();
-    return () => {
-      live = false;
-    };
+    void ensureDeskHydrated();
   }, []);
 
   return (
@@ -67,13 +148,18 @@ export function Shell({ children }: { children: ReactNode }) {
               {tr(lang, { en: "Eugene student web", zh: "尤金学生网" })}
             </span>
           </Link>
-          <label className="shrink-0">
+          <label className="relative z-40 shrink-0">
             <span className="sr-only">{tr(lang, { en: "Language", zh: "语言" })}</span>
             <select
               value={lang}
               onChange={(event) => {
                 const next = event.target.value;
-                if (isLang(next)) setLang(next);
+                if (!isLang(next)) return;
+                // Sync update — do not wait on level or route changes.
+                setLang(next);
+                if (typeof document !== "undefined") {
+                  document.documentElement.lang = next === "zh" ? "zh-CN" : next;
+                }
               }}
               className="min-h-9 max-w-[8.5rem] rounded-full border border-line bg-card px-2.5 text-xs text-ink shadow-sm md:min-h-10 md:text-sm"
             >
@@ -159,10 +245,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   )}
                 >
                   {on ? (
-                    <span
-                      className="absolute top-1 h-1 w-6 rounded-full bg-moss"
-                      aria-hidden
-                    />
+                    <span className="absolute top-1 h-1 w-6 rounded-full bg-moss" aria-hidden />
                   ) : null}
                   <span
                     className={cn(
@@ -181,6 +264,8 @@ export function Shell({ children }: { children: ReactNode }) {
           })}
         </ul>
       </nav>
+
+      <SetupSheet />
     </>
   );
 }
