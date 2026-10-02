@@ -1,42 +1,110 @@
 # Eugene Desk
 
-Eugene student desk — a fusion of the warm **Eugene Desk** paper desk and the dense **Eugene Desk dashboard** home. Chinese-first by default, six languages, no auth or database required for the desk.
+尤金学生书桌 —— 把「今天要做什么」的仪表盘密度，和温暖纸感书桌合在一起。
 
-**Stack:** Vite · React · TanStack Router · Tailwind · zustand · Recharts  
-**Repo:** [9178osage/13th-desk](https://github.com/9178osage/13th-desk)
+**在线演示：** [eugene-desk.vercel.app](https://eugene-desk.vercel.app)  
+**仓库：** [9178osage/13th-desk](https://github.com/9178osage/13th-desk)
 
-## Visual fusion
-- Cream paper background + navy ink + one electric-blue accent
-- Fraunces (display) + Outfit (UI)
-- Soft moss-teal and gold as secondary warmth
-- Brand in the shell: **Eugene Desk** / Eugene student desk
+书桌功能**不需要登录或数据库**。语言、学段、课表、笔记、绩点等存在本机浏览器的 `localStorage`（键名 `13th-desk-v1`，请勿改名以免丢数据）。
 
-## What stays
-- Schedule, places hours, GPA charts, K12 campus cards
-- i18n: en / zh / es / ko / vi / ja + deferred lang persist (`13th-desk-v1`)
-- Levels (elem / mid / high / uni), district bar, notes, weather
-- Dense home: 今天要做什么, today/week tasks, announcements, shortcuts, mobile tab bar
+---
 
-## Run locally
+## 功能
+
+| 页面 | 说明 |
+|------|------|
+| **今日** `/` | 今日待办、本周任务、公告、快捷入口、天气、今日节奏 |
+| **校园** `/campus` | 大学：图书馆 / 食堂等场所与开放时间；K12：学区校园卡片 |
+| **城里** `/town` | 放学后 / 校外场所（按学段调整文案与分类） |
+| **指南** `/guide` | 大学：到校清单、截止日期、帮助链接；K12：对应学段指南 |
+| **绩点** `/gpa` | 学分绩点估算与图表（非正式成绩单） |
+
+其它：
+
+- **首次打开**：语言 + 学段选择（顶栏与移动端底栏可随时改）
+- **学段**：小学 / 初中 / 高中 / 大学（`elem` · `mid` · `high` · `uni`）
+- **课表**：周一至周五时段，可置顶
+- **学区条**（K12）：可选定位或手动选 Lane 县附近学区
+- **六种语言**：English · 中文 · Español · 한국어 · Tiếng Việt · 日本語
+
+品牌资源在 `public/brand/`（logo、mark、favicon 等）。
+
+---
+
+## 技术栈
+
+- **Vite** + **React 19**
+- **TanStack** Router / Start / Query
+- **Tailwind CSS 4**
+- **zustand**（persist → `13th-desk-v1`）
+- **Recharts**（GPA 图）
+- 字体：Fraunces（标题）+ Outfit（界面）
+
+视觉：奶油纸底 + 海军墨色 + 电蓝点缀；辅色苔绿与金色。
+
+---
+
+## 本地运行
+
 ```bash
-cd "Eugene Student Web"   # or clone this repo
+git clone https://github.com/9178osage/13th-desk.git
+cd 13th-desk
 npm install
 npm run dev
 ```
-Open http://localhost:8080
+
+打开 [http://localhost:8080](http://localhost:8080)。
+
+常用命令：
 
 ```bash
 npm run typecheck
 npm run build
+npm run preview
 ```
 
-Notes stay in this browser (`13th-desk-v1`). Language and school level live in the header (and mobile tab bar).
+---
 
-## 中文
-**Eugene Desk** 把温暖的书桌功能与仪表盘的今日密度合在一起：待办、课表、公告、快捷入口、校园与绩点。无需登录或数据库即可使用书桌功能。
+## 部署
+
+已连接 **Vercel** 项目 `eugene-desk`，推送到 GitHub `main` 会自动部署到：
+
+https://eugene-desk.vercel.app
+
+仓库根目录有 `vercel.json`（安全响应头等）。本地也可：
 
 ```bash
-npm install
-npm run dev
+npx vercel --prod
 ```
-打开 http://localhost:8080
+
+（需已登录并链到同一 Vercel 项目。）
+
+---
+
+## 数据与说明
+
+- 书桌状态（语言、学段、笔记、课表、绩点行、收藏等）只存在**当前浏览器**，键名 **`13th-desk-v1`**。
+- 场所开放时间、公告等为参考信息；以各机构官网为准。
+- GPA 为估算工具，不以成绩单为准。
+- 仓库历史名曾为 Eugene Student Web / 13th-desk / 河谷校园仪表盘；产品品牌现为 **Eugene Desk**。
+
+---
+
+## English
+
+**Eugene Desk** is a student desk for Eugene, Oregon: a dense “what to do today” home plus a warm paper-desk UI.
+
+**Live:** [eugene-desk.vercel.app](https://eugene-desk.vercel.app) · **Repo:** [9178osage/13th-desk](https://github.com/9178osage/13th-desk)
+
+No account or database is required for desk features. Preferences and notes live in browser `localStorage` under **`13th-desk-v1`** (do not rename).
+
+**Routes:** Today · Campus · Town · Guide · GPA  
+**Levels:** Elementary · Middle · High · University  
+**Languages:** en · zh · es · ko · vi · ja  
+**Stack:** Vite · React · TanStack Router/Start/Query · Tailwind · zustand · Recharts  
+
+```bash
+npm install && npm run dev   # http://localhost:8080
+```
+
+Push to `main` deploys via Vercel to the live URL above.
