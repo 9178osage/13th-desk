@@ -154,7 +154,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 {tr(lang, { en: "Eugene Desk", zh: "Eugene Desk" })}
               </span>
               <span className="brand-subtitle">
-                {tr(lang, { en: "Eugene student desk", zh: "尤金学生网" })}
+                {tr(lang, { en: "Eugene student desk", zh: "Eugene Desk" })}
               </span>
             </span>
           </Link>

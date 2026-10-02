@@ -105,7 +105,7 @@ export function HomeLowerSection() {
         </div>
       </section>
 
-      <section className="footer-strip" aria-label={tr(lang, { en: "Eugene student resources", zh: "尤金学生资源" })}>
+      <section className="footer-strip" aria-label={tr(lang, { en: "Eugene student resources", zh: "Eugene Desk资源" })}>
         <div>
           <LibraryBig size={17} aria-hidden="true" />
           <span>

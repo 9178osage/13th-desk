@@ -1,6 +1,6 @@
 # Eugene Desk
 
-Eugene student desk — a fusion of the warm **Eugene Desk / 尤金学生网** paper desk and the dense **Eugene Desk dashboard** home. Chinese-first by default, six languages, no auth or database required for the desk.
+Eugene student desk — a fusion of the warm **Eugene Desk** paper desk and the dense **Eugene Desk dashboard** home. Chinese-first by default, six languages, no auth or database required for the desk.
 
 **Stack:** Vite · React · TanStack Router · Tailwind · zustand · Recharts  
 **Repo:** [9178osage/13th-desk](https://github.com/9178osage/13th-desk)
@@ -9,7 +9,7 @@ Eugene student desk — a fusion of the warm **Eugene Desk / 尤金学生网** p
 - Cream paper background + navy ink + one electric-blue accent
 - Fraunces (display) + Outfit (UI)
 - Soft moss-teal and gold as secondary warmth
-- Brand in the shell: **Eugene Desk** / Eugene student desk · 尤金学生网
+- Brand in the shell: **Eugene Desk** / Eugene student desk
 
 ## What stays
 - Schedule, places hours, GPA charts, K12 campus cards
@@ -33,7 +33,7 @@ npm run build
 Notes stay in this browser (`13th-desk-v1`). Language and school level live in the header (and mobile tab bar).
 
 ## 中文
-**Eugene Desk** 把「尤金学生网」的书桌功能与仪表盘的今日密度合在一起：待办、课表、公告、快捷入口、校园与绩点。无需登录或数据库即可使用书桌功能。
+**Eugene Desk** 把温暖的书桌功能与仪表盘的今日密度合在一起：待办、课表、公告、快捷入口、校园与绩点。无需登录或数据库即可使用书桌功能。
 
 ```bash
 npm install
