@@ -147,7 +147,13 @@ export function Shell({ children }: { children: ReactNode }) {
             aria-label={tr(lang, { en: "Eugene Desk home", zh: "Eugene Desk首页" })}
           >
             <span className="brand-mark">
-              <GraduationCap size={20} strokeWidth={1.8} aria-hidden="true" />
+              <img
+                src="/brand/eugene-desk-mark.svg"
+                alt=""
+                width={36}
+                height={36}
+                decoding="async"
+              />
             </span>
             <span>
               <span className="brand-name">
