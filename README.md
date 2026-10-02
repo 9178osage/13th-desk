@@ -92,19 +92,78 @@ npx vercel --prod
 
 ## English
 
-**Eugene Desk** is a student desk for Eugene, Oregon: a dense “what to do today” home plus a warm paper-desk UI.
+**Eugene Desk** is a student dashboard for Eugene, Oregon, combining a dense “what do I need to do today?” home screen with the feel of a warm, paper-textured desk.
 
-**Live:** [eugene-desk.vercel.app](https://eugene-desk.vercel.app) · **Repo:** [9178osage/13th-desk](https://github.com/9178osage/13th-desk)
+**Live demo:** [eugene-desk.vercel.app](https://eugene-desk.vercel.app)  
+**Repository:** [9178osage/13th-desk](https://github.com/9178osage/13th-desk)
 
-No account or database is required for desk features. Preferences and notes live in browser `localStorage` under **`13th-desk-v1`** (do not rename).
+The desk does **not require an account or a database**. Language, school level, schedule, notes, GPA rows, and other preferences are stored in the current browser's `localStorage` under **`13th-desk-v1`**. Do not rename this key or existing local data will no longer be found.
 
-**Routes:** Today · Campus · Town · Guide · GPA  
-**Levels:** Elementary · Middle · High · University  
-**Languages:** en · zh · es · ko · vi · ja  
-**Stack:** Vite · React · TanStack Router/Start/Query · Tailwind · zustand · Recharts  
+### Features
+
+| Page | What it includes |
+|------|------------------|
+| **Today** `/` | Today's to-dos, weekly tasks, announcements, quick links, weather, and the day's rhythm |
+| **Campus** `/campus` | University locations such as libraries and dining halls with hours; K–12 campus cards by district |
+| **Town** `/town` | After-school and off-campus places, with copy and categories adjusted by school level |
+| **Guide** `/guide` | University arrival checklist, deadlines, and help links; level-appropriate guides for K–12 |
+| **GPA** `/gpa` | A credit-weighted GPA estimator with charts (not an official transcript) |
+
+Other details:
+
+- **First run:** Choose a language and school level on first launch. Both can be changed later from the top bar or mobile bottom navigation.
+- **School levels:** Elementary, middle, high school, and university (`elem` · `mid` · `high` · `uni`).
+- **Schedule:** Monday–Friday time slots, with the option to pin items.
+- **District bar (K–12):** Use location or manually choose a school district near Lane County.
+- **Six languages:** English · 中文 · Español · 한국어 · Tiếng Việt · 日本語.
+
+Brand assets live in `public/brand/` (logo, mark, favicon, and related files).
+
+### Stack
+
+- **Vite** + **React 19**
+- **TanStack** Router / Start / Query
+- **Tailwind CSS 4**
+- **zustand** for persisted state (`13th-desk-v1`)
+- **Recharts** for the GPA chart
+- **Fonts:** Fraunces for headings and Outfit for the interface
+
+The visual system uses a cream paper background, navy ink, electric-blue accents, and moss-green and gold supporting colors.
+
+### Run locally
 
 ```bash
-npm install && npm run dev   # http://localhost:8080
+git clone https://github.com/9178osage/13th-desk.git
+cd 13th-desk
+npm install
+npm run dev
 ```
 
-Push to `main` deploys via Vercel to the live URL above.
+Open [http://localhost:8080](http://localhost:8080). Useful commands:
+
+```bash
+npm run typecheck
+npm run build
+npm run preview
+```
+
+### Deploy
+
+The `eugene-desk` project is connected to **Vercel**. Every push to the GitHub `main` branch deploys automatically to:
+
+[https://eugene-desk.vercel.app](https://eugene-desk.vercel.app)
+
+The repository root includes `vercel.json` for settings such as security response headers. You can also deploy locally:
+
+```bash
+npx vercel --prod
+```
+
+You must already be logged in and linked to the same Vercel project.
+
+### Data notes
+
+- Desk state—language, school level, notes, schedule, GPA rows, favorites, and similar settings—stays in the **current browser** under **`13th-desk-v1`**.
+- Location hours, announcements, and similar details are reference information; check each institution's official website for the latest information.
+- GPA is an estimation tool, not an official transcript or grades record.
+- The repository has previously been called Eugene Student Web, 13th-desk, and 河谷校园仪表盘; the current product brand is **Eugene Desk**.
