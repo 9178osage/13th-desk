@@ -53,12 +53,12 @@ function SetupSheet() {
       <Card className="w-full max-w-md p-5 shadow-lift">
         <p className="text-xs uppercase tracking-widest text-muted">Eugene Desk</p>
         <h2 id="setup-title" className="mt-1 font-display text-3xl text-ink">
-          {tr(pickLang, { en: "A quick pick", zh: "先选一下" })}
+          {tr(pickLang, { en: "Welcome to Eugene Desk", zh: "欢迎使用 Eugene Desk" })}
         </h2>
         <p className="mt-2 text-sm text-muted">
           {tr(pickLang, {
             en: "Pick a language and school level. You can change both anytime in the header.",
-            zh: "先选语言和学段。之后顶栏随时能改。",
+            zh: "请选择语言和学段，之后可在页面顶部修改。",
           })}
         </p>
 
@@ -112,7 +112,7 @@ function SetupSheet() {
         </div>
 
         <Button className="mt-5 w-full" disabled={!pickLevel} onClick={confirm}>
-          {tr(pickLang, { en: "Let's go", zh: "开始用" })}
+          {tr(pickLang, { en: "Get started", zh: "开始使用" })}
         </Button>
       </Card>
     </div>

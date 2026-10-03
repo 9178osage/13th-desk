@@ -110,7 +110,7 @@ export function WeekSchedule({ compact = false }: { compact?: boolean }) {
           title={tr(lang, { en: "Nothing on this day", zh: "这一天还没有" })}
           body={tr(lang, {
             en: "Blocks stay in this browser. Pin the ones you want on Today.",
-            zh: "课段只留在这台浏览器。想在今日看到的，钉一下。",
+            zh: "课表保存在当前浏览器，首页会显示当天的课程。",
           })}
         />
       ) : (
@@ -173,7 +173,7 @@ export function WeekSchedule({ compact = false }: { compact?: boolean }) {
           <p className="text-sm text-muted">
             {tr(lang, {
               en: "Add Mon–Fri blocks. Pinned ones show up on Today.",
-              zh: "加上周一到周五的课段。钉住的会出现在今日。",
+              zh: "添加周一到周五的课程，首页会自动显示当天的安排。",
             })}
           </p>
         ) : (

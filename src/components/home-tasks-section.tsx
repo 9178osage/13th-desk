@@ -1,21 +1,11 @@
-// @ts-nocheck
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowUpRight, BookOpen, CalendarDays, Check, CheckCircle2, ChevronRight,
-  Clock3, CloudSun, ExternalLink, GraduationCap, LibraryBig, ListChecks,
-  MapPin, Megaphone, Plus, Sparkles, Users,
-} from "lucide-react";
-import { WeatherCard } from "@/components/weather";
-import { WeekSchedule } from "@/components/week-schedule";
+import { ArrowUpRight, Check, CheckCircle2, ChevronRight, ListChecks, Megaphone, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { formatDateline, formatWhen } from "@/lib/time";
-import {
-  announcements, quickLinks, seedTasks, typeLabel,
-} from "@/components/home-dashboard-data";
+import { announcements, quickLinks } from "@/components/home-dashboard-data";
 import { useHomeDashboard } from "@/components/home-dashboard-context";
 
 export function HomeTasksSection() {
-  const {lang, level, earlyStart, setEarlyStart, district, notes, scheduleBlocks, addNote, toggleNote, removeNote, clock, todayKey, levelName, phase, upcoming, scheduleRows, mode, setMode, seedDone, setSeedDone, draft, setDraft, showComposer, setShowComposer, notice, setNotice, openCount, completed, weekItems, termLine, nextMins, nextTimeLabel, nextTitle, nextPlace, nextBlock, addTask, tr, tf, releaseLine} = useHomeDashboard();
+  const { lang, notes, scheduleBlocks, toggleNote, removeNote, mode, setMode, draft, setDraft, showComposer, setShowComposer, notice, setNotice, openCount, completed, weekItems, addTask, tr } = useHomeDashboard();
   return (
     <>
       <section className="content-grid">
@@ -23,16 +13,16 @@ export function HomeTasksSection() {
           <div className="section-heading-row">
             <div>
               <p className="eyebrow">
-                {tr(lang, { en: "A SMALL LIST, A CLEAR HEAD", zh: "清单短一点，脑子清一点" })}
+                {tr(lang, { en: "TASKS", zh: "待办事项" })}
               </p>
-              <h2>{tr(lang, { en: "Keep it moving", zh: "一件一件做" })}</h2>
+              <h2>{tr(lang, { en: "Your tasks", zh: "我的待办" })}</h2>
             </div>
             <div className="view-toggle" role="group" aria-label={tr(lang, { en: "Task view", zh: "任务视图" })}>
-              <button type="button" className={cn({ active: mode === "today" })} onClick={() => setMode("today")}>
-                {tr(lang, { en: "Today", zh: "今天" })}
+              <button type="button" aria-pressed={mode === "today"} className={cn({ active: mode === "today" })} onClick={() => setMode("today")}>
+                {tr(lang, { en: "Tasks", zh: "待办" })}
               </button>
-              <button type="button" className={cn({ active: mode === "week" })} onClick={() => setMode("week")}>
-                {tr(lang, { en: "This week", zh: "本周" })}
+              <button type="button" aria-pressed={mode === "week"} className={cn({ active: mode === "week" })} onClick={() => setMode("week")}>
+                {tr(lang, { en: "Weekly schedule", zh: "每周课表" })}
               </button>
             </div>
           </div>
@@ -50,51 +40,30 @@ export function HomeTasksSection() {
                       <button
                         type="button"
                         className="task-check"
-                        aria-label={tr(lang, { en: "Toggle note", zh: "勾选笔记" })}
+                        aria-pressed={note.done}
+                        aria-label={tr(lang, { en: `Mark task ${note.done ? "incomplete" : "complete"}: ${note.text}`, zh: `将“${note.text}”标为${note.done ? "未完成" : "已完成"}` })}
                         onClick={() => toggleNote(note.id)}
                       >
                         {note.done ? <Check size={15} /> : null}
                       </button>
-                      <button type="button" className="task-copy" onClick={() => toggleNote(note.id)}>
+                      <button type="button" className="task-copy" aria-pressed={note.done} onClick={() => toggleNote(note.id)}>
                         <strong>{note.text}</strong>
-                        <small>{tr(lang, { en: "Saved on this desk", zh: "记在这张书桌上" })}</small>
+                        <small>{tr(lang, { en: "Saved on this device", zh: "保存在当前设备" })}</small>
                       </button>
                       <button
                         type="button"
-                        className={cn("task-type", "type-desk")}
+                        className="task-delete"
+                        aria-label={tr(lang, { en: `Delete task: ${note.text}`, zh: `删除待办：${note.text}` })}
                         onClick={() => {
                           removeNote(note.id);
-                          setNotice(tr(lang, { en: "Removed from the desk.", zh: "已从书桌拿掉。" }));
+                          setNotice({ en: "Task deleted.", zh: "已删除待办。" });
                         }}
                       >
-                        {tr(lang, typeLabel.desk)}
+                        <Trash2 size={16} aria-hidden="true" />
                       </button>
                     </div>
                   ))}
-                  {seedTasks.map((task) => {
-                    const done = Boolean(seedDone[task.id]);
-                    return (
-                      <button
-                        type="button"
-                        className={cn("task-row", done && "is-done")}
-                        key={task.id}
-                        onClick={() =>
-                          setSeedDone((prev) => ({ ...prev, [task.id]: !prev[task.id] }))
-                        }
-                      >
-                        <span className="task-check" aria-hidden="true">
-                          {done ? <Check size={15} /> : null}
-                        </span>
-                        <span className="task-copy">
-                          <strong>{tr(lang, { en: task.titleEn, zh: task.titleZh })}</strong>
-                          <small>{tr(lang, { en: task.detailEn, zh: task.detailZh })}</small>
-                        </span>
-                        <span className={cn("task-type", `type-${task.type}`)}>
-                          {tr(lang, typeLabel[task.type])}
-                        </span>
-                      </button>
-                    );
-                  })}
+                  {notes.length === 0 && <p className="small-note">{tr(lang, { en: "No tasks yet. Add an assignment or reminder.", zh: "还没有待办，可以添加作业或需要记住的事。" })}</p>}
                 </div>
                 {showComposer ? (
                   <form
@@ -110,8 +79,8 @@ export function HomeTasksSection() {
                       onChange={(event) => setDraft(event.target.value)}
                       maxLength={140}
                       placeholder={tr(lang, {
-                        en: "What needs a place on your list?",
-                        zh: "还有什么要放进清单？",
+                        en: "Add an assignment or reminder",
+                        zh: "输入作业或提醒事项",
                       })}
                       aria-label={tr(lang, { en: "New task", zh: "新任务" })}
                     />
@@ -128,13 +97,14 @@ export function HomeTasksSection() {
             ) : (
               <div className="week-view">
                 <div className="week-stat">
-                  <span className="week-number">{String(Math.max(scheduleBlocks.length, openCount, 6)).padStart(2, "0")}</span>
+                  <span className="week-number">{String(scheduleBlocks.length).padStart(2, "0")}</span>
                   <span>
-                    <strong>{tr(lang, { en: "things worth doing", zh: "件值得做的事" })}</strong>
-                    <small>{tr(lang, { en: "across the next seven days", zh: "覆盖接下来七天" })}</small>
+                    <strong>{tr(lang, { en: "scheduled classes", zh: "节课程" })}</strong>
+                    <small>{tr(lang, { en: "in your weekly timetable", zh: "来自已添加的每周课表" })}</small>
                   </span>
                 </div>
                 <div className="week-lines">
+                  {weekItems.length === 0 && <p className="small-note">{tr(lang, { en: "Add classes below to see your weekly schedule.", zh: "在下方添加课程后，这里会显示每周课表。" })}</p>}
                   {weekItems.map((item) => (
                     <div key={item.day}>
                       <span>{tr(lang, item.label)}</span>
@@ -142,22 +112,22 @@ export function HomeTasksSection() {
                     </div>
                   ))}
                 </div>
-                <Link className="text-link" to="/guide">
-                  {tr(lang, { en: "See the full guide", zh: "查看完整指南" })}{" "}
+                <a className="text-link" href="#week-schedule">
+                  {tr(lang, { en: "Edit weekly schedule", zh: "编辑每周课表" })}{" "}
                   <ChevronRight size={15} aria-hidden="true" />
-                </Link>
+                </a>
               </div>
             )}
           </div>
           <p className="small-note">
-            <CheckCircle2 size={14} aria-hidden="true" /> {notice}
+            <CheckCircle2 size={14} aria-hidden="true" /> {notice ? tr(lang, notice) : tr(lang, { en: "Tasks are saved on this device.", zh: "待办保存在当前设备上。" })}
           </p>
         </div>
 
         <aside className="aside-column">
           <div className="section-heading-row compact-heading">
             <div>
-              <p className="eyebrow">{tr(lang, { en: "USEFUL, NOT BUSY", zh: "有用，不添乱" })}</p>
+              <p className="eyebrow">{tr(lang, { en: "RESOURCES", zh: "常用工具" })}</p>
               <h2>{tr(lang, { en: "Shortcuts", zh: "快捷入口" })}</h2>
             </div>
             <ListChecks size={20} className="heading-icon" aria-hidden="true" />
@@ -182,8 +152,8 @@ export function HomeTasksSection() {
           <div className="announce-panel panel">
             <div className="panel-heading-row compact-heading">
               <div>
-                <span className="panel-label">{tr(lang, { en: "ANNOUNCEMENTS", zh: "公告" })}</span>
-                <h2>{tr(lang, { en: "Campus notes", zh: "校园短讯" })}</h2>
+                <span className="panel-label">{tr(lang, { en: "REMINDERS", zh: "温馨提示" })}</span>
+                <h2>{tr(lang, { en: "Student reminders", zh: "学习与生活提醒" })}</h2>
               </div>
               <Megaphone className="heading-icon" size={18} aria-hidden="true" />
             </div>

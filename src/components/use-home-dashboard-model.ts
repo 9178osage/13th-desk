@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { deadlines as uniDeadlines } from "@/data/guide";
 import { deadlinesFor, releaseLine } from "@/data/k12";
 import { LEVELS } from "@/lib/levels";
@@ -16,9 +15,7 @@ import {
 } from "@/lib/time";
 import {
   deadlinePassed,
-  fallbackSchedule,
   minutesUntil,
-  seedTasks,
 } from "@/components/home-dashboard-data";
 
 export function useHomeDashboardModel() {
@@ -33,7 +30,15 @@ export function useHomeDashboardModel() {
   const toggleNote = useDesk((state) => state.toggleNote);
   const removeNote = useDesk((state) => state.removeNote);
 
-  const clock = eugeneClock();
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    const update = () => setNow(new Date());
+    update();
+    const timer = window.setInterval(update, 30_000);
+    window.addEventListener("focus", update);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", update); };
+  }, []);
+  const clock = eugeneClock(now ?? new Date("2026-01-01T12:00:00Z"));
   const todayKey = weekdayToScheduleDay(clock.weekday);
   const levelName = LEVELS.find((item) => item.id === level);
 
@@ -55,7 +60,7 @@ export function useHomeDashboardModel() {
 
   const nextBlock = useMemo(() => {
     const upcomingBlocks = todayBlocks.filter((item) => hmToMin(item.end) > clock.minutes);
-    return upcomingBlocks[0] ?? todayBlocks[0] ?? null;
+    return upcomingBlocks[0] ?? null;
   }, [todayBlocks, clock.minutes]);
 
   const scheduleRows = useMemo(() => {
@@ -69,32 +74,27 @@ export function useHomeDashboardModel() {
         color: index === 0 ? "blue" : index === 1 ? "teal" : "slate",
       }));
     }
-    return fallbackSchedule;
+    return [];
   }, [todayBlocks]);
 
   const [mode, setMode] = useState<"today" | "week">("today");
-  const [seedDone, setSeedDone] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState("");
   const [showComposer, setShowComposer] = useState(false);
-  const [notice, setNotice] = useState(
-    tr(lang, { en: "Your day is intentionally light.", zh: "今天的清单故意留得轻一点。" }),
-  );
+  const [notice, setNotice] = useState<{ en: string; zh: string } | null>(null);
 
   const deskOpen = notes.filter((n) => !n.done).length;
   const deskDone = notes.filter((n) => n.done).length;
-  const seedOpen = seedTasks.filter((t) => !seedDone[t.id]).length;
-  const seedComplete = seedTasks.filter((t) => seedDone[t.id]).length;
-  const openCount = deskOpen + seedOpen;
-  const completed = deskDone + seedComplete;
+  const openCount = deskOpen;
+  const completed = deskDone;
 
   const weekItems = useMemo(() => {
     const byDay = new Map<string, string[]>();
-    for (const block of scheduleBlocks.filter((item) => item.pinned || true).slice(0, 12)) {
+    for (const block of [...scheduleBlocks].sort((a, b) => a.start.localeCompare(b.start))) {
       const list = byDay.get(block.day) ?? [];
       list.push(block.title);
       byDay.set(block.day, list);
     }
-    const order = ["fri", "mon", "wed", "tue", "thu"] as const;
+    const order = ["mon", "tue", "wed", "thu", "fri"] as const;
     const labels = {
       mon: { en: "MON", zh: "一" },
       tue: { en: "TUE", zh: "二" },
@@ -104,19 +104,13 @@ export function useHomeDashboardModel() {
     };
     const rows = order
       .filter((day) => byDay.has(day))
-      .slice(0, 3)
       .map((day) => ({
         day,
         label: labels[day],
-        title: (byDay.get(day) ?? []).slice(0, 2).join(" · "),
+        title: (byDay.get(day) ?? []).join(" · "),
       }));
-    if (rows.length > 0) return rows;
-    return [
-      { day: "fri", label: { en: "FRI", zh: "五" }, title: tr(lang, { en: "Library hold + studio hours", zh: "取预约书 + 工作室时段" }) },
-      { day: "mon", label: { en: "MON", zh: "一" }, title: tr(lang, { en: "Response essay draft", zh: "回应短文草稿" }) },
-      { day: "wed", label: { en: "WED", zh: "三" }, title: tr(lang, { en: "Project critique", zh: "项目点评" }) },
-    ];
-  }, [scheduleBlocks, lang]);
+    return rows;
+  }, [scheduleBlocks]);
 
   let termLine = tr(lang, {
     en:
@@ -194,28 +188,34 @@ export function useHomeDashboardModel() {
   }
 
   const nextMins = nextBlock ? minutesUntil(nextBlock.start, clock) : null;
-  const nextTimeLabel = nextBlock?.start ?? "10:00";
+  const nextTimeLabel = nextBlock?.start ?? "—";
   const nextTitle = nextBlock
     ? nextBlock.title
-    : tr(lang, { en: "Writing in the community", zh: "社区写作课" });
-  const nextPlace = nextBlock?.place || "PLC 180";
+    : todayBlocks.length > 0
+      ? tr(lang, { en: "Today's classes are finished", zh: "今天的课程已结束" })
+      : tr(lang, { en: "No classes scheduled today", zh: "今天没有已添加的课程" });
+  const nextPlace = nextBlock?.place || tr(lang, { en: "Location not set", zh: "未填写地点" });
 
   function addTask() {
     const clean = draft.trim();
     if (!clean) return;
+    if (notes.length >= 20) {
+      setNotice({ en: "You can save up to 20 tasks. Delete one before adding another.", zh: "最多保存 20 条待办，请先删除不需要的条目。" });
+      return;
+    }
     addNote(clean);
     setDraft("");
     setShowComposer(false);
-    setNotice(tr(lang, { en: "Added to today.", zh: "已加到今天。" }));
+    setNotice({ en: "Task added.", zh: "已添加待办。" });
   }
 
 
   return {
     lang, level, earlyStart, setEarlyStart, district, notes, scheduleBlocks,
     addNote, toggleNote, removeNote, clock, todayKey, levelName, phase, dateList,
-    upcoming, todayBlocks, nextBlock, scheduleRows, mode, setMode, seedDone, setSeedDone,
+    upcoming, todayBlocks, nextBlock, scheduleRows, mode, setMode, now,
     draft, setDraft, showComposer, setShowComposer, notice, setNotice, deskOpen, deskDone,
-    seedOpen, seedComplete, openCount, completed, weekItems, termLine, nextMins,
+    openCount, completed, weekItems, termLine, nextMins,
     nextTimeLabel, nextTitle, nextPlace, addTask, tr, tf, releaseLine,
   };
 }

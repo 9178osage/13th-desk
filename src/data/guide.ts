@@ -27,7 +27,7 @@ export const deadlines: Deadline[] = [
     title: { en: "Drop with no W", zh: "退课不记 W" },
     detail: {
       en: "Last day to drop in DuckWeb with no W on the transcript. The registrar also posts refund rules for full withdrawals — read them there, not here.",
-      zh: "这是在 DuckWeb 退课、成绩单上不记 W 的最后一天。如果把这学期的课全部退掉，退多少钱看教务处网站，别看这里。",
+      zh: "在 DuckWeb 退课且成绩单不记 W 的截止日期。如需退掉本学期全部课程，请到教务处网站确认退款规定。",
     },
   },
   {

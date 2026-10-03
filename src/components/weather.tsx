@@ -83,7 +83,7 @@ function hint(kind: Kind, lang: Lang, level: Level): string {
     if (level !== "uni") {
       return tr(lang, {
         en: "If this holds, outside is fine after school.",
-        zh: "天气要是一直这样，放学可以在外面待一会儿。",
+        zh: "天气晴朗，放学后可以安排户外活动。",
         es: "Si sigue así, después de clases se puede estar afuera.",
         ko: "이렇게 유지되면 하교 후에 밖에 있어도 돼요.",
         vi: "Nếu trời giữ thế này, tan học có thể ở ngoài một lúc.",
@@ -92,7 +92,7 @@ function hint(kind: Kind, lang: Lang, level: Level): string {
     }
     return tr(lang, {
       en: "If this holds, the quad is actually usable.",
-      zh: "天气要是一直这样，草坪今天可以去。",
+      zh: "天气晴朗，适合到户外走走。",
     });
   }
   return tr(lang, {

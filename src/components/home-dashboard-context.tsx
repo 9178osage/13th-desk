@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { createContext, useContext } from "react";
+import type { useHomeDashboardModel } from "@/components/use-home-dashboard-model";
 
-export type HomeModel = Record<string, any>;
+export type HomeModel = ReturnType<typeof useHomeDashboardModel>;
 
 export const HomeDashboardContext = createContext<HomeModel | null>(null);
 

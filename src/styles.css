@@ -1,3 +1,10 @@
 @import "tailwindcss";@import "@fontsource/fraunces/latin-500.css";@import "@fontsource/fraunces/latin-600.css";@import "@fontsource/outfit/latin-400.css";@import "@fontsource/outfit/latin-500.css";@import "@fontsource/outfit/latin-600.css";@import "./styles/fusion-a.css";@import "./styles/fusion-b.css";@import "./styles/fusion-c.css";
 
 /* Fused visual language — Eugene Desk */
+
+.task-delete { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 0.5rem; background: transparent; color: var(--home-muted); }
+.task-delete:hover { background: var(--home-surface-soft); color: var(--home-ink); }
+.task-check { position: relative; }
+.task-check::after { content: ""; position: absolute; width: 44px; height: 44px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.task-copy { text-align: left; overflow-wrap: anywhere; }
+#week-schedule { scroll-margin-top: 15rem; }
