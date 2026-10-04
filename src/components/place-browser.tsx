@@ -5,6 +5,7 @@ import { Card, Chip, EmptyState, Input, SectionHeader } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { useDesk, useLang } from "@/lib/store";
 import { tr, type Copy } from "@/lib/text";
+import { deskText as c } from "@/lib/desk-copy";
 
 type Filter = "all" | "saved" | PlaceCat;
 
@@ -52,11 +53,19 @@ export function PlaceBrowser({
       })
       .filter((place) => {
         if (!q) return true;
-        const hay =
-          `${place.name} ${place.blurb.en} ${place.blurb.zh ?? ""} ${areaName[place.area].en} ${areaName[place.area].zh ?? ""} ${place.hours ?? ""}`.toLowerCase();
+        const hay = [
+          place.name,
+          ...Object.values(place.blurb),
+          tr(lang, place.blurb),
+          ...Object.values(areaName[place.area]),
+          tr(lang, areaName[place.area]),
+          place.hours ?? "",
+        ]
+          .join(" ")
+          .toLocaleLowerCase();
         return hay.includes(q);
       });
-  }, [page, cat, query, favs, level]);
+  }, [page, cat, query, favs, level, lang]);
 
   const grouped = useMemo(() => {
     const map = new Map<AreaId, Place[]>();
@@ -74,7 +83,9 @@ export function PlaceBrowser({
   return (
     <div>
       <header className="mb-6 border-b border-ink/80 pb-4">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">{tr(lang, kicker)}</p>
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+          {tr(lang, kicker)}
+        </p>
         <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">{tr(lang, title)}</h1>
         <p className="mt-3 max-w-2xl text-muted">{tr(lang, lead)}</p>
       </header>
@@ -82,11 +93,14 @@ export function PlaceBrowser({
       <div className="mb-4">
         <label className="relative block min-w-0">
           <span className="sr-only">{tr(lang, { en: "Search places", zh: "搜索地点" })}</span>
-          <Search className="pointer-events-none absolute left-3 top-3 size-5 text-muted" aria-hidden />
+          <Search
+            className="pointer-events-none absolute left-3 top-3 size-5 text-muted"
+            aria-hidden
+          />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={tr(lang, { en: "Search a room, a meal, a hill", zh: "搜教室、吃饭的地方、山" })}
+            placeholder={c(lang, "search")}
             className="pl-10"
           />
         </label>
@@ -94,18 +108,27 @@ export function PlaceBrowser({
 
       <div className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
         {cats.map((item) => (
-          <Chip key={item.id} active={cat === item.id} pressed={cat === item.id} onClick={() => setCat(item.id)}>
+          <Chip
+            key={item.id}
+            active={cat === item.id}
+            pressed={cat === item.id}
+            onClick={() => setCat(item.id)}
+          >
             {tr(lang, item.label)}
           </Chip>
         ))}
       </div>
 
+      <div className="search-results">
+        <span role="status">{c(lang, "results", { n: list.length })}</span>
+        {query && <button onClick={() => setQuery("")}>{c(lang, "clear")}</button>}
+      </div>
       {list.length === 0 ? (
         <EmptyState
-          title={tr(lang, { en: "Nothing matches", zh: "没有匹配的" })}
+          title={tr(lang, { en: "Nothing matches", zh: "没有找到匹配的地点" })}
           body={tr(lang, {
             en: "Try another word, clear the search, or pin a place from Campus or Town first.",
-            zh: "换个词，清空搜索，或者先从校园/城里收藏一个地方。",
+            zh: "试试其他关键词或分类。收藏夹中只会显示你已收藏的地点。",
           })}
         />
       ) : (
@@ -144,7 +167,9 @@ export function PlaceBrowser({
                             onClick={() => toggleFav(place.id)}
                             className={cn(
                               "grid size-11 shrink-0 place-items-center rounded-full border",
-                              saved ? "border-moss bg-moss-soft text-moss" : "border-line text-muted",
+                              saved
+                                ? "border-moss bg-moss-soft text-moss"
+                                : "border-line text-muted",
                             )}
                           >
                             <Heart className={cn("size-5", saved && "fill-current")} aria-hidden />

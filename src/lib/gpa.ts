@@ -72,10 +72,8 @@ export function isLetter(value: unknown): value is Letter {
 
 export function cleanDecimal(value: unknown, maxLen: number): string {
   if (typeof value !== "string") return "";
-  const clean = value.replace(/[^\d.]/g, "");
-  const dot = clean.indexOf(".");
-  const next = dot === -1 ? clean : `${clean.slice(0, dot)}.${clean.slice(dot + 1).replace(/\./g, "")}`;
-  return next.slice(0, maxLen);
+  // Keep invalid input visible so validation can explain it. Never turn -3 into 3.
+  return value.trim().slice(0, maxLen);
 }
 
 export function asStoredCredits(value: unknown): number | null {
@@ -93,17 +91,22 @@ function toHundredths(raw: string): number | null {
   return Number.isInteger(n) ? n : null;
 }
 
-export function parseGpaInput(raw: string): number | null {
+export function parseGpaInput(raw: string, maxHundredths = 500): number | null {
   const t = raw.trim();
   if (!/^(?:[0-4](?:\.\d{1,2})?|5(?:\.00?)?)$/.test(t)) return null;
   const hundredths = toHundredths(t);
-  if (hundredths == null || hundredths > 500) return null;
+  if (hundredths == null || hundredths > maxHundredths) return null;
   return hundredths;
 }
 
 export function parseCredits(raw: string, maxHundredths: number): number | null {
   const hundredths = toHundredths(raw.trim());
-  if (hundredths == null || hundredths < 50 || hundredths > maxHundredths || hundredths % 50 !== 0) {
+  if (
+    hundredths == null ||
+    hundredths < 50 ||
+    hundredths > maxHundredths ||
+    hundredths % 50 !== 0
+  ) {
     return null;
   }
   return hundredths;
@@ -172,12 +175,12 @@ export function combinedGpa(
   priorCreditHundredths: number,
 ): GpaFigure | null {
   const current = listGpa(level, rows, weighted);
-  if (!current) return null;
-  const points10k = priorGpaHundredths * priorCreditHundredths + currentPoints(level, rows, weighted);
-  return figureFrom(points10k, priorCreditHundredths + current.creditHundredths);
+  const points10k =
+    priorGpaHundredths * priorCreditHundredths + currentPoints(level, rows, weighted);
+  return figureFrom(points10k, priorCreditHundredths + (current?.creditHundredths ?? 0));
 }
 
-function currentPoints(level: Level, rows: GpaInput[], weighted: boolean): number {
+export function currentPoints(level: Level, rows: GpaInput[], weighted: boolean): number {
   let points10k = 0;
   for (const row of rows) {
     const credits = asStoredCredits(row.credits);

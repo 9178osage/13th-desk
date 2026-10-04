@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, Sun } from "lucide-react";
-import { useLang, useDesk } from "@/lib/store";
+import { useLang } from "@/lib/store";
 import { tr, type Copy, type Lang } from "@/lib/text";
 import { formatWhen } from "@/lib/time";
-import type { Level } from "@/lib/levels";
+import { Button } from "@/components/ui";
 
 type Kind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 
@@ -50,57 +50,6 @@ function skyLabel(kind: Kind, lang: Lang): string {
   return tr(lang, copy[kind]);
 }
 
-function hint(kind: Kind, lang: Lang, level: Level): string {
-  if (kind === "rain" || kind === "storm") {
-    if (level !== "uni") {
-      return tr(lang, {
-        en: "Grab a jacket. Don't stand in the rain.",
-        zh: "带件外套。别站在雨里淋着。",
-        es: "Lleva chamarra. No te quedes bajo la lluvia.",
-        ko: "겉옷을 챙겨요. 비 맞으며 서 있지 말아요.",
-        vi: "Mang áo khoác. Đừng đứng dưới mưa.",
-        ja: "上着を持って。雨の中に立たないで。",
-      });
-    }
-    return tr(lang, {
-      en: "Jacket. Knight over the quad.",
-      zh: "带外套。去 Knight，别去草坪。",
-    });
-  }
-  if (kind === "fog") {
-    return tr(lang, {
-      en: "Fog sits on the river. Give the bike path a minute.",
-      zh: "河上有雾。走河边那条路之前先等一会儿。",
-    });
-  }
-  if (kind === "snow") {
-    return tr(lang, {
-      en: "Unusual for the valley floor. Check the bus before you trust a bike.",
-      zh: "尤金市区很少下雪。先看公交，再决定要不要骑车。",
-    });
-  }
-  if (kind === "clear") {
-    if (level !== "uni") {
-      return tr(lang, {
-        en: "If this holds, outside is fine after school.",
-        zh: "天气晴朗，放学后可以安排户外活动。",
-        es: "Si sigue así, después de clases se puede estar afuera.",
-        ko: "이렇게 유지되면 하교 후에 밖에 있어도 돼요.",
-        vi: "Nếu trời giữ thế này, tan học có thể ở ngoài một lúc.",
-        ja: "このままなら、放課後は外にいても大丈夫です。",
-      });
-    }
-    return tr(lang, {
-      en: "If this holds, the quad is actually usable.",
-      zh: "天气晴朗，适合到户外走走。",
-    });
-  }
-  return tr(lang, {
-    en: "A jacket in the bag, not a commitment to staying in.",
-    zh: "包里放一件外套就行，不必整天待在屋里。",
-  });
-}
-
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -110,11 +59,16 @@ function asForecast(value: unknown): Forecast | null {
   const raw = value as Forecast;
   if (!finite(raw.current?.temperature_2m) || !finite(raw.current?.weather_code)) return null;
   if (!Array.isArray(raw.daily?.time) || raw.daily.time.length === 0) return null;
-  if (!raw.daily.time.every((item) => typeof item === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item))) {
+  if (
+    !raw.daily.time.every((item) => typeof item === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item))
+  ) {
     return null;
   }
   if (!Array.isArray(raw.daily.weather_code)) return null;
-  if (!Array.isArray(raw.daily.temperature_2m_max) || !Array.isArray(raw.daily.temperature_2m_min)) {
+  if (
+    !Array.isArray(raw.daily.temperature_2m_max) ||
+    !Array.isArray(raw.daily.temperature_2m_min)
+  ) {
     return null;
   }
   return raw;
@@ -122,11 +76,12 @@ function asForecast(value: unknown): Forecast | null {
 
 export function WeatherCard() {
   const lang = useLang();
-  const level = useDesk((state) => state.level);
   const [data, setData] = useState<Forecast | null>(null);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    setFailed(false);
     const ctrl = new AbortController();
     let gone = false;
     const timer = setTimeout(() => ctrl.abort(), 8000);
@@ -151,36 +106,48 @@ export function WeatherCard() {
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, []);
+  }, [attempt]);
 
   return (
-    <section className="rounded-lg border border-line bg-card p-4 md:min-h-48 md:w-72">
+    <section className="desk-panel weather-panel">
       <p className="text-xs uppercase tracking-widest text-muted">Eugene</p>
       {failed ? (
-        <p className="mt-3 text-sm text-ink">
-          {tr(lang, {
-            en: "The forecast did not load. It can turn wet here without much warning.",
-            zh: "天气预报没有加载出来。这边说下雨就下雨，出门看一眼天。",
-            es: "El pronóstico no cargó. Aquí puede llover de golpe.",
-            ko: "예보를 불러오지 못했어요. 여기는 갑자기 비가 올 수 있어요.",
-            vi: "Bản tin thời tiết không tải được. Ở đây trời có thể mưa bất ngờ.",
-            ja: "予報を読み込めませんでした。ここでは急に雨が降ることがあります。",
-          })}
-        </p>
+        <div className="mt-3 text-sm text-ink" role="status">
+          <p>
+            {tr(lang, {
+              en: "Weather is unavailable right now.",
+              zh: "暂时无法获取天气。",
+              es: "El tiempo no está disponible ahora.",
+              ko: "지금은 날씨를 불러올 수 없어요.",
+              vi: "Hiện chưa tải được thời tiết.",
+              ja: "現在、天気情報を取得できません。",
+            })}
+          </p>
+          <Button className="mt-3" variant="quiet" onClick={() => setAttempt((n) => n + 1)}>
+            {tr(lang, {
+              en: "Try again",
+              zh: "重试",
+              es: "Reintentar",
+              ko: "다시 시도",
+              vi: "Thử lại",
+              ja: "再試行",
+            })}
+          </Button>
+        </div>
       ) : !data ? (
         <p className="mt-3 text-sm text-muted">
           {tr(lang, { en: "Checking the sky…", zh: "正在查天气…" })}
         </p>
       ) : (
-        <Sky data={data} lang={lang} level={level} />
+        <Sky data={data} lang={lang} />
       )}
     </section>
   );
 }
 
-function Sky({ data, lang, level }: { data: Forecast; lang: Lang; level: Level }) {
+function Sky({ data, lang }: { data: Forecast; lang: Lang }) {
   const f = Math.round(data.current.temperature_2m);
-  const c = Math.round(((f - 32) * 5) / 9);
+  const c = Math.round(((data.current.temperature_2m - 32) * 5) / 9);
   const kind = kindOf(data.current.weather_code);
   const Icon = ICONS[kind];
   const metric = lang !== "en";
@@ -201,7 +168,6 @@ function Sky({ data, lang, level }: { data: Forecast; lang: Lang; level: Level }
       <p className="mt-2 text-sm text-muted">
         {small} · {skyLabel(kind, lang)}
       </p>
-      <p className="mt-3 text-sm text-ink">{hint(kind, lang, level)}</p>
       <ul className="mt-4 grid grid-cols-3 gap-2 border-t border-line pt-3">
         {data.daily.time.slice(0, 3).map((ymd, index) => {
           const dayKind = kindOf(data.daily.weather_code[index] ?? 3);
@@ -219,9 +185,7 @@ function Sky({ data, lang, level }: { data: Forecast; lang: Lang; level: Level }
           return (
             <li key={ymd} className="text-center">
               <p className="text-xs text-muted">
-                {index === 0
-                  ? tr(lang, { en: "Today", zh: "今天" })
-                  : formatWhen(ymd, today, lang)}
+                {index === 0 ? tr(lang, { en: "Today", zh: "今天" }) : formatWhen(ymd, today, lang)}
               </p>
               <DayIcon className="mx-auto mt-1 size-4 text-moss" aria-hidden />
               <p className="mt-1 text-sm tabular-nums text-ink">
@@ -234,12 +198,27 @@ function Sky({ data, lang, level }: { data: Forecast; lang: Lang; level: Level }
                 )}
               </p>
               <p className="text-xs tabular-nums text-muted">
-                {pop == null ? "—" : `${Math.round(pop)}%`}
+                {!finite(pop) ? "—" : `${Math.round(pop)}%`}
               </p>
             </li>
           );
         })}
       </ul>
+      <div className="weather-source">
+        <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">
+          Open-Meteo ↗
+        </a>
+        <span>
+          {tr(lang, {
+            en: "Rain chance (%)",
+            zh: "降水概率（%）",
+            es: "Prob. de lluvia (%)",
+            ko: "강수 확률 (%)",
+            vi: "Khả năng mưa (%)",
+            ja: "降水確率（%）",
+          })}
+        </span>
+      </div>
     </>
   );
 }

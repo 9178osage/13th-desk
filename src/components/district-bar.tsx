@@ -20,7 +20,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
       setNote(
         tr(lang, {
           en: "This browser cannot share a location. Pick the district yourself.",
-          zh: "这个浏览器不能定位。你自己选学区。",
+          zh: "当前浏览器不支持定位，请手动选择学区。",
           es: "Este navegador no puede dar la ubicación. Elige el distrito tú.",
           ko: "이 브라우저는 위치를 줄 수 없어요. 학구를 직접 고르세요.",
           vi: "Trình duyệt này không định vị được. Tự chọn học khu.",
@@ -39,7 +39,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
           setNote(
             tr(lang, {
               en: "That spot is outside the districts around Eugene. Pick yours if you know it. The location stays on this device.",
-              zh: "这个位置不在尤金附近这几个学区里。知道的话自己选。位置只留在这台设备上，不上传。",
+              zh: "当前位置不在已收录的学区范围内，请手动选择。定位仅用于本地匹配，不会上传。",
               es: "Ese punto está fuera de los distritos cerca de Eugene. Elige el tuyo si lo sabes. La ubicación se queda en este aparato.",
               ko: "그 위치는 유진 근처 학구 밖이에요. 알면 직접 고르세요. 위치는 이 기기에만 있고 올라가지 않아요.",
               vi: "Vị trí đó nằm ngoài các học khu quanh Eugene. Biết thì tự chọn. Vị trí chỉ ở trên máy này, không gửi đi.",
@@ -52,7 +52,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
         setNote(
           tr(lang, {
             en: `This is where you are standing: ${hit.en}. A district follows the home address, so it can be wrong if you are not home. The location stays on this device.`,
-            zh: `按你现在站的地方，是${hit.zh}。学区按家里的地址算，人不在家会指错。位置只留在这台设备上，不上传。`,
+            zh: `根据当前位置，可能属于${hit.zh}。学区以居住地址为准，若你不在家，请手动确认。定位仅用于本地匹配，不会上传。`,
             es: `Según donde estás parado: ${hit.en}. El distrito sigue la dirección de casa, así que puede fallar si no estás en casa. La ubicación se queda en este aparato.`,
             ko: `지금 서 있는 곳으로는 ${hit.en}예요. 학구는 집 주소로 정해져서, 집이 아니면 틀릴 수 있어요. 위치는 이 기기에만 있고 올라가지 않아요.`,
             vi: `Theo chỗ bạn đang đứng: ${hit.en}. Học khu tính theo địa chỉ nhà, không ở nhà thì có thể sai. Vị trí chỉ ở trên máy này, không gửi đi.`,
@@ -65,7 +65,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
         setNote(
           tr(lang, {
             en: "No location came back. Pick the district yourself.",
-            zh: "没有拿到定位。你自己选学区。",
+            zh: "暂时无法获取位置，请手动选择学区。",
             es: "No llegó la ubicación. Elige el distrito tú.",
             ko: "위치를 받지 못했어요. 학구를 직접 고르세요.",
             vi: "Không lấy được vị trí. Tự chọn học khu.",
@@ -109,7 +109,14 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
           <div className="mt-1.5 space-y-1.5 rounded-md border border-line bg-card p-2 shadow-paper">
             <label className="block">
               <span className="sr-only">
-                {tr(lang, { en: "District", zh: "学区", es: "Distrito", ko: "학구", vi: "Học khu", ja: "学区" })}
+                {tr(lang, {
+                  en: "District",
+                  zh: "学区",
+                  es: "Distrito",
+                  ko: "학구",
+                  vi: "Học khu",
+                  ja: "学区",
+                })}
               </span>
               <select
                 value={district ?? ""}
@@ -154,7 +161,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
                   })
                 : tr(lang, {
                     en: "Use my location",
-                    zh: "用我的定位",
+                    zh: "根据位置查找",
                     es: "Usar ubicación",
                     ko: "위치로 찾기",
                     vi: "Dùng vị trí",
@@ -169,7 +176,12 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
                   zh: `这里的日期按尤金 4J。${picked.zh}有自己的校历。`,
                 })}{" "}
                 {picked.href ? (
-                  <a href={picked.href} target="_blank" rel="noopener noreferrer" className="text-moss underline">
+                  <a
+                    href={picked.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-moss underline"
+                  >
                     {tr(lang, { en: "District site", zh: "学区网站" })}
                   </a>
                 ) : null}
@@ -186,7 +198,14 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
       <div className="flex flex-wrap items-center gap-2">
         <label className="min-w-0 flex-1">
           <span className="sr-only">
-            {tr(lang, { en: "District", zh: "学区", es: "Distrito", ko: "학구", vi: "Học khu", ja: "学区" })}
+            {tr(lang, {
+              en: "District",
+              zh: "学区",
+              es: "Distrito",
+              ko: "학구",
+              vi: "Học khu",
+              ja: "学区",
+            })}
           </span>
           <select
             value={district ?? ""}
@@ -231,7 +250,7 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
               })
             : tr(lang, {
                 en: "Use my location",
-                zh: "用我的定位",
+                zh: "根据位置查找",
                 es: "Usar ubicación",
                 ko: "위치로 찾기",
                 vi: "Dùng vị trí",
@@ -244,17 +263,22 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
         <p className="mt-1 text-sm text-muted">
           {tr(lang, {
             en: `The dates on this site are Eugene 4J. ${picked.en} prints its own calendar.`,
-            zh: `这站上的开学天数和放假是尤金 4J 学区的。${picked.zh}有自己的校历。`,
+            zh: `本页日期参考尤金 4J 学区。你选择的是${picked.zh}，请以该学区的官方校历为准。`,
             es: `Las fechas de este sitio son del distrito Eugene 4J. ${picked.en} publica su propio calendario.`,
             ko: `이 사이트의 날짜는 유진 4J 학구 거예요. ${picked.en}은 자기 학사일정이 있어요.`,
             vi: `Ngày trên trang này là của học khu Eugene 4J. ${picked.en} có lịch riêng.`,
             ja: `このサイトの日付はユージン 4J 学区のものです。${picked.en} には自分の暦があります。`,
           })}{" "}
           {picked.href ? (
-            <a href={picked.href} target="_blank" rel="noopener noreferrer" className="text-moss underline">
+            <a
+              href={picked.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-moss underline"
+            >
               {tr(lang, {
                 en: "District site",
-                zh: "去他们的网站",
+                zh: "查看学区官网",
                 es: "Su sitio",
                 ko: "그 학구 사이트",
                 vi: "Trang của họ",

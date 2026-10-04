@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 520" role="img" aria-label="Eugene Desk">
+  <title>Eugene Desk logo stacked</title>
+  <rect width="480" height="520" fill="#f1ebe3"/>
+  <g transform="translate(144,64)">
+    <rect width="192" height="192" rx="42" fill="#12253c"/>
+    <path d="M24 120c16.5-24 33.6-38.4 51.6-38.4 12.6 0 22.8 7.2 32.4 17.4 10.2-13.8 23.4-22.8 40.5-22.8 14.4 0 26.1 7.8 43.5 28.5V144H24z" fill="#f1ebe3"/>
+    <path d="M30 138h132c4.2 0 7.5 3.3 7.5 7.5v9c0 5.1-4.1 9.2-9.2 9.2H31.7c-5.1 0-9.2-4.1-9.2-9.2v-9c0-4.2 3.3-7.5 7.5-7.5z" fill="#e4d9cc"/>
+    <rect x="25.5" y="136.5" width="141" height="6.5" rx="3.2" fill="#fffdf9"/>
+    <rect x="138.5" y="66" width="9.5" height="73" rx="4.7" fill="#2f6bff"/>
+    <circle cx="143.2" cy="60.5" r="12.5" fill="#2f6bff"/>
+    <circle cx="143.2" cy="60.5" r="6" fill="#f1ebe3"/>
+    <path d="M54 126.5h37.5c2 0 3.6 1.6 3.6 3.6V138H50.4v-7.9c0-2 1.6-3.6 3.6-3.6z" fill="#2f6bff"/>
+  </g>
+  <text x="240" y="340" text-anchor="middle" font-family="Georgia, 'Iowan Old Style', 'Times New Roman', serif" font-size="58" font-weight="600" letter-spacing="-1.2" fill="#12253c">Eugene Desk</text>
+  <text x="240" y="382" text-anchor="middle" font-family="Avenir Next, Segoe UI, Helvetica, sans-serif" font-size="18" font-weight="500" letter-spacing="4" fill="#5a6878">STUDENT DESK · EUGENE, OR</text>
+</svg>

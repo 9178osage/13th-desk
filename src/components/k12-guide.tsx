@@ -1,3 +1,4 @@
+import { useClock } from "@/lib/use-clock";
 import { Check, ExternalLink } from "lucide-react";
 import { deadlinesFor, k12Checks, k12Links, releaseLine } from "@/data/k12";
 import { cn } from "@/lib/cn";
@@ -15,46 +16,51 @@ function isPast(item: { ymd: string; time?: string }, clock: ReturnType<typeof e
 
 export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
   const lang = useLang();
-  const clock = eugeneClock();
+  const now = useClock();
+  const clock = now ? eugeneClock(now) : null;
   const checks = useDesk((state) => state.buckets[state.level].checks);
   const toggleCheck = useDesk((state) => state.toggleCheck);
   const list = k12Checks[level];
   const done = list.filter((item) => checks.includes(item.id)).length;
   const dates = deadlinesFor(level);
   const name = LEVELS.find((item) => item.id === level);
-  const links = k12Links.filter((item) => level === "high" || !item.href.includes("studentaid") && !item.href.includes("oregonstudentaid"));
+  const links = k12Links.filter(
+    (item) =>
+      level === "high" ||
+      (!item.href.includes("studentaid") && !item.href.includes("oregonstudentaid")),
+  );
 
   return (
     <div className="flex flex-col gap-12">
       <header className="border-b border-ink pb-4">
-        <p className="text-xs uppercase tracking-widest text-muted">
-          {name ? tr(lang, name) : ""}
-        </p>
+        <p className="text-xs uppercase tracking-widest text-muted">{name ? tr(lang, name) : ""}</p>
         <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">
-          {tr(lang, { en: "The year", zh: "这一年" })}
+          {tr(lang, { en: "The year", zh: "学年指南" })}
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
           {tr(lang, {
             en: "Dates below are Eugene 4J for 2026–27. Bethel and Springfield print their own. The checklist stays in this browser.",
-            zh: "下面的日期是尤金 4J 学区 2026–27。Bethel 和 Springfield 有自己的校历。清单只存在这台浏览器里。",
+            zh: "下方日期参考尤金 4J 学区 2026–27 学年校历，Bethel 和 Springfield 学生请查看各自学区的安排。个人清单保存在当前浏览器。",
           })}
         </p>
-        <p className="mt-3 max-w-2xl text-sm text-ink">{tr(lang, releaseLine(level, clock.weekday === 3))}</p>
+        <p className="mt-3 max-w-2xl text-sm text-ink">
+          {tr(lang, releaseLine(level, clock?.weekday === 3))}
+        </p>
       </header>
 
       <section>
         <h2 className="font-display text-3xl text-ink">
-          {tr(lang, { en: "Days off", zh: "不上课的日子" })}
+          {tr(lang, { en: "Days off", zh: "假期与休课日" })}
         </h2>
         <ol className="mt-4 divide-y divide-line border-y border-line">
           {dates.map((item) => {
-            const past = isPast(item, clock);
+            const past = clock ? isPast(item, clock) : false;
             return (
               <li key={item.id} className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
                 <p className={cn("font-display text-lg", past ? "text-muted" : "text-ink")}>
                   {past
                     ? tr(lang, { en: "Passed", zh: "已过" })
-                    : formatWhen(item.ymd, clock.ymd, lang)}
+                    : formatWhen(item.ymd, clock?.ymd ?? "", lang)}
                 </p>
                 <div>
                   <p className={cn("font-medium", past ? "text-muted" : "text-ink")}>

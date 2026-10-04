@@ -1,3 +1,4 @@
+import { useClock } from "@/lib/use-clock";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, ExternalLink } from "lucide-react";
 import {
@@ -35,7 +36,8 @@ function GuidePage() {
 
 function UniGuide() {
   const lang = useLang();
-  const clock = eugeneClock();
+  const now = useClock();
+  const clock = now ? eugeneClock(now) : null;
   const checks = useDesk((state) => state.buckets[state.level].checks);
   const toggleCheck = useDesk((state) => state.toggleCheck);
   const done = checklist.filter((item) => checks.includes(item.id)).length;
@@ -44,15 +46,15 @@ function UniGuide() {
     <div className="flex flex-col gap-12">
       <header className="border-b border-ink pb-4">
         <p className="text-xs uppercase tracking-widest text-muted">
-          {tr(lang, { en: "For students in Eugene", zh: "写给在尤金上学的人" })}
+          {tr(lang, { en: "For students in Eugene", zh: "尤金学生生活指南" })}
         </p>
         <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">
-          {tr(lang, { en: "The guide", zh: "指南" })}
+          {tr(lang, { en: "The guide", zh: "学生指南" })}
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
           {tr(lang, {
             en: "University of Oregon and Lane Community College. Dates below are fall 2026 UO. Your checklist stays in this browser.",
-            zh: "俄勒冈大学和莱恩社区学院。下面是 2026 秋季 UO 校历。清单只存在这台浏览器里。",
+            zh: "汇总学校日程、新生清单和常用资源。下方日期来自 UO 2026 年秋季校历，个人清单保存在当前浏览器。",
           })}
         </p>
       </header>
@@ -86,13 +88,13 @@ function UniGuide() {
         </h2>
         <ol className="mt-4 divide-y divide-line border-y border-line">
           {deadlines.map((item) => {
-            const past = isPast(item, clock);
+            const past = clock ? isPast(item, clock) : false;
             return (
               <li key={item.id} className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
                 <p className={cn("font-display text-lg", past ? "text-muted" : "text-ink")}>
                   {past
                     ? tr(lang, { en: "Passed", zh: "已过" })
-                    : formatWhen(item.ymd, clock.ymd, lang)}
+                    : formatWhen(item.ymd, clock?.ymd ?? "", lang)}
                 </p>
                 <div>
                   <p className={cn("font-medium", past ? "text-muted" : "text-ink")}>
@@ -214,8 +216,8 @@ function UniGuide() {
 
       <p className="text-sm text-muted">
         {tr(lang, {
-          en: "Fall dates come from the UO 2026–27 catalog and the registrar. Bus rules, library hours, and market days change. Check the official site before you bet a grade on a card.",
-          zh: "秋季日期来自俄勒冈大学 2026–27 校历和教务处。公交、图书馆和市集时间会变。别拿这页当正式依据，去官网核对。",
+          en: "Dates are from the UO 2026–27 catalog and registrar. For opening hours, transit, and events, check official sources before making plans.",
+          zh: "日期参考 UO 2026–27 校历和教务处公告。开放时间、交通和活动安排可能调整，出行或办理手续前请确认官方最新信息。",
         })}
       </p>
     </div>

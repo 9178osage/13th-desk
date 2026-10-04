@@ -1,3 +1,4 @@
+import { useClock } from "@/lib/use-clock";
 import { ExternalLink } from "lucide-react";
 import {
   elemBells,
@@ -38,7 +39,9 @@ function SchoolGrid({ schools }: { schools: SchoolCard[] }) {
               ) : null}
             </div>
             <h3 className="font-display text-2xl text-ink">{school.name}</h3>
-            {school.bell ? <p className="text-sm font-medium text-ink">{tr(lang, school.bell)}</p> : null}
+            {school.bell ? (
+              <p className="text-sm font-medium text-ink">{tr(lang, school.bell)}</p>
+            ) : null}
             {school.wed ? <p className="text-sm text-moss">{tr(lang, school.wed)}</p> : null}
             {school.note ? <p className="text-sm text-muted">{tr(lang, school.note)}</p> : null}
             {school.href ? (
@@ -61,7 +64,8 @@ function SchoolGrid({ schools }: { schools: SchoolCard[] }) {
 
 export function K12Campus({ level }: { level: Exclude<Level, "uni"> }) {
   const lang = useLang();
-  const clock = eugeneClock();
+  const now = useClock();
+  const clock = now ? eugeneClock(now) : null;
   const name = LEVELS.find((item) => item.id === level);
   const label = name ? tr(lang, name) : "";
 
@@ -72,7 +76,9 @@ export function K12Campus({ level }: { level: Exclude<Level, "uni"> }) {
           {tr(lang, { en: "Eugene public schools", zh: "尤金的公立学校" })}
         </p>
         <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">{label}</h1>
-        <p className="mt-3 max-w-2xl text-muted">{tr(lang, releaseLine(level, clock.weekday === 3))}</p>
+        <p className="mt-3 max-w-2xl text-muted">
+          {tr(lang, releaseLine(level, clock?.weekday === 3))}
+        </p>
       </header>
 
       {level === "elem" ? (

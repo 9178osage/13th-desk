@@ -19,23 +19,22 @@ function TownPage() {
           ? { en: "After school", zh: "放学以后" }
           : { en: "Eugene, off the clock", zh: "校园外面的尤金" }
       }
-      title={young ? { en: "Out of school", zh: "放学之后" } : { en: "The town", zh: "尤金市区" }}
-      lead={
-        level === "elem"
-          ? {
-              en: "Parks, the Saturday market, and a breakfast that is not the cafeteria. Coffee shops are on the high school and university desks.",
-              zh: "公园、周六市集，还有食堂以外的早饭。咖啡馆写在高中和大学的页面里。",
-            }
-          : level === "mid"
-            ? {
-                en: "Somewhere to eat that is not the cafeteria, and a hill when the week is long.",
-                zh: "食堂外面吃饭的地方，还有想出门走走时可以去的山。",
-              }
-            : {
-                en: "Coffee, a cheap meal, a hill, and the errands that are not the Duck Store. Whiteaker and downtown are where the city starts.",
-                zh: "咖啡、便宜的一餐、可以走走的山，还有 Duck Store 以外要办的事。想看校园外面，去 Whiteaker 和市中心。",
-              }
-      }
+      title={{
+        en: "A little more Eugene.",
+        zh: "课余，逛逛尤金。",
+        es: "Un poco más de Eugene.",
+        ko: "유진을 더 가까이.",
+        vi: "Khám phá thêm về Eugene.",
+        ja: "ユージンを、もう少し。",
+      }}
+      lead={{
+        en: "Find a place for lunch, a walk, or your everyday errands. Save a few favorites for later.",
+        zh: "找一顿午餐、一条散步路线，或日常办事的去处。喜欢的地点可以先收藏，下次再去。",
+        es: "Encuentra dónde comer, pasear o hacer recados. Guarda tus favoritos para después.",
+        ko: "점심 먹을 곳, 산책로, 일상에 필요한 장소를 찾아보세요. 마음에 드는 곳은 저장해 두세요.",
+        vi: "Tìm nơi ăn trưa, đi dạo hoặc làm việc thường ngày. Lưu các địa điểm yêu thích để ghé sau.",
+        ja: "ランチ、散歩、毎日の用事に。気になる場所は保存して、また今度。",
+      }}
       cats={
         young
           ? [
