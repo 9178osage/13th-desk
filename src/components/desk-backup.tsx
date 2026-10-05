@@ -1,14 +1,19 @@
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Download, Upload, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import {
   backupFileName,
+  beforeImportFileName,
+  clearPreImportSnapshot,
+  downloadDeskBackupFile,
+  DESK_PRE_IMPORT_EVENT,
+  importUndoOffered,
   parseDeskBackup,
-  serializeDeskBackup,
+  readPreImportSnapshot,
+  writePreImportSnapshot,
   type BackupParseError,
   type BackupSummary,
   type PersistedDeskLike,
-  importUndoOffered,
 } from "@/lib/desk-backup";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { LEVELS } from "@/lib/levels";
@@ -42,18 +47,21 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [snapshot, setSnapshot] = useState<PersistedDeskLike | null>(null);
 
+  useEffect(() => {
+    const sync = () => setSnapshot(readPreImportSnapshot());
+    sync();
+    window.addEventListener(DESK_PRE_IMPORT_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(DESK_PRE_IMPORT_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
   function downloadBackup() {
-    const backup = serializeDeskBackup(getPersistedDeskState());
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = backupFileName();
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadDeskBackupFile(getPersistedDeskState(), backupFileName());
     setMessage("exportDone");
     setPending(null);
-    // Keep snapshot so undo remains available for the rest of the session.
   }
 
   function onPickFile(event: ChangeEvent<HTMLInputElement>) {
@@ -82,20 +90,26 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
   function confirmImport() {
     if (!pending) return;
     const before = getPersistedDeskState();
+    // Always download a before-import backup first.
+    downloadDeskBackupFile(before, beforeImportFileName());
+    const stored = writePreImportSnapshot(before);
     replacePersistedDeskState(pending.state);
     setSnapshot(before);
     setPending(null);
-    setMessage("importDone");
+    setMessage(stored ? "importDone" : "beforeImportStorageFail");
   }
 
   function undoImport() {
-    if (!snapshot) return;
-    replacePersistedDeskState(snapshot);
+    const current = snapshot ?? readPreImportSnapshot();
+    if (!current) return;
+    replacePersistedDeskState(current);
+    clearPreImportSnapshot();
     setSnapshot(null);
     setMessage("importUndone");
   }
 
   function dismissUndo() {
+    clearPreImportSnapshot();
     setSnapshot(null);
   }
 
