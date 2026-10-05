@@ -1,1 +1,19 @@
-placeholder
+node_modules
+dist
+.output
+.vercel
+.env
+.env.*
+*.log
+screenshots
+artifacts
+.grok
+.env*
+
+# Local junk / archives (do not commit)
+*.zip
+**/.DS_Store
+.DS_Store
+gh-push-args.json
+.node_modules.lock
+attachments/
