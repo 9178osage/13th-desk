@@ -362,3 +362,9 @@ export function parseDeskBackup(raw: string): BackupParseResult {
     summary: summarizeDeskState(state),
   };
 }
+
+/** Undo stays offered while a pre-import snapshot exists; later status messages do not hide it. */
+export function importUndoOffered(hasSnapshot: boolean): boolean {
+  return hasSnapshot;
+}
+

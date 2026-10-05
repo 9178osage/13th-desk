@@ -497,6 +497,14 @@ const copy = {
     "Đã khôi phục dữ liệu trước khi nhập.",
     "取り込み前のデータに戻しました。",
   ],
+  dismissUndo: [
+    "Dismiss undo",
+    "关闭撤销",
+    "Cerrar deshacer",
+    "실행 취소 닫기",
+    "Đóng hoàn tác",
+    "取り消しを閉じる",
+  ],
   importBadJson: [
     "That file is not readable JSON. Nothing was changed.",
     "这个文件不是可读的 JSON，当前数据未改动。",

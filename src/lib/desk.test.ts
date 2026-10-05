@@ -12,6 +12,7 @@ import { cleanDecimal, combinedGpa, listGpa, parseGpaInput, pointsTenths } from 
 import { deskText, dayName } from "./desk-copy.ts";
 import {
   backupFileName,
+  importUndoOffered,
   parseDeskBackup,
   serializeDeskBackup,
   summarizeDeskState,
@@ -139,6 +140,7 @@ test("new controls and weekday names exist in all six languages", () => {
     assert.ok(deskText(lang, "results", { n: 3 }).includes("3"));
     assert.ok(deskText(lang, "exportData").length > 0);
     assert.ok(deskText(lang, "saveAnyway").length > 0);
+    assert.ok(deskText(lang, "dismissUndo").length > 0);
     assert.ok(deskText(lang, "importPreview", { notes: 1, classes: 2, grades: 3 }).length > 0);
   }
 });
@@ -290,3 +292,9 @@ test("desk backup rejects bad times and missing stages", () => {
   assert.equal(badStages.ok, false);
   if (!badStages.ok) assert.equal(badStages.error, "stages");
 });
+
+test("import undo stays offered after other status messages", () => {
+  assert.equal(importUndoOffered(true), true);
+  assert.equal(importUndoOffered(false), false);
+});
+

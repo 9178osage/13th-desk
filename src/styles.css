@@ -850,6 +850,34 @@
   align-items: center;
   gap: 0.35rem 0.75rem;
 }
+.backup-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+}
+.backup-undo-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+.backup-undo-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.backup-undo-dismiss:hover {
+  color: var(--color-ink);
+  background: var(--color-moss-soft);
+}
 .form-actions {
   display: flex;
   flex-wrap: wrap;

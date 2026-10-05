@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent } from "react";
-import { Download, Upload, RotateCcw } from "lucide-react";
+import { Download, Upload, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import {
   backupFileName,
@@ -8,6 +8,7 @@ import {
   type BackupParseError,
   type BackupSummary,
   type PersistedDeskLike,
+  importUndoOffered,
 } from "@/lib/desk-backup";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { LEVELS } from "@/lib/levels";
@@ -52,6 +53,7 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
     URL.revokeObjectURL(url);
     setMessage("exportDone");
     setPending(null);
+    // Keep snapshot so undo remains available for the rest of the session.
   }
 
   function onPickFile(event: ChangeEvent<HTMLInputElement>) {
@@ -92,6 +94,12 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
     setSnapshot(null);
     setMessage("importUndone");
   }
+
+  function dismissUndo() {
+    setSnapshot(null);
+  }
+
+  const showUndo = importUndoOffered(snapshot !== null);
 
   return (
     <div className={compact ? "desk-backup desk-backup-compact" : "desk-backup"}>
@@ -165,15 +173,27 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
           </div>
         </div>
       )}
-      <div className="inline-feedback" role="status">
-        {message && c(lang, message)}
-        {snapshot && message === "importDone" && (
-          <button type="button" onClick={undoImport}>
-            <RotateCcw size={14} aria-hidden="true" />
-            {c(lang, "importUndo")}
-          </button>
-        )}
-      </div>
+      {(message || showUndo) && (
+        <div className="inline-feedback backup-feedback" role="status">
+          {message && <span>{c(lang, message)}</span>}
+          {showUndo && (
+            <span className="backup-undo-bar">
+              <button type="button" onClick={undoImport}>
+                <RotateCcw size={14} aria-hidden="true" />
+                {c(lang, "importUndo")}
+              </button>
+              <button
+                type="button"
+                className="backup-undo-dismiss"
+                aria-label={c(lang, "dismissUndo")}
+                onClick={dismissUndo}
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
