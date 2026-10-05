@@ -225,23 +225,42 @@ export function deadlinesFor(level: Level): Deadline[] {
 
 export function releaseLine(level: Level, wednesday: boolean): Copy {
   const today = wednesday
-    ? { en: "Today is the early release. ", zh: "今天提前放学。" }
-    : { en: "", zh: "" };
+    ? {
+        en: "Today is the early release. ",
+        zh: "今天提前放学。",
+        es: "Hoy es la salida temprana. ",
+        ko: "오늘은 조기 하교예요. ",
+        vi: "Hôm nay tan sớm. ",
+        ja: "今日は早い下校です。",
+      }
+    : { en: "", zh: "", es: "", ko: "", vi: "", ja: "" };
   if (level === "elem") {
     return {
       en: `${today.en}Elementary Wednesdays end at 1:10 or 1:45, depending on the school.`,
       zh: `${today.zh}小学周三有的 1:10 放学，有的 1:45。以你自己学校的时间为准。`,
+      es: `${today.es}En primaria, los miércoles terminan a la 1:10 o a la 1:45, según la escuela.`,
+      ko: `${today.ko}초등학교 수요일은 학교에 따라 1:10 또는 1:45에 끝나요.`,
+      vi: `${today.vi}Tiểu học ngày thứ Tư tan lúc 1:10 hoặc 1:45, tùy trường.`,
+      ja: `${today.ja}小学校の水曜は、学校によって 1:10 か 1:45 に終わります。`,
     };
   }
   if (level === "mid") {
     return {
       en: `${today.en}4J middle school lets out at 2:35 on Wednesdays. Regular days run 9:00–3:40.`,
       zh: `${today.zh}尤金 4J 学区的初中，周三 2:35 放学。平时是上午 9:00 到下午 3:40。`,
+      es: `${today.es}La secundaria 4J sale a las 2:35 los miércoles. Los días normales van de 9:00 a 3:40.`,
+      ko: `${today.ko}4J 중학교는 수요일 2:35에 하교해요. 평일은 9:00–3:40이에요.`,
+      vi: `${today.vi}Trung học cơ sở 4J tan lúc 2:35 ngày thứ Tư. Ngày thường từ 9:00 đến 3:40.`,
+      ja: `${today.ja}4J の中学は水曜 2:35 下校。普段は 9:00–3:40 です。`,
     };
   }
   return {
     en: `${today.en}4J high school lets out at 2:30 on Wednesdays. Regular days run 8:30–3:30.`,
     zh: `${today.zh}尤金 4J 学区的高中，周三 2:30 放学。平时是上午 8:30 到下午 3:30。`,
+    es: `${today.es}La preparatoria 4J sale a las 2:30 los miércoles. Los días normales van de 8:30 a 3:30.`,
+    ko: `${today.ko}4J 고등학교는 수요일 2:30에 하교해요. 평일은 8:30–3:30이에요.`,
+    vi: `${today.vi}Trung học phổ thông 4J tan lúc 2:30 ngày thứ Tư. Ngày thường từ 8:30 đến 3:30.`,
+    ja: `${today.ja}4J の高校は水曜 2:30 下校。普段は 8:30–3:30 です。`,
   };
 }
 

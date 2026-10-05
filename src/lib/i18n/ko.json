@@ -1,4 +1,5 @@
 {
+  "{n} days until Saturday. Park Blocks, about 10 to 4.": "토요일까지 {n}일 남았어요. Park Blocks, 대략 10시에서 4시예요.",
   "1 day until Saturday. Park Blocks, about 10 to 4.": "토요일까지 1일 남았어요. Park Blocks, 대략 10시에서 4시예요.",
   "205 East 14th. About fifteen minutes off Knight. Laptops are normal; the library crush is not.": "East 14th 205번이에요. Knight에서 걸어서 15분쯤이에요. 노트북을 열어도 되고, 도서관만큼 붐비진 않아요.",
   "40 classes is the limit. Put an older GPA in the box below instead.": "수업은 최대 40개예요. 예전 GPA는 아래 칸에 넣으세요.",
@@ -77,6 +78,7 @@
   "Credits already earned": "이미 있는 학점",
   "Creswell": "Creswell",
   "Crow-Applegate-Lorane": "Crow-Applegate-Lorane",
+  "Dates are from the UO 2026–27 catalog and registrar. For opening hours, transit, and events, check official sources before making plans.": "날짜는 UO 2026–27 카탈로그와 등록처 기준이에요. 운영 시간·교통·행사는 계획 전에 공식 안내를 확인하세요.",
   "Dates below are Eugene 4J for 2026–27. Bethel and Springfield print their own. The checklist stays in this browser.": "아래 날짜는 2026–27 Eugene 4J예요. Bethel·Springfield는 각자 인쇄해요. 체크리스트는 이 브라우저에만 남아요.",
   "Dates, deadlines, transcripts.": "날짜, 마감, 성적표예요.",
   "Day {day} since September 8 · week {week}. {off}": "9월 8일부터 {day}일째 · {week}주차. {off}",
@@ -258,6 +260,7 @@
   "Passing periods are short. Learn the locker stop before you need it on a rainy day.": "수업 사이가 짧아요. 비 오기 전에 사물함에서 교실까지 한 번 걸어 보고, 얼마나 걸리는지 봐요.",
   "Past Amazon Park and up. Pretty, steep, and you will live in the bus app.": "Amazon 공원 지나서 더 올라가요. 경치는 좋은데 경사가 급해요. 등하교는 버스 앱을 봐야 해요.",
   "Pastry on Broadway. A slow morning, not a four-hour bunker.": "브로드웨이의 빵집이에요. 아침을 천천히 먹기 좋아요. 숙제를 네 시간 쓰려고 앉는 곳은 아니에요.",
+  "Personal checklist stays in this browser. Calendar rows are only stored for districts we have verified dates for.": "개인 체크리스트는 이 브라우저에만 있어요. 학사일정 날짜는 우리가 확인한 학군만 수록되어 있어요.",
   "Pick a credit value from the list.": "목록에서 학점을 고르세요.",
   "Pick a language and school level. You can change both anytime in the header.": "언어랑 학교급을 고르세요. 나중에 상단에서 언제든 바꿀 수 있어요.",
   "Picture day, library book, pickup change": "사진 찍는 날, 도서관 책, 픽업 변경",
@@ -374,8 +377,9 @@
   "University": "대학",
   "University Health Services": "University Health Services",
   "University of Oregon & Lane": "University of Oregon & Lane",
-  "University of Oregon and Lane Community College. Dates below are fall 2026 UO. Your checklist stays in this browser.": "University of Oregon과 Lane Community College. 아래는 2026 가을 UO. 체크리스트는 이 브라우저에만 남아요.",
   "University of Oregon and Lane Community College: points divided by graded credits. A+ is 4.3. Pass and no-pass stay out. This is an estimate. The transcript is the real number.": "University of Oregon과 Lane Community College: 성적 포인트 ÷ 학점. A+는 4.3. Pass/No-pass는 빼요. 추정치예요. 진짜 숫자는 성적표.",
+  "University of Oregon and Lane Community College. Dates below are a hard-coded UO term snapshot. Your checklist stays in this browser.": "University of Oregon과 Lane Community College. 아래 날짜는 고정해 둔 UO 학기 스냅샷이에요. 체크리스트는 이 브라우저에만 있어요.",
+  "University of Oregon and Lane Community College. Dates below are fall 2026 UO. Your checklist stays in this browser.": "University of Oregon과 Lane Community College. 아래는 2026 가을 UO. 체크리스트는 이 브라우저에만 남아요.",
   "Unpin": "핀 해제",
   "Unusual for the valley floor. Check the bus before you trust a bike.": "시내엔 눈이 거의 안 와요. 자전거 타기 전에 버스부터 확인하세요.",
   "Unweighted": "비가중",
@@ -415,6 +419,5 @@
   "Who to ask": "어디에 물어보나",
   "Winter break": "겨울 방학",
   "Winter break runs through January 3.": "겨울 방학은 1월 3일까지예요.",
-  "Winter registration opens": "겨울 수강 신청 시작",
-  "{n} days until Saturday. Park Blocks, about 10 to 4.": "토요일까지 {n}일 남았어요. Park Blocks, 대략 10시에서 4시예요."
+  "Winter registration opens": "겨울 수강 신청 시작"
 }

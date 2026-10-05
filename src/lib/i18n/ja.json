@@ -1,4 +1,5 @@
 {
+  "{n} days until Saturday. Park Blocks, about 10 to 4.": "土曜まであと{n}日です。Park Blocks、だいたい10時から4時です。",
   "1 day until Saturday. Park Blocks, about 10 to 4.": "土曜まであと1日です。Park Blocks、だいたい10時から4時です。",
   "205 East 14th. About fifteen minutes off Knight. Laptops are normal; the library crush is not.": "East 14th の 205 です。Knight から歩いて十五分くらいです。パソコンを開けます。図書館ほど混みません。",
   "40 classes is the limit. Put an older GPA in the box below instead.": "授業は40まで。以前の GPA は下の欄へ。",
@@ -77,6 +78,7 @@
   "Credits already earned": "すでに取った単位",
   "Creswell": "Creswell",
   "Crow-Applegate-Lorane": "Crow-Applegate-Lorane",
+  "Dates are from the UO 2026–27 catalog and registrar. For opening hours, transit, and events, check official sources before making plans.": "日付は UO 2026–27 のカタログと登録事務局に基づきます。開館時間・交通・イベントは、予定を決める前に公式情報をご確認ください。",
   "Dates below are Eugene 4J for 2026–27. Bethel and Springfield print their own. The checklist stays in this browser.": "下の日付は Eugene 4J の 2026–27。Bethel と Springfield は別の暦。チェックリストはこのブラウザだけ。",
   "Dates, deadlines, transcripts.": "日付、締切、成績証明です。",
   "Day {day} since September 8 · week {week}. {off}": "9月8日から{day}日目 · 第{week}週。{off}",
@@ -258,6 +260,7 @@
   "Passing periods are short. Learn the locker stop before you need it on a rainy day.": "休み時間は短いです。雨の前に、ロッカーから教室まで一度歩いて、どれくらいかかるか見てね。",
   "Past Amazon Park and up. Pretty, steep, and you will live in the bus app.": "Amazon Park を越えてさらに上。景色はいいけど坂がきつい。通学はバスアプリと仲よくなる。",
   "Pastry on Broadway. A slow morning, not a four-hour bunker.": "ブロードウェイのパン屋です。ゆっくり朝ごはんを食べる店で、四時間課題を書く場所ではない。",
+  "Personal checklist stays in this browser. Calendar rows are only stored for districts we have verified dates for.": "個人のチェックリストはこのブラウザに残ります。学年暦の日付は、確認済みの学区だけを載せています。",
   "Pick a credit value from the list.": "リストから単位を選んでね。",
   "Pick a language and school level. You can change both anytime in the header.": "言語と校種を選んでね。あとからヘッダーでいつでも変えられる。",
   "Picture day, library book, pickup change": "写真の日、図書館の本、お迎えの変更",
@@ -374,8 +377,9 @@
   "University": "大学",
   "University Health Services": "大学保健センター",
   "University of Oregon & Lane": "University of Oregon と Lane",
-  "University of Oregon and Lane Community College. Dates below are fall 2026 UO. Your checklist stays in this browser.": "University of Oregon と Lane Community College。下は 2026 秋 UO。チェックリストはこのブラウザだけ。",
   "University of Oregon and Lane Community College: points divided by graded credits. A+ is 4.3. Pass and no-pass stay out. This is an estimate. The transcript is the real number.": "University of Oregon と Lane Community College：ポイント ÷ 成績の付く単位。A+ は 4.3。合否科目は入れません。目安です。正式な数字は成績表で。",
+  "University of Oregon and Lane Community College. Dates below are a hard-coded UO term snapshot. Your checklist stays in this browser.": "University of Oregon と Lane Community College。下の日付は UO 学期の固定スナップショットです。チェックリストはこのブラウザに残ります。",
+  "University of Oregon and Lane Community College. Dates below are fall 2026 UO. Your checklist stays in this browser.": "University of Oregon と Lane Community College。下は 2026 秋 UO。チェックリストはこのブラウザだけ。",
   "Unpin": "ピン解除",
   "Unusual for the valley floor. Check the bus before you trust a bike.": "市街ではほとんど雪が降りません。自転車の前にバスを確認して。",
   "Unweighted": "加重なし",
@@ -415,6 +419,5 @@
   "Who to ask": "どこに聞くか",
   "Winter break": "冬休み",
   "Winter break runs through January 3.": "冬休みは1月3日までです。",
-  "Winter registration opens": "冬学期の登録開始",
-  "{n} days until Saturday. Park Blocks, about 10 to 4.": "土曜まであと{n}日です。Park Blocks、だいたい10時から4時です。"
+  "Winter registration opens": "冬学期の登録開始"
 }

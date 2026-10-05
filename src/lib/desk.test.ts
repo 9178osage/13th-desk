@@ -29,6 +29,13 @@ import {
   termExpiredByValidThrough,
   UO_VALID_THROUGH,
 } from "./calendar-meta.ts";
+import { releaseLine } from "../data/k12.ts";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import esPack from "./i18n/es.json" with { type: "json" };
+import koPack from "./i18n/ko.json" with { type: "json" };
+import viPack from "./i18n/vi.json" with { type: "json" };
+import jaPack from "./i18n/ja.json" with { type: "json" };
 import type { ScheduleBlock } from "./store";
 
 const schedule: ScheduleBlock[] = [
@@ -374,3 +381,90 @@ test("pre-import snapshot round-trips under a separate storage key", () => {
   assert.equal(readPreImportSnapshot(), null);
 });
 
+
+test("content Copy strings have es/ko/vi/ja via pack or inline", () => {
+  const packs: Record<"es" | "ko" | "vi" | "ja", Record<string, string>> = {
+    es: esPack as Record<string, string>,
+    ko: koPack as Record<string, string>,
+    vi: viPack as Record<string, string>,
+    ja: jaPack as Record<string, string>,
+  };
+  const langs = ["es", "ko", "vi", "ja"] as const;
+  type Copy = { en: string; zh?: string; es?: string; ko?: string; vi?: string; ja?: string };
+  const found = new Map<string, Copy>();
+
+  function add(copy: Copy) {
+    if (!copy.en) return;
+    const prev = found.get(copy.en) ?? { en: copy.en };
+    found.set(copy.en, {
+      ...prev,
+      ...Object.fromEntries(
+        (["zh", ...langs] as const)
+          .filter((k) => copy[k] && !prev[k])
+          .map((k) => [k, copy[k]]),
+      ),
+      zh: copy.zh ?? prev.zh,
+    });
+  }
+
+  function walkFiles(dir: string, acc: string[] = []) {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) {
+        if (name === "node_modules" || name === "i18n") continue;
+        walkFiles(p, acc);
+      } else if (/\.(tsx|ts)$/.test(name) && !name.includes(".test.") && !p.endsWith("desk-copy.ts")) {
+        acc.push(p);
+      }
+    }
+    return acc;
+  }
+
+  function unescape(s: string) {
+    try {
+      return JSON.parse(`"${s}"`);
+    } catch {
+      return s;
+    }
+  }
+
+  const root = join(import.meta.dirname, "..");
+  for (const file of walkFiles(root)) {
+    const text = readFileSync(file, "utf8");
+    const re = /\ben:\s*"((?:\\.|[^"\\])*)"\s*,\s*zh:\s*"((?:\\.|[^"\\])*)"/gs;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) {
+      const en = unescape(m[1]);
+      const zh = unescape(m[2]);
+      const window = text.slice(m.index, Math.min(text.length, m.index + 1200));
+      const endRel = window.search(/\n\s*\}/);
+      const obj = endRel >= 0 ? window.slice(0, endRel + 1) : window.slice(0, 400);
+      const copy: Copy = { en, zh };
+      for (const lang of langs) {
+        const km = obj.match(new RegExp(`\\b${lang}:\\s*"((?:\\\\.|[^"\\\\])*)"`));
+        if (km) copy[lang] = unescape(km[1]);
+      }
+      add(copy);
+    }
+  }
+
+  const gaps: string[] = [];
+  for (const [en, copy] of found) {
+    for (const lang of langs) {
+      if (!(copy[lang] || packs[lang][en])) gaps.push(`${lang}: ${en.slice(0, 80)}`);
+    }
+  }
+  assert.equal(gaps.length, 0, gaps.slice(0, 12).join("\n"));
+});
+
+test("K12 releaseLine is available in all six languages", () => {
+  for (const level of ["elem", "mid", "high"] as const) {
+    for (const wednesday of [false, true]) {
+      const copy = releaseLine(level, wednesday);
+      for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+        assert.equal(typeof copy[lang], "string", `${level} wed=${wednesday} missing ${lang}`);
+        assert.ok((copy[lang] ?? "").length > 0, `${level} wed=${wednesday} empty ${lang}`);
+      }
+    }
+  }
+});

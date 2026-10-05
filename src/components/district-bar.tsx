@@ -174,6 +174,10 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
                 {tr(lang, {
                   en: `No ${picked.en} dates are stored here. Use the district site for the official calendar.`,
                   zh: `这里没有收录 ${picked.zh} 的校历日期，请到学区官网查看。`,
+                  es: `Aquí no hay fechas de ${picked.en}. Usa el sitio del distrito para el calendario oficial.`,
+                  ko: `여기에는 ${picked.en} 학사일정이 없어요. 학군 공식 사이트를 확인하세요.`,
+                  vi: `Không có lịch của ${picked.en} tại đây. Hãy xem trang chính thức của học khu.`,
+                  ja: `${picked.en} の日程はここにありません。学区の公式サイトをご確認ください。`,
                 })}{" "}
                 {picked.href ? (
                   <a
