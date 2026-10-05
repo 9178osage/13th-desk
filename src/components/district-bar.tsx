@@ -186,7 +186,14 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
                     rel="noopener noreferrer"
                     className="text-moss underline"
                   >
-                    {tr(lang, { en: "District site", zh: "学区网站" })}
+                    {tr(lang, {
+                      en: "District site",
+                      zh: "学区网站",
+                      es: "Su sitio",
+                      ko: "그 학구 사이트",
+                      vi: "Trang của họ",
+                      ja: "その学区のサイト",
+                    })}
                   </a>
                 ) : null}
               </p>
