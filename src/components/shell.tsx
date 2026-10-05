@@ -9,6 +9,7 @@ import {
   MapPin,
   ShieldCheck,
 } from "lucide-react";
+import { DeskBackup } from "@/components/desk-backup";
 import { DistrictBar } from "@/components/district-bar";
 import { LEVELS, isLevel } from "@/lib/levels";
 import { ensureDeskHydrated, useDesk, useLang, useStorageStatus } from "@/lib/store";
@@ -79,6 +80,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <ShieldCheck size={15} aria-hidden="true" />
             {c(lang, "local")}
           </span>
+          <DeskBackup />
         </div>
         <div className="rail-footer">
           EUGENE DESK <span>EST. 2026</span>
@@ -138,7 +140,10 @@ export function Shell({ children }: { children: ReactNode }) {
         </main>
         <footer className="desk-footer">
           <span>Eugene Desk</span>
-          <span>{c(lang, "local")} · Eugene, OR</span>
+          <span className="footer-local">
+            {c(lang, "local")} · Eugene, OR
+            <DeskBackup compact />
+          </span>
         </footer>
       </div>
       <nav className="desk-mobile-nav" aria-label={c(lang, "workspace")}>

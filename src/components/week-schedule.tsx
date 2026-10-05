@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { CalendarDays, Pencil, Plus, Star, Trash2, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, Pencil, Plus, Star, Trash2, X } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { useDesk, useLang, WEEK_DAYS, type ScheduleBlock, type WeekDay } from "@/lib/store";
 import { deskText as c, dayName, type DeskCopyKey } from "@/lib/desk-copy";
 import {
-  hasScheduleOverlap,
+  conflictingClassIds,
+  overlappingClasses,
   scheduleForDay,
   validScheduleTime,
   type ScheduleDraft,
@@ -39,31 +40,53 @@ function ScheduleEditor() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
   const [deleted, setDeleted] = useState<ScheduleBlock | null>(null);
+  const [awaitConfirm, setAwaitConfirm] = useState(false);
   const rows = scheduleForDay(schedule, day);
   const invalid = !validScheduleTime(draft.start, draft.end);
-  const overlap = hasScheduleOverlap(schedule, draft, editing ?? undefined);
+  const conflicts = overlappingClasses(schedule, draft, editing ?? undefined);
+  const overlap = conflicts.length > 0;
+  const conflictIds = conflictingClassIds(schedule);
 
   function startEdit(row?: ScheduleBlock) {
     setEditing(row?.id ?? null);
     setDraft(row ? { ...row } : emptyDraft(day));
     setOpen(true);
     setMessage(null);
+    setAwaitConfirm(false);
   }
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    if (invalid) {
-      setMessage("invalidTime");
-      return;
-    }
+
+  function saveDraft() {
     const saved = editing ? update(editing, draft) : add(draft);
     if (!saved) {
       setMessage("classLimit");
+      setAwaitConfirm(false);
       return;
     }
     setDay(draft.day);
     setOpen(false);
     setEditing(null);
+    setAwaitConfirm(false);
     setMessage("classSaved");
+  }
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    if (invalid) {
+      setMessage("invalidTime");
+      setAwaitConfirm(false);
+      return;
+    }
+    if (overlap && !awaitConfirm) {
+      setAwaitConfirm(true);
+      setMessage(null);
+      return;
+    }
+    saveDraft();
+  }
+
+  function patchDraft(next: ScheduleDraft) {
+    setDraft(next);
+    setAwaitConfirm(false);
   }
 
   return (
@@ -105,7 +128,10 @@ function ScheduleEditor() {
             <button
               type="button"
               className="icon-button"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                setAwaitConfirm(false);
+              }}
               aria-label={c(lang, "cancel")}
             >
               <X size={18} />
@@ -119,7 +145,7 @@ function ScheduleEditor() {
                 required
                 maxLength={60}
                 value={draft.title}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+                onChange={(e) => patchDraft({ ...draft, title: e.target.value })}
               />
             </label>
             <label className="field field-wide">
@@ -127,14 +153,14 @@ function ScheduleEditor() {
               <Input
                 maxLength={60}
                 value={draft.place}
-                onChange={(e) => setDraft({ ...draft, place: e.target.value })}
+                onChange={(e) => patchDraft({ ...draft, place: e.target.value })}
               />
             </label>
             <label className="field">
               <span>{c(lang, "day")}</span>
               <select
                 value={draft.day}
-                onChange={(e) => setDraft({ ...draft, day: e.target.value as WeekDay })}
+                onChange={(e) => patchDraft({ ...draft, day: e.target.value as WeekDay })}
               >
                 {WEEK_DAYS.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -143,20 +169,21 @@ function ScheduleEditor() {
                 ))}
               </select>
             </label>
-            <label className="field">
+            <label className={`field${overlap && !invalid ? " field-conflict" : ""}`}>
               <span>{c(lang, "start")}</span>
               <Input
                 type="time"
                 required
+                aria-invalid={invalid || overlap}
                 value={draft.start}
                 onInput={(e) => {
                   const start = e.currentTarget.value;
-                  setDraft((value) => ({ ...value, start }));
+                  patchDraft({ ...draft, start });
                 }}
-                onChange={(e) => setDraft((value) => ({ ...value, start: e.target.value }))}
+                onChange={(e) => patchDraft({ ...draft, start: e.target.value })}
               />
             </label>
-            <label className="field">
+            <label className={`field${overlap && !invalid ? " field-conflict" : ""}`}>
               <span>{c(lang, "end")}</span>
               <Input
                 type="time"
@@ -166,9 +193,9 @@ function ScheduleEditor() {
                 value={draft.end}
                 onInput={(e) => {
                   const end = e.currentTarget.value;
-                  setDraft((value) => ({ ...value, end }));
+                  patchDraft({ ...draft, end });
                 }}
-                onChange={(e) => setDraft((value) => ({ ...value, end: e.target.value }))}
+                onChange={(e) => patchDraft({ ...draft, end: e.target.value })}
               />
             </label>
           </div>
@@ -177,12 +204,30 @@ function ScheduleEditor() {
               {c(lang, "invalidTime")}
             </p>
           )}
-          {!invalid && overlap && <p className="form-warning">{c(lang, "overlap")}</p>}
+          {!invalid && overlap && (
+            <div className="form-warning conflict-box" role="alert">
+              <p>{c(lang, "overlap")}</p>
+              <p>
+                {c(lang, "overlapWith", {
+                  list: conflicts
+                    .map((row) => `${row.title} (${row.start}–${row.end})`)
+                    .join(lang === "zh" || lang === "ja" ? "；" : "; "),
+                })}
+              </p>
+              {awaitConfirm && <p>{c(lang, "overlapConfirm")}</p>}
+            </div>
+          )}
           <div className="form-actions">
             <Button type="submit" disabled={!draft.title.trim() || invalid}>
-              {c(lang, editing ? "save" : "addClass")}
+              {awaitConfirm && overlap ? c(lang, "saveAnyway") : c(lang, editing ? "save" : "addClass")}
             </Button>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setOpen(false);
+                setAwaitConfirm(false);
+              }}
+            >
               {c(lang, "cancel")}
             </Button>
           </div>
@@ -195,60 +240,77 @@ function ScheduleEditor() {
             <p>{c(lang, "noDay")}</p>
           </div>
         ) : (
-          rows.map((row) => (
-            <div className="class-row" key={row.id}>
-              <div className="class-time">
-                <strong>{row.start}</strong>
-                <span>{row.end}</span>
-              </div>
-              <div className="class-details">
-                <strong>
-                  {row.title}{" "}
-                  {row.pinned && (
-                    <Star
-                      className="important-star"
-                      size={13}
-                      fill="currentColor"
-                      aria-label={c(lang, "important")}
-                    />
+          rows.map((row) => {
+            const inConflict = conflictIds.has(row.id);
+            const conflictsDraft =
+              open && overlap && conflicts.some((item) => item.id === row.id);
+            return (
+              <div
+                className={`class-row${inConflict || conflictsDraft ? " class-row-conflict" : ""}`}
+                key={row.id}
+              >
+                <div className="class-time">
+                  <strong>{row.start}</strong>
+                  <span>{row.end}</span>
+                </div>
+                <div className="class-details">
+                  <strong>
+                    {row.title}{" "}
+                    {row.pinned && (
+                      <Star
+                        className="important-star"
+                        size={13}
+                        fill="currentColor"
+                        aria-label={c(lang, "important")}
+                      />
+                    )}
+                  </strong>
+                  {row.place && <span>{row.place}</span>}
+                  {!validScheduleTime(row.start, row.end) && (
+                    <span className="form-error">{c(lang, "invalidTime")}</span>
                   )}
-                </strong>
-                {row.place && <span>{row.place}</span>}
-                {!validScheduleTime(row.start, row.end) && (
-                  <span className="form-error">{c(lang, "invalidTime")}</span>
-                )}
+                  {(inConflict || conflictsDraft) && validScheduleTime(row.start, row.end) && (
+                    <span className="conflict-badge">
+                      <AlertTriangle size={12} aria-hidden="true" />
+                      {c(lang, "conflictMark")}
+                    </span>
+                  )}
+                </div>
+                <div className="class-actions">
+                  <button
+                    className="icon-button"
+                    aria-pressed={row.pinned}
+                    aria-label={c(lang, row.pinned ? "unpin" : "pin") + ": " + row.title}
+                    onClick={() => pin(row.id)}
+                  >
+                    <Star size={17} fill={row.pinned ? "currentColor" : "none"} />
+                  </button>
+                  <button
+                    className="icon-button"
+                    aria-label={c(lang, "edit") + ": " + row.title}
+                    onClick={() => startEdit(row)}
+                  >
+                    <Pencil size={17} />
+                  </button>
+                  <button
+                    className="icon-button"
+                    aria-label={c(lang, "delete") + ": " + row.title}
+                    onClick={() => {
+                      remove(row.id);
+                      setDeleted(row);
+                      setMessage("deleted");
+                      if (editing === row.id) {
+                        setOpen(false);
+                        setAwaitConfirm(false);
+                      }
+                    }}
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                </div>
               </div>
-              <div className="class-actions">
-                <button
-                  className="icon-button"
-                  aria-pressed={row.pinned}
-                  aria-label={c(lang, row.pinned ? "unpin" : "pin") + ": " + row.title}
-                  onClick={() => pin(row.id)}
-                >
-                  <Star size={17} fill={row.pinned ? "currentColor" : "none"} />
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label={c(lang, "edit") + ": " + row.title}
-                  onClick={() => startEdit(row)}
-                >
-                  <Pencil size={17} />
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label={c(lang, "delete") + ": " + row.title}
-                  onClick={() => {
-                    remove(row.id);
-                    setDeleted(row);
-                    setMessage("deleted");
-                    if (editing === row.id) setOpen(false);
-                  }}
-                >
-                  <Trash2 size={17} />
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
       <div className="inline-feedback" role="status">

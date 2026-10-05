@@ -16,19 +16,43 @@ export function nextClass(schedule: ScheduleBlock[], day: WeekDay | null, minute
     }) ?? null
   );
 }
+/** Classes that overlap the draft on the same day. Adjacent times (10:00 ends, 10:00 starts) are not conflicts. */
+export function overlappingClasses(
+  schedule: ScheduleBlock[],
+  row: ScheduleDraft,
+  exceptId?: string,
+): ScheduleBlock[] {
+  if (!validScheduleTime(row.start, row.end)) return [];
+  return schedule.filter(
+    (item) =>
+      item.id !== exceptId &&
+      item.day === row.day &&
+      validScheduleTime(item.start, item.end) &&
+      item.start < row.end &&
+      row.start < item.end,
+  );
+}
 export function hasScheduleOverlap(
   schedule: ScheduleBlock[],
   row: ScheduleDraft,
   exceptId?: string,
 ) {
-  return (
-    validScheduleTime(row.start, row.end) &&
-    schedule.some(
-      (item) =>
-        item.id !== exceptId &&
-        item.day === row.day &&
-        item.start < row.end &&
-        row.start < item.end,
-    )
-  );
+  return overlappingClasses(schedule, row, exceptId).length > 0;
+}
+/** Ids of classes that overlap at least one other class in the same stage. */
+export function conflictingClassIds(schedule: ScheduleBlock[]): Set<string> {
+  const ids = new Set<string>();
+  for (let i = 0; i < schedule.length; i++) {
+    const a = schedule[i];
+    if (!validScheduleTime(a.start, a.end)) continue;
+    for (let j = i + 1; j < schedule.length; j++) {
+      const b = schedule[j];
+      if (a.day !== b.day || !validScheduleTime(b.start, b.end)) continue;
+      if (a.start < b.end && b.start < a.end) {
+        ids.add(a.id);
+        ids.add(b.id);
+      }
+    }
+  }
+  return ids;
 }

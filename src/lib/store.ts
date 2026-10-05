@@ -5,6 +5,7 @@ import { isDistrict, type DistrictId } from "@/data/districts";
 import { asStoredCredits, cleanDecimal, isLetter, type Letter } from "@/lib/gpa";
 import { isLang, type Lang } from "@/lib/text";
 import { validScheduleTime, type ScheduleDraft } from "@/lib/schedule";
+import type { PersistedDeskLike } from "@/lib/desk-backup";
 
 export type Note = {
   id: string;
@@ -608,6 +609,51 @@ export const useDesk = create<DeskState>()(
 export function useLang(): Lang {
   return useDesk((state) => state.lang);
 }
+
+/** Snapshot of the fields that are written under `13th-desk-v1`. */
+export function getPersistedDeskState(): PersistedDeskLike {
+  const state = useDesk.getState();
+  return {
+    lang: state.lang,
+    langSet: state.langSet,
+    level: state.level,
+    levelSet: state.levelSet,
+    earlyStart: state.earlyStart,
+    district: state.district,
+    buckets: structuredClone(state.buckets),
+  };
+}
+
+/**
+ * Replace the whole persisted desk state in one write.
+ * Callers must validate first; this never leaves storage half-written.
+ */
+export function replacePersistedDeskState(next: PersistedDeskLike): void {
+  const payload: PersistedDeskLike = {
+    lang: next.lang,
+    langSet: next.langSet,
+    level: next.level,
+    levelSet: next.levelSet,
+    earlyStart: next.earlyStart,
+    district: next.district,
+    buckets: structuredClone(next.buckets),
+  };
+  useDesk.setState({
+    ...payload,
+    hydrated: true,
+  });
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(
+      "13th-desk-v1",
+      JSON.stringify({ state: payload, version: 0 }),
+    );
+    useStorageStatus.setState({ failed: false });
+  } catch {
+    useStorageStatus.setState({ failed: true });
+  }
+}
+
 
 let hydratePromise: Promise<void> | null = null;
 
