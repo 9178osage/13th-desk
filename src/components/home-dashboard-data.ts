@@ -1,5 +1,7 @@
 import { CalendarDays, GraduationCap, MapPin } from "lucide-react";
-import { eugeneClock, hmToMin } from "@/lib/time";
+import { hmToMin, type EugeneClock } from "@/lib/time";
+import { deadlinePassed } from "@/lib/calendar";
+export { deadlinePassed };
 
 export const announcements = [
   {
@@ -46,16 +48,7 @@ export const quickLinks = [
   },
 ];
 
-export function deadlinePassed(
-  item: { ymd: string; time?: string },
-  clock: ReturnType<typeof eugeneClock>,
-) {
-  if (item.ymd > clock.ymd) return false;
-  if (item.ymd < clock.ymd) return true;
-  if (!item.time) return false;
-  return clock.minutes >= hmToMin(item.time);
-}
 
-export function minutesUntil(hm: string, clock: ReturnType<typeof eugeneClock>) {
+export function minutesUntil(hm: string, clock: EugeneClock) {
   return hmToMin(hm) - clock.minutes;
 }
