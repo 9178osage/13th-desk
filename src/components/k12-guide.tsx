@@ -1,7 +1,13 @@
 import { useClock } from "@/lib/use-clock";
 import { Check, ExternalLink } from "lucide-react";
-import { deadlinesFor, k12Checks, k12Links, releaseLine } from "@/data/k12";
+import { k12Checks, k12Links, releaseLine } from "@/data/k12";
 import { cn } from "@/lib/cn";
+import {
+  k12CalendarSource,
+  k12DeadlinesForDistrict,
+  k12DatesExpired,
+} from "@/lib/calendar";
+import { deskText as c } from "@/lib/desk-copy";
 import { LEVELS, type Level } from "@/lib/levels";
 import { useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
@@ -18,11 +24,14 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
   const lang = useLang();
   const now = useClock();
   const clock = now ? eugeneClock(now) : null;
+  const district = useDesk((state) => state.district);
   const checks = useDesk((state) => state.buckets[state.level].checks);
   const toggleCheck = useDesk((state) => state.toggleCheck);
   const list = k12Checks[level];
   const done = list.filter((item) => checks.includes(item.id)).length;
-  const dates = deadlinesFor(level);
+  const source = k12CalendarSource(district);
+  const dates = k12DeadlinesForDistrict(level, district);
+  const expired = clock ? k12DatesExpired(level, district, clock) : false;
   const name = LEVELS.find((item) => item.id === level);
   const links = k12Links.filter(
     (item) =>
@@ -39,9 +48,27 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
           {tr(lang, {
-            en: "Dates below are Eugene 4J for 2026–27. Bethel and Springfield print their own. The checklist stays in this browser.",
-            zh: "下方日期参考尤金 4J 学区 2026–27 学年校历，Bethel 和 Springfield 学生请查看各自学区的安排。个人清单保存在当前浏览器。",
+            en: "Personal checklist stays in this browser. Calendar rows are only stored for districts we have verified dates for.",
+            zh: "个人清单保存在当前浏览器。校历日期仅收录我们已核对过的学区。",
           })}
+        </p>
+        <p className="mt-2 max-w-2xl text-sm text-muted">
+          {source.hasMatchingData
+            ? c(lang, "calendarSource", { name: tr(lang, source.name) })
+            : c(lang, "calendarSourcePlain")}
+          {source.href ? (
+            <>
+              {" · "}
+              <a
+                href={source.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-moss underline"
+              >
+                {c(lang, "officialCalendar")}
+              </a>
+            </>
+          ) : null}
         </p>
         <p className="mt-3 max-w-2xl text-sm text-ink">
           {tr(lang, releaseLine(level, clock?.weekday === 3))}
@@ -52,26 +79,56 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
         <h2 className="font-display text-3xl text-ink">
           {tr(lang, { en: "Days off", zh: "假期与休课日" })}
         </h2>
-        <ol className="mt-4 divide-y divide-line border-y border-line">
-          {dates.map((item) => {
-            const past = clock ? isPast(item, clock) : false;
-            return (
-              <li key={item.id} className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
-                <p className={cn("font-display text-lg", past ? "text-muted" : "text-ink")}>
-                  {past
-                    ? tr(lang, { en: "Passed", zh: "已过" })
-                    : formatWhen(item.ymd, clock?.ymd ?? "", lang)}
-                </p>
-                <div>
-                  <p className={cn("font-medium", past ? "text-muted" : "text-ink")}>
-                    {tr(lang, item.title)}
+        {!source.hasMatchingData ? (
+          <p className="mt-4 rounded-lg border border-line bg-card p-4 text-sm text-muted">
+            {c(lang, "noDistrictDates")}{" "}
+            {source.href ? (
+              <a
+                href={source.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-moss underline"
+              >
+                {c(lang, "officialCalendar")}
+              </a>
+            ) : null}
+          </p>
+        ) : expired ? (
+          <p className="mt-4 rounded-lg border border-line bg-card p-4 text-sm text-muted">
+            {c(lang, "termExpired")}{" "}
+            {source.href ? (
+              <a
+                href={source.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-moss underline"
+              >
+                {c(lang, "officialCalendar")}
+              </a>
+            ) : null}
+          </p>
+        ) : (
+          <ol className="mt-4 divide-y divide-line border-y border-line">
+            {dates.map((item) => {
+              const past = clock ? isPast(item, clock) : false;
+              return (
+                <li key={item.id} className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
+                  <p className={cn("font-display text-lg", past ? "text-muted" : "text-ink")}>
+                    {past
+                      ? tr(lang, { en: "Passed", zh: "已过" })
+                      : formatWhen(item.ymd, clock?.ymd ?? "", lang)}
                   </p>
-                  <p className="text-sm text-muted">{tr(lang, item.detail)}</p>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
+                  <div>
+                    <p className={cn("font-medium", past ? "text-muted" : "text-ink")}>
+                      {tr(lang, item.title)}
+                    </p>
+                    <p className="text-sm text-muted">{tr(lang, item.detail)}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
       </section>
 
       <section>

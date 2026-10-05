@@ -84,7 +84,8 @@ npx vercel --prod
 ## 数据与说明
 
 - 书桌状态（语言、学段、笔记、课表、绩点行、收藏等）只存在**当前浏览器**，键名 **`13th-desk-v1`**。
-- **备份与恢复**：侧栏「保存在当前浏览器」下方，以及页脚，可导出 / 导入本地数据。导出文件名为 `eugene-desk-backup-YYYY-MM-DD.json`，包含四个学段的完整书桌状态。换设备或清理浏览器缓存前，先导出一份备份；导入时会严格校验，坏文件不会改动现有数据，确认弹层会显示各学段待办与课程数量，导入后可在本会话内撤销。
+- **备份与恢复**：侧栏「保存在当前浏览器」下方，以及页脚，可导出 / 导入本地数据。导出文件名为 `eugene-desk-backup-YYYY-MM-DD.json`，包含四个学段的完整书桌状态。换设备或清理浏览器缓存前，先导出一份备份；导入时会严格校验，坏文件不会改动现有数据，确认弹层会显示各学段待办与课程数量；确认导入前会自动下载 `eugene-desk-before-import-…json`，并把导入前快照写到独立键 `13th-desk-v1:pre-import`，刷新后仍可撤销（存储满时会提示并依赖已下载文件）。
+- **校历数据（每学期更新）**：大学日期在 `src/data/guide.ts` 与 `src/lib/calendar-meta.ts`（学期标签、`validThrough`、核对日期、官方链接）。K12 日期目前只收录尤金 4J（`src/data/k12.ts`）；其他学区显示「参考校历」并链到该学区官网，不冒充 4J。换学期时改上述文件并更新核对日期。
 - 场所开放时间、公告等为参考信息；以各机构官网为准。
 - GPA 为估算工具，不以成绩单为准。
 - 仓库历史名曾为 Eugene Student Web / 13th-desk / 河谷校园仪表盘；产品品牌现为 **Eugene Desk**。
@@ -165,7 +166,8 @@ You must already be logged in and linked to the same Vercel project.
 ### Data notes
 
 - Desk state—language, school level, notes, schedule, GPA rows, favorites, and similar settings—stays in the **current browser** under **`13th-desk-v1`**.
-- **Backup & restore:** Under “Stored in this browser” in the sidebar, and again in the footer, you can export or import local desk data. Exports download as `eugene-desk-backup-YYYY-MM-DD.json` and include all four school levels. Use this when moving to another device or before clearing browser cache. Imports are validated strictly—bad files leave your data untouched—show per-level to-do and class counts for confirmation, and can be undone within the same session.
+- **Backup & restore:** Under “Stored in this browser” in the sidebar, and again in the footer, you can export or import local desk data. Exports download as `eugene-desk-backup-YYYY-MM-DD.json` and include all four school levels. Use this when moving to another device or before clearing browser cache. Imports are validated strictly—bad files leave your data untouched—show per-level counts for confirmation; before overwriting, the app downloads `eugene-desk-before-import-…json` and stores a pre-import snapshot under `13th-desk-v1:pre-import` so undo survives refresh (if storage is full, it says so and relies on the downloaded file).
+- **Calendar data (update each term):** University dates live in `src/data/guide.ts` plus term metadata in `src/lib/calendar-meta.ts` (label, `validThrough`, last-verified date, official link). K–12 date rows currently cover Eugene 4J only (`src/data/k12.ts`); other districts show “Reference calendar” and link to that district’s site without pretending the dates are theirs. When a term ends, the UI says so instead of going blank or stale.
 - Location hours, announcements, and similar details are reference information; check each institution's official website for the latest information.
 - GPA is an estimation tool, not an official transcript or grades record.
 - The repository has previously been called Eugene Student Web, 13th-desk, and 河谷校园仪表盘; the current product brand is **Eugene Desk**.
@@ -247,6 +249,7 @@ Debes estar autenticado y vinculado al mismo proyecto de Vercel.
 
 - El estado del escritorio—idioma, nivel, notas, horario, filas de GPA, favoritos y ajustes similares—queda en el **navegador actual** bajo **`13th-desk-v1`**.
 - **Copia y restauración:** Debajo de «Guardado en este navegador» en la barra lateral, y también en el pie de página, puedes exportar o importar los datos locales. El archivo se descarga como `eugene-desk-backup-YYYY-MM-DD.json` e incluye los cuatro niveles escolares. Úsalo al cambiar de dispositivo o antes de borrar la caché del navegador. La importación valida el archivo con rigor—si está dañado, no se cambia nada—, muestra conteos por nivel para confirmar y se puede deshacer durante la misma sesión.
+- **Calendario:** Las fechas universitarias se actualizan en `src/data/guide.ts` y `src/lib/calendar-meta.ts`. Las filas K–12 solo cubren Eugene 4J; otros distritos muestran «Calendario de referencia».
 - Horarios de lugares, avisos y detalles parecidos son información de referencia; confirma en el sitio oficial de cada institución.
 - El GPA es una herramienta de estimación, no un expediente ni calificaciones oficiales.
 - El repositorio se ha llamado Eugene Student Web, 13th-desk y 河谷校园仪表盘; la marca actual del producto es **Eugene Desk**.
@@ -328,6 +331,7 @@ npx vercel --prod
 
 - 데스크 상태(언어, 학령, 메모, 시간표, GPA 행, 즐겨찾기 등)는 **현재 브라우저**에만 있으며 키는 **`13th-desk-v1`** 입니다.
 - **백업 및 복원:** 사이드바의 「이 브라우저에 저장」 아래와 페이지 하단에서 로컬 데이터를 내보내거나 가져올 수 있습니다. 파일 이름은 `eugene-desk-backup-YYYY-MM-DD.json`이며 네 학령 단계의 데이터를 모두 포함합니다. 다른 기기로 옮기거나 브라우저 캐시를 지우기 전에 백업해 두세요. 가져오기는 엄격히 검사하며, 잘못된 파일은 기존 데이터를 건드리지 않습니다. 확인 전에 학령별 할 일·수업 수를 보여 주고, 같은 세션 안에서 실행 취소할 수 있습니다.
+- **학사일정:** 대학 날짜는 `src/data/guide.ts`와 `src/lib/calendar-meta.ts`에서 학기마다 갱신합니다. K–12 날짜는 현재 Eugene 4J만 수록되어 있으며, 다른 학군은 「참고 학사일정」으로 표시합니다.
 - 장소 운영 시간·공지 등은 참고용입니다. 최신 정보는 각 기관 공식 사이트를 확인하세요.
 - GPA는 추정 도구이며 공식 성적표가 아닙니다.
 - 저장소는 예전에 Eugene Student Web, 13th-desk, 河谷校园仪表盘 등으로 불렸고, 현재 제품 브랜드는 **Eugene Desk**입니다.
@@ -409,6 +413,7 @@ Bạn cần đã đăng nhập và liên kết cùng một dự án Vercel.
 
 - Trạng thái bàn học—ngôn ngữ, cấp, ghi chú, thời khóa biểu, dòng GPA, yêu thích…—chỉ nằm trong **trình duyệt hiện tại** với khóa **`13th-desk-v1`**.
 - **Sao lưu và khôi phục:** Ngay dưới 「Lưu trong trình duyệt này」 trên thanh bên, và ở chân trang, bạn có thể xuất hoặc nhập dữ liệu cục bộ. Tệp tải về tên `eugene-desk-backup-YYYY-MM-DD.json`, gồm đủ bốn bậc học. Hãy xuất trước khi chuyển máy hoặc xóa bộ nhớ đệm trình duyệt. Nhập vào được kiểm tra nghiêm ngặt—tệp hỏng không đụng tới dữ liệu hiện có—hiển thị số việc/lớp theo từng bậc để xác nhận, và có thể hoàn tác trong cùng phiên.
+- **Lịch học:** Ngày đại học cập nhật trong `src/data/guide.ts` và `src/lib/calendar-meta.ts`. Hàng K–12 hiện chỉ có Eugene 4J; học khu khác hiện 「Lịch tham khảo」.
 - Giờ mở cửa địa điểm, thông báo… chỉ mang tính tham khảo; hãy đối chiếu trang chính thức của từng cơ sở.
 - GPA là công cụ ước lượng, không phải bảng điểm chính thức.
 - Kho từng mang tên Eugene Student Web, 13th-desk và 河谷校园仪表盘; thương hiệu sản phẩm hiện tại là **Eugene Desk**.
@@ -490,6 +495,7 @@ npx vercel --prod
 
 - デスクの状態（言語、学年段階、メモ、時間割、GPA 行、お気に入りなど）は **現在のブラウザのみ** にあり、キーは **`13th-desk-v1`** です。
 - **バックアップと復元:** サイドバーの「このブラウザに保存」の下、およびページフッターから、ローカルデータを書き出したり取り込んだりできます。ファイル名は `eugene-desk-backup-YYYY-MM-DD.json` で、4つの学校区分すべての状態を含みます。端末を変える前やブラウザのキャッシュを消す前に書き出してください。取り込みは厳格に検証し、壊れたファイルでは既存データを変えません。確認画面で区分ごとのやること・授業数を示し、同じセッション内で元に戻せます。
+- **学年暦:** 大学の日付は `src/data/guide.ts` と `src/lib/calendar-meta.ts` を学期ごとに更新します。K–12 の日付行は現状 Eugene 4J のみ。「参考カレンダー」表示で他学区の公式サイトへ案内します。
 - 場所の開館時間やお知らせなどは参考情報です。最新は各機関の公式サイトで確認してください。
 - GPA は推定ツールであり、公式の成績表ではありません。
 - リポジトリはかつて Eugene Student Web、13th-desk、河谷校园仪表盘 などと呼ばれていました。現在の製品ブランドは **Eugene Desk** です。

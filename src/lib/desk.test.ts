@@ -12,12 +12,23 @@ import { cleanDecimal, combinedGpa, listGpa, parseGpaInput, pointsTenths } from 
 import { deskText, dayName } from "./desk-copy.ts";
 import {
   backupFileName,
+  beforeImportFileName,
+  DESK_PRE_IMPORT_KEY,
   importUndoOffered,
   parseDeskBackup,
   serializeDeskBackup,
   summarizeDeskState,
+  writePreImportSnapshot,
+  readPreImportSnapshot,
+  clearPreImportSnapshot,
   type PersistedDeskLike,
 } from "./desk-backup.ts";
+import {
+  k12CalendarSourceMeta,
+  k12HasStoredDates,
+  termExpiredByValidThrough,
+  UO_VALID_THROUGH,
+} from "./calendar-meta.ts";
 import type { ScheduleBlock } from "./store";
 
 const schedule: ScheduleBlock[] = [
@@ -296,5 +307,70 @@ test("desk backup rejects bad times and missing stages", () => {
 test("import undo stays offered after other status messages", () => {
   assert.equal(importUndoOffered(true), true);
   assert.equal(importUndoOffered(false), false);
+});
+
+test("term expiry uses valid-through without inventing new dates", () => {
+  assert.equal(termExpiredByValidThrough("2026-12-11", UO_VALID_THROUGH), false);
+  assert.equal(termExpiredByValidThrough("2026-12-12", UO_VALID_THROUGH), true);
+});
+
+test("only 4J (or unset) has stored K12 calendar rows", () => {
+  assert.equal(k12HasStoredDates(null), true);
+  assert.equal(k12HasStoredDates("4j"), true);
+  assert.equal(k12HasStoredDates("bethel"), false);
+  assert.equal(k12HasStoredDates("springfield"), false);
+});
+
+test("k12 calendar source follows district without inventing other-district dates", () => {
+  const fourJ = k12CalendarSourceMeta("4j");
+  assert.equal(fourJ.hasMatchingData, true);
+  assert.equal(fourJ.name.en, "Eugene 4J");
+  assert.equal(fourJ.name.zh, "尤金 4J");
+  assert.match(fourJ.href ?? "", /4j\.lane\.edu/);
+
+  const bethel = k12CalendarSourceMeta("bethel");
+  assert.equal(bethel.hasMatchingData, false);
+  assert.equal(bethel.name.zh, "参考校历");
+  assert.equal(bethel.name.en, "Reference calendar");
+  assert.equal(bethel.name.es, "Calendario de referencia");
+  assert.equal(bethel.name.ko, "참고 학사일정");
+  assert.equal(bethel.name.vi, "Lịch tham khảo");
+  assert.equal(bethel.name.ja, "参考カレンダー");
+  assert.equal(bethel.href, "https://www.bethel.k12.or.us/");
+  assert.notEqual(bethel.href, fourJ.href);
+});
+
+test("before-import backup filename includes date and time", () => {
+  assert.match(
+    beforeImportFileName(new Date("2026-10-05T15:04:00")),
+    /eugene-desk-before-import-2026-10-05-1504\.json/,
+  );
+});
+
+test("pre-import snapshot round-trips under a separate storage key", () => {
+  const memory = new Map();
+  const storage = {
+    getItem: (k: string) => (memory.has(k) ? memory.get(k) : null),
+    setItem: (k: string, v: string) => {
+      memory.set(k, String(v));
+    },
+    removeItem: (k: string) => {
+      memory.delete(k);
+    },
+    clear: () => memory.clear(),
+    key: (i: number) => [...memory.keys()][i] ?? null,
+    get length() {
+      return memory.size;
+    },
+  } as Storage;
+  globalThis.localStorage = storage;
+  // @ts-expect-error test shim for window
+  globalThis.window = globalThis;
+  const state = sampleState();
+  assert.equal(writePreImportSnapshot(state), true);
+  assert.ok(memory.has(DESK_PRE_IMPORT_KEY));
+  assert.deepEqual(readPreImportSnapshot(), state);
+  clearPreImportSnapshot();
+  assert.equal(readPreImportSnapshot(), null);
 });
 

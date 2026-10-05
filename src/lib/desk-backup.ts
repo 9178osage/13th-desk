@@ -27,6 +27,8 @@ function isLang(value: unknown): value is Lang {
 }
 
 export const DESK_STORAGE_KEY = "13th-desk-v1" as const;
+export const DESK_PRE_IMPORT_KEY = "13th-desk-v1:pre-import" as const;
+export const DESK_PRE_IMPORT_EVENT = "eugene-desk-pre-import" as const;
 export const DESK_BACKUP_APP = "Eugene Desk" as const;
 export const DESK_BACKUP_FORMAT = 1 as const;
 
@@ -366,5 +368,76 @@ export function parseDeskBackup(raw: string): BackupParseResult {
 /** Undo stays offered while a pre-import snapshot exists; later status messages do not hide it. */
 export function importUndoOffered(hasSnapshot: boolean): boolean {
   return hasSnapshot;
+}
+
+export function beforeImportFileName(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `eugene-desk-before-import-${y}-${m}-${d}-${hh}${mm}.json`;
+}
+
+export function downloadDeskBackupFile(state: PersistedDeskLike, filename: string): void {
+  if (typeof document === "undefined") return;
+  const backup = serializeDeskBackup(state);
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function notifyPreImportListeners() {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new Event(DESK_PRE_IMPORT_EVENT));
+  } catch {
+    /* jsdom / node without Event */
+  }
+}
+
+export function readPreImportSnapshot(): PersistedDeskLike | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(DESK_PRE_IMPORT_KEY);
+    if (!raw) return null;
+    const parsed = parseDeskBackup(raw);
+    return parsed.ok ? parsed.backup.state : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPreImportSnapshot(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(DESK_PRE_IMPORT_KEY);
+  } catch {
+    /* ignore */
+  }
+  notifyPreImportListeners();
+}
+
+/** Persist snapshot for undo-after-reload. Returns false when storage quota blocks the write. */
+export function writePreImportSnapshot(state: PersistedDeskLike): boolean {
+  if (typeof window === "undefined") return false;
+  const payload = JSON.stringify(serializeDeskBackup(state));
+  try {
+    localStorage.setItem(DESK_PRE_IMPORT_KEY, payload);
+    notifyPreImportListeners();
+    return true;
+  } catch {
+    try {
+      localStorage.removeItem(DESK_PRE_IMPORT_KEY);
+    } catch {
+      /* ignore */
+    }
+    notifyPreImportListeners();
+    return false;
+  }
 }
 

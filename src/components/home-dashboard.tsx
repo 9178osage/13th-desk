@@ -15,14 +15,20 @@ import { Button, Input } from "@/components/ui";
 import { WeekSchedule } from "@/components/week-schedule";
 import { WeatherCard } from "@/components/weather";
 import { deadlines } from "@/data/guide";
-import { deadlinesFor } from "@/data/k12";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr } from "@/lib/text";
 import { eugeneClock, formatDateline, hmToMin } from "@/lib/time";
 import { useClock } from "@/lib/use-clock";
 import { nextClass, scheduleForDay } from "@/lib/schedule";
-import { deadlinePassed } from "@/components/home-dashboard-data";
+import {
+  k12CalendarSource,
+  k12DeadlinesForDistrict,
+  k12DatesExpired,
+  upcomingDeadlines,
+  uoAcademicTerm,
+  uoTermIsExpired,
+} from "@/lib/calendar";
 
 function TaskList() {
   const lang = useLang();
@@ -147,6 +153,7 @@ function TaskList() {
 export function HomeDashboard() {
   const lang = useLang();
   const level = useDesk((s) => s.level);
+  const district = useDesk((s) => s.district);
   const bucket = useDesk((s) => s.buckets[s.level]);
   const hydrated = useDesk((s) => s.hydrated);
   const langSet = useDesk((s) => s.langSet);
@@ -159,12 +166,27 @@ export function HomeDashboard() {
   const next = clock ? nextClass(bucket.schedule, today, clock.minutes) : null;
   const remaining = next && clock ? hmToMin(next.start) - clock.minutes : null;
   const pending = bucket.notes.filter((note) => !note.done).length;
-  const upcoming = clock
-    ? (level === "uni" ? deadlines : deadlinesFor(level))
-        .filter((date) => !deadlinePassed(date, clock))
-        .sort((a, b) => a.ymd.localeCompare(b.ymd) || (a.time ?? "").localeCompare(b.time ?? ""))
-        .slice(0, 3)
-    : [];
+  const k12Source = level === "uni" ? null : k12CalendarSource(district);
+  const calendarItems =
+    level === "uni"
+      ? deadlines
+      : k12DeadlinesForDistrict(level, district);
+  const termExpired =
+    !!clock &&
+    (level === "uni"
+      ? uoTermIsExpired(clock)
+      : k12Source?.hasMatchingData
+        ? k12DatesExpired(level, district, clock)
+        : false);
+  const upcoming = clock && !termExpired ? upcomingDeadlines(calendarItems, clock, 3) : [];
+  const sourceName =
+    level === "uni"
+      ? tr(lang, uoAcademicTerm.label)
+      : k12Source
+        ? tr(lang, k12Source.name)
+        : "";
+  const sourceHref =
+    level === "uni" ? uoAcademicTerm.sourceHref : (k12Source?.href ?? null);
 
   return (
     <div className="home-page">
@@ -299,13 +321,49 @@ export function HomeDashboard() {
           </Link>
         </div>
         <p className="section-description">
-          {c(lang, "calendarSource", {
-            name: level === "uni" ? "University of Oregon" : "Eugene 4J",
-          })}
+          {level !== "uni" && k12Source && !k12Source.hasMatchingData
+            ? c(lang, "calendarSourcePlain")
+            : c(lang, "calendarSource", { name: sourceName })}
+          {level === "uni" && (
+            <>
+              {" · "}
+              {c(lang, "verifiedOn", { date: uoAcademicTerm.lastVerified })}
+              {" · "}
+              <a href={uoAcademicTerm.sourceHref} target="_blank" rel="noopener noreferrer">
+                {c(lang, "officialCalendar")}
+              </a>
+            </>
+          )}
+          {level !== "uni" && sourceHref && (
+            <>
+              {" · "}
+              <a href={sourceHref} target="_blank" rel="noopener noreferrer">
+                {c(lang, "officialCalendar")}
+              </a>
+            </>
+          )}
         </p>
         <div className="desk-dates">
           {!clock ? (
             <p>{c(lang, "loading")}</p>
+          ) : termExpired ? (
+            <p>
+              {c(lang, "termExpired")}{" "}
+              {sourceHref && (
+                <a href={sourceHref} target="_blank" rel="noopener noreferrer">
+                  {c(lang, "officialCalendar")}
+                </a>
+              )}
+            </p>
+          ) : level !== "uni" && k12Source && !k12Source.hasMatchingData ? (
+            <p>
+              {c(lang, "noDistrictDates")}{" "}
+              {sourceHref && (
+                <a href={sourceHref} target="_blank" rel="noopener noreferrer">
+                  {c(lang, "officialCalendar")}
+                </a>
+              )}
+            </p>
           ) : upcoming.length ? (
             upcoming.map((item) => (
               <Link to="/guide" className="desk-date" key={item.id}>

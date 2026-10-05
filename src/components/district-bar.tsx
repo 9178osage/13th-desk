@@ -172,8 +172,8 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
             {mismatch && picked ? (
               <p className="text-xs text-muted">
                 {tr(lang, {
-                  en: `Dates here follow Eugene 4J. ${picked.en} prints its own calendar.`,
-                  zh: `这里的日期按尤金 4J。${picked.zh}有自己的校历。`,
+                  en: `No ${picked.en} dates are stored here. Use the district site for the official calendar.`,
+                  zh: `这里没有收录 ${picked.zh} 的校历日期，请到学区官网查看。`,
                 })}{" "}
                 {picked.href ? (
                   <a
@@ -262,12 +262,12 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
       {mismatch && picked ? (
         <p className="mt-1 text-sm text-muted">
           {tr(lang, {
-            en: `The dates on this site are Eugene 4J. ${picked.en} prints its own calendar.`,
-            zh: `本页日期参考尤金 4J 学区。你选择的是${picked.zh}，请以该学区的官方校历为准。`,
-            es: `Las fechas de este sitio son del distrito Eugene 4J. ${picked.en} publica su propio calendario.`,
-            ko: `이 사이트의 날짜는 유진 4J 학구 거예요. ${picked.en}은 자기 학사일정이 있어요.`,
-            vi: `Ngày trên trang này là của học khu Eugene 4J. ${picked.en} có lịch riêng.`,
-            ja: `このサイトの日付はユージン 4J 学区のものです。${picked.en} には自分の暦があります。`,
+            en: `No ${picked.en} dates are stored here. Use the district site for the official calendar.`,
+            zh: `这里没有收录 ${picked.zh} 的校历日期，请到学区官网查看。`,
+            es: `Aquí no hay fechas de ${picked.en}. Usa el sitio del distrito para el calendario oficial.`,
+            ko: `여기에는 ${picked.en} 학사일정이 없어요. 학군 공식 사이트를 확인하세요.`,
+            vi: `Không có lịch của ${picked.en} tại đây. Hãy xem trang chính thức của học khu.`,
+            ja: `${picked.en} の日程はここにありません。学区の公式サイトをご確認ください。`,
           })}{" "}
           {picked.href ? (
             <a
