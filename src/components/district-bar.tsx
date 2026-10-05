@@ -189,9 +189,9 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
                     {tr(lang, {
                       en: "District site",
                       zh: "学区网站",
-                      es: "Su sitio",
+                      es: "Sitio del distrito",
                       ko: "그 학구 사이트",
-                      vi: "Trang của họ",
+                      vi: "Trang học khu",
                       ja: "その学区のサイト",
                     })}
                   </a>
@@ -290,9 +290,9 @@ export function DistrictBar({ compact = false }: { compact?: boolean }) {
               {tr(lang, {
                 en: "District site",
                 zh: "查看学区官网",
-                es: "Su sitio",
+                es: "Sitio del distrito",
                 ko: "그 학구 사이트",
-                vi: "Trang của họ",
+                vi: "Trang học khu",
                 ja: "その学区のサイト",
               })}
             </a>
