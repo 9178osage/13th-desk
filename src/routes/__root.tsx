@@ -10,9 +10,22 @@ import { DEFAULT_LANG, DeskHintContext, useDesk } from "@/lib/store";
 import { PREFS_COOKIE, parsePrefsValue, readPrefsCookie, type PrefsHint } from "@/lib/prefs-cookie";
 import { deskBootScript } from "@/lib/boot-script";
 import appCss from "../styles.css?url";
-// Same hashed files the @font-face rules use; preloaded so text settles sooner.
+// Same hashed files the @font-face rules use. Preload every face the first
+// screen paints with (Outfit 400/500, Fraunces 500/600) so they are usually
+// ready by the first layout; laying out with pending web fonts means a slow
+// fallback-font pass first and a second layout when they swap in.
 import outfit400 from "@fontsource/outfit/files/outfit-latin-400-normal.woff2?url";
+import outfit500 from "@fontsource/outfit/files/outfit-latin-500-normal.woff2?url";
 import fraunces500 from "@fontsource/fraunces/files/fraunces-latin-500-normal.woff2?url";
+import fraunces600 from "@fontsource/fraunces/files/fraunces-latin-600-normal.woff2?url";
+
+const FONT_PRELOADS = [outfit400, outfit500, fraunces500, fraunces600].map((href) => ({
+  rel: "preload",
+  href,
+  as: "font",
+  type: "font/woff2",
+  crossOrigin: "anonymous" as const,
+}));
 
 const APP_NAME = "Eugene Desk";
 
@@ -47,14 +60,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-      { rel: "preload", href: outfit400, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
-      {
-        rel: "preload",
-        href: fraunces500,
-        as: "font",
-        type: "font/woff2",
-        crossOrigin: "anonymous",
-      },
+      ...FONT_PRELOADS,
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/brand/apple-touch-icon.png" },

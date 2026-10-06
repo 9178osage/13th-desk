@@ -477,7 +477,7 @@ test("K12 releaseLine is available in all six languages", () => {
   }
 });
 
-function runBoot(stored: string | null, throws = false) {
+function runBoot(stored: string | null, throws = false, userAgent = "") {
   const attrs: Record<string, string> = {};
   const root = {
     lang: "zh-CN",
@@ -491,11 +491,15 @@ function runBoot(stored: string | null, throws = false) {
       return key === "13th-desk-v1" ? stored : null;
     },
   };
-  new Function("localStorage", "document", deskBootScript)(localStorage, {
-    documentElement: root,
-  });
+  new Function("localStorage", "document", "navigator", deskBootScript)(
+    localStorage,
+    { documentElement: root },
+    { userAgent },
+  );
+  lastBootAttrs = attrs;
   return { lang: root.lang, setup: attrs["data-desk-setup"] ?? null };
 }
+let lastBootAttrs: Record<string, string> = {};
 
 test("boot script sets <html lang> and setup flag from saved desk only", () => {
   const saved = (state: Record<string, unknown>) => JSON.stringify({ state, version: 0 });
@@ -521,6 +525,54 @@ test("boot script sets <html lang> and setup flag from saved desk only", () => {
   assert.deepEqual(runBoot("{not json"), { lang: "zh-CN", setup: null });
   assert.deepEqual(runBoot("null"), { lang: "zh-CN", setup: null });
   assert.deepEqual(runBoot(null, true), { lang: "zh-CN", setup: null });
+});
+
+test("boot script trims Apple/Windows font names only on Android, Linux and ChromeOS", () => {
+  const lean = (ua: string, stored: string | null = null) => {
+    runBoot(stored, false, ua);
+    return lastBootAttrs["data-desk-fonts"] ?? null;
+  };
+  const android =
+    "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
+  assert.equal(lean(android), "lean");
+  assert.equal(lean("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36"), "lean");
+  assert.equal(lean("Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/129.0"), "lean");
+  // Saved desks and the setup flag still work alongside it.
+  assert.equal(lean(android, JSON.stringify({ state: { lang: "es", langSet: true, level: "high" } })), "lean");
+  assert.equal(lastBootAttrs["data-desk-setup"], "done");
+  for (const ua of [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36",
+    "",
+  ]) {
+    assert.equal(lean(ua), null, ua);
+  }
+  // The CSS override keeps the exact fallback order minus the Apple/Windows names.
+  const css = readFileSync(join(import.meta.dirname, "..", "styles.css"), "utf8");
+  const block = css.match(/html\[data-desk-fonts="lean"\]\s*\{([^}]*)\}/);
+  assert.ok(block, "lean font override missing");
+  assert.match(block[1], /--font-sans:\s*"Outfit",\s*system-ui,\s*sans-serif;/);
+  assert.match(block[1], /--font-display:\s*"Fraunces",\s*serif;/);
+  assert.match(css, /--font-sans:\s*"Outfit",\s*"PingFang SC",\s*"Hiragino Sans",\s*"Malgun Gothic",\s*system-ui,\s*sans-serif;/);
+});
+
+test("Vietnamese weekdays are pinned so server HTML matches the browser", () => {
+  assert.deepEqual(
+    ["mon", "tue", "wed", "thu", "fri"].map((d) => dayName("vi", d)),
+    ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6"],
+  );
+  const time = readFileSync(join(import.meta.dirname, "time.ts"), "utf8");
+  assert.match(time, /VI_SHORT_WEEKDAYS\[/);
+  assert.match(time, /lang !== "vi" \|\| options\.weekday !== "short"/);
+});
+
+test("first-screen font faces are preloaded", () => {
+  const root = readFileSync(join(import.meta.dirname, "..", "routes/__root.tsx"), "utf8");
+  for (const face of ["outfit-latin-400", "outfit-latin-500", "fraunces-latin-500", "fraunces-latin-600"]) {
+    assert.ok(root.includes(`${face}-normal.woff2?url`), `${face} not preloaded`);
+  }
+  assert.match(root, /\.\.\.FONT_PRELOADS/);
 });
 
 test("Today section kickers exist in all six languages", () => {

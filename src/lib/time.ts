@@ -1,4 +1,5 @@
 import { tr, type Lang } from "@/lib/text";
+import { VI_SHORT_WEEKDAYS } from "@/lib/desk-copy";
 
 export const TERM_START = "2026-09-28";
 export const TERM_END = "2026-12-11";
@@ -88,8 +89,18 @@ const LOCALE: Record<Lang, string> = {
   ja: "ja",
 };
 
+const WEEKDAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
 function localeDate(lang: Lang, options: Intl.DateTimeFormatOptions, date: Date): string {
-  return new Intl.DateTimeFormat(LOCALE[lang], options).format(date);
+  const fmt = new Intl.DateTimeFormat(LOCALE[lang], options);
+  if (lang !== "vi" || options.weekday !== "short") return fmt.format(date);
+  // Same server/browser ICU mismatch as dayName(): pin the Vietnamese weekday.
+  const en = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: options.timeZone });
+  const weekday = VI_SHORT_WEEKDAYS[WEEKDAY_INDEX[en.format(date)] ?? 0];
+  return fmt
+    .formatToParts(date)
+    .map((part) => (part.type === "weekday" ? weekday : part.value))
+    .join("");
 }
 
 export function formatWhen(ymd: string, today: string, lang: Lang): string {

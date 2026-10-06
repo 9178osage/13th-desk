@@ -35,6 +35,12 @@
   --motion-fast: 160ms;
 }
 @layer base {
+  /* Same fallback result on Android/Linux/ChromeOS, minus the lookups for
+     Apple/Windows-only fonts (set by the boot script, see boot-script.ts). */
+  html[data-desk-fonts="lean"] {
+    --font-sans: "Outfit", system-ui, sans-serif;
+    --font-display: "Fraunces", serif;
+  }
   html {
     color: var(--color-ink);
     background: var(--color-paper);

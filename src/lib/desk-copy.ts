@@ -653,8 +653,16 @@ export function deskText(lang: Lang, key: DeskCopyKey, vars: Record<string, stri
   );
 }
 
+/**
+ * Vietnamese short weekdays, Sunday first. ICU versions disagree here (Node's
+ * ICU says "Th 2", Chrome says "Thứ 2"), which made the server HTML and the
+ * hydrating client differ for Vietnamese. Pin one spelling for both.
+ */
+export const VI_SHORT_WEEKDAYS = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+
 export function dayName(lang: Lang, day: string) {
   const n = ["mon", "tue", "wed", "thu", "fri"].indexOf(day);
+  if (lang === "vi") return VI_SHORT_WEEKDAYS[Math.max(n, 0) + 1];
   return new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : lang, {
     weekday: "short",
     timeZone: "UTC",
