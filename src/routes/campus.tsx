@@ -4,7 +4,16 @@ import { PlaceBrowser } from "@/components/place-browser";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/campus")({
-  head: () => ({ meta: [{ title: "Campus · Eugene Desk" }] }),
+  head: () => ({
+    meta: [
+      { title: "Campus · Eugene Desk" },
+      {
+        name: "description",
+        content:
+          "Campus shortcuts for University of Oregon and Lane Community College students, plus school info for Eugene-area K-12 families.",
+      },
+    ],
+  }),
   component: CampusPage,
 });
 

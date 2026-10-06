@@ -1,12 +1,23 @@
+import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist, type PersistStorage, type StorageValue } from "zustand/middleware";
 import { isLevel, type Level } from "@/lib/levels";
 import { isDistrict, type DistrictId } from "@/data/districts";
 import { asStoredCredits, cleanDecimal, isLetter, type Letter } from "@/lib/gpa";
-import { isLang, type Lang } from "@/lib/text";
+import {
+  isLang,
+  isLangReady,
+  langPackVersion,
+  loadLangPack,
+  subscribeLangPacks,
+  type Lang,
+} from "@/lib/text";
 import { validScheduleTime, type ScheduleDraft } from "@/lib/schedule";
 import type { PersistedDeskLike } from "@/lib/desk-backup";
 
+
+/** Chinese-first portal: the language used until a visitor picks one. */
+export const DEFAULT_LANG: Lang = "zh";
 export type Note = {
   id: string;
   text: string;
@@ -311,7 +322,7 @@ function createDeferredJsonStorage(): PersistStorage<PersistedDesk> {
 export const useDesk = create<DeskState>()(
   persist(
     (set, get) => ({
-      lang: "zh",
+      lang: DEFAULT_LANG,
       langSet: false,
       level: "uni",
       levelSet: false,
@@ -575,7 +586,13 @@ export const useDesk = create<DeskState>()(
         const raw = persisted as Record<string, unknown>;
         // Prefer in-memory choices made before rehydrate finishes (fast lang switch).
         const langSet = current.langSet || raw.langSet === true;
-        const lang = current.langSet ? current.lang : langSet && isLang(raw.lang) ? raw.lang : "en";
+        // Never chosen? Keep the Chinese-first default instead of flipping to English
+        // after the first save (bug: a new visitor's desk switched language on reload).
+        const lang = current.langSet
+          ? current.lang
+          : langSet && isLang(raw.lang)
+            ? raw.lang
+            : DEFAULT_LANG;
         const levelSet = current.levelSet || raw.levelSet === true || isLevel(raw.level);
         const level = current.levelSet ? current.level : isLevel(raw.level) ? raw.level : "uni";
         const earlyStart = raw.earlyStart === true;
@@ -606,8 +623,36 @@ export const useDesk = create<DeskState>()(
   ),
 );
 
+// Last language whose content pack was ready; shown while a newly picked pack loads.
+let shownLang: Lang = "en";
+
 export function useLang(): Lang {
-  return useDesk((state) => state.lang);
+  const lang = useDesk((state) => state.lang);
+  // Re-render once a lazily loaded language pack arrives.
+  useSyncExternalStore(subscribeLangPacks, langPackVersion, langPackVersion);
+  if (isLangReady(lang)) {
+    shownLang = lang;
+    return lang;
+  }
+  return isLangReady(shownLang) ? shownLang : "en";
+}
+
+if (typeof window !== "undefined") {
+  // Fetch the pack whenever the language changes (picker, import, undo).
+  useDesk.subscribe((state, prev) => {
+    if (state.lang !== prev.lang) void loadLangPack(state.lang).catch(() => {});
+  });
+}
+
+/** Language saved under `13th-desk-v1`, read without touching the store. */
+function storedLang(): Lang | null {
+  try {
+    const raw = localStorage.getItem("13th-desk-v1");
+    const state = raw ? (JSON.parse(raw) as { state?: { lang?: unknown; langSet?: unknown } }).state : null;
+    return state && state.langSet === true && isLang(state.lang) ? state.lang : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Snapshot of the fields that are written under `13th-desk-v1`. */
@@ -663,6 +708,9 @@ export function ensureDeskHydrated(): Promise<void> {
   if (!hydratePromise) {
     hydratePromise = (async () => {
       try {
+        // Load the saved language's pack first so the desk never flashes English.
+        const saved = typeof window === "undefined" ? null : storedLang();
+        if (saved) await loadLangPack(saved).catch(() => {});
         if (!useDesk.persist.hasHydrated()) {
           await useDesk.persist.rehydrate();
         }

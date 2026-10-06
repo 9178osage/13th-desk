@@ -2,10 +2,12 @@ import type {
   ButtonHTMLAttributes,
   InputHTMLAttributes,
   ReactNode,
+  Ref,
 } from "react";
 import { cn } from "@/lib/cn";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  ref?: Ref<HTMLButtonElement>;
   variant?: "primary" | "quiet" | "ghost";
 };
 

@@ -62,7 +62,7 @@ function TaskList() {
     <section className="desk-panel task-panel" aria-labelledby="task-heading">
       <div className="panel-title">
         <div>
-          <span className="eyebrow">ONE THING AT A TIME</span>
+          <span className="eyebrow">{c(lang, "eyebrowTasks")}</span>
           <h2 id="task-heading">{c(lang, "tasks")}</h2>
         </div>
         <span className="task-total">
@@ -199,8 +199,10 @@ export function HomeDashboard() {
         <h1>{c(lang, "welcome")}</h1>
         <p>{c(lang, "intro")}</p>
       </header>
-      {hydrated && (!langSet || !levelSet) && (
-        <div className="welcome-note">
+      {(!hydrated || !langSet || !levelSet) && (
+        // Rendered from the first paint so it never pushes the desk down; a
+        // returning visitor's boot script hides the pending copy (boot-script.ts).
+        <div className="welcome-note" data-pending={hydrated ? undefined : ""}>
           <div>
             <strong>{c(lang, "setup")}</strong>
             <p>{c(lang, "setupHint")}</p>
@@ -241,7 +243,7 @@ export function HomeDashboard() {
           <TaskList key={level} />
           <WeekSchedule />
         </div>
-        <aside className="today-secondary">
+        <div className="today-secondary">
           <section className="next-class-card" aria-labelledby="next-class-heading">
             <div className="next-card-top">
               <span>{c(lang, remaining !== null && remaining <= 0 ? "inProgress" : "next")}</span>
@@ -299,7 +301,7 @@ export function HomeDashboard() {
           )}
           <WeatherCard />
           <Link to="/town" className="explore-card">
-            <span className="eyebrow">AROUND EUGENE</span>
+            <span className="eyebrow">{c(lang, "eyebrowAround")}</span>
             <MapPin size={28} strokeWidth={1.3} aria-hidden="true" />
             <h2>{c(lang, "quick")}</h2>
             <p>{c(lang, "exploreHint")}</p>
@@ -307,12 +309,12 @@ export function HomeDashboard() {
               {c(lang, "town")} <ArrowRight size={18} />
             </span>
           </Link>
-        </aside>
+        </div>
       </div>
       <section className="desk-panel dates-panel" aria-labelledby="dates-heading">
         <div className="panel-title">
           <div>
-            <span className="eyebrow">ON THE CALENDAR</span>
+            <span className="eyebrow">{c(lang, "eyebrowCalendar")}</span>
             <h2 id="dates-heading">{c(lang, "dates")}</h2>
           </div>
           <Link to="/guide" className="text-link">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useId, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { Download, Upload, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import {
@@ -17,12 +17,7 @@ import {
 } from "@/lib/desk-backup";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { LEVELS } from "@/lib/levels";
-import {
-  getPersistedDeskState,
-  replacePersistedDeskState,
-  useDesk,
-  useLang,
-} from "@/lib/store";
+import { getPersistedDeskState, replacePersistedDeskState, useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
 
 const ERROR_COPY: Record<BackupParseError, DeskCopyKey> = {
@@ -43,6 +38,10 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
   const lang = useLang();
   const hydrated = useDesk((s) => s.hydrated);
   const fileRef = useRef<HTMLInputElement>(null);
+  const importButtonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const hintId = useId();
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [snapshot, setSnapshot] = useState<PersistedDeskLike | null>(null);
@@ -57,6 +56,40 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
       window.removeEventListener("storage", sync);
     };
   }, []);
+
+  // Import confirmation is a modal: focus moves in, Tab stays inside, Escape
+  // cancels, and focus returns to the Import button when it closes.
+  const dialogOpen = pending !== null;
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const panel = panelRef.current;
+    const opener = importButtonRef.current;
+    confirmRef.current?.focus();
+    return () => {
+      const active = document.activeElement;
+      if (!active || active === document.body || panel?.contains(active)) opener?.focus();
+    };
+  }, [dialogOpen]);
+
+  function onDialogKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setPending(null);
+      return;
+    }
+    if (event.key !== "Tab" || !panelRef.current) return;
+    const focusable = [...panelRef.current.querySelectorAll<HTMLElement>("button:not(:disabled)")];
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 
   function downloadBackup() {
     downloadDeskBackupFile(getPersistedDeskState(), backupFileName());
@@ -119,16 +152,12 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
     <div className={compact ? "desk-backup desk-backup-compact" : "desk-backup"}>
       {!compact && <p className="backup-title">{c(lang, "backup")}</p>}
       <div className="backup-actions">
-        <button
-          type="button"
-          className="backup-link"
-          disabled={!hydrated}
-          onClick={downloadBackup}
-        >
+        <button type="button" className="backup-link" disabled={!hydrated} onClick={downloadBackup}>
           <Download size={14} aria-hidden="true" />
           {c(lang, "exportData")}
         </button>
         <button
+          ref={importButtonRef}
           type="button"
           className="backup-link"
           disabled={!hydrated}
@@ -143,18 +172,22 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
           accept="application/json,.json"
           className="sr-only"
           tabIndex={-1}
+          aria-label={c(lang, "importData")}
           onChange={onPickFile}
         />
       </div>
       {pending && (
         <div className="backup-overlay" role="presentation">
           <div
+            ref={panelRef}
             className="backup-panel"
             role="dialog"
             aria-modal="true"
             aria-label={c(lang, "importData")}
+            aria-describedby={hintId}
+            onKeyDown={onDialogKeyDown}
           >
-            <p>{c(lang, "importHint")}</p>
+            <p id={hintId}>{c(lang, "importHint")}</p>
             <p>
               {c(lang, "importPreview", {
                 notes: pending.summary.totalNotes,
@@ -177,7 +210,7 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
               })}
             </ul>
             <div className="form-actions">
-              <Button type="button" onClick={confirmImport}>
+              <Button ref={confirmRef} type="button" onClick={confirmImport}>
                 {c(lang, "importConfirm")}
               </Button>
               <Button type="button" variant="ghost" onClick={() => setPending(null)}>
@@ -187,27 +220,26 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
           </div>
         </div>
       )}
-      {(message || showUndo) && (
-        <div className="inline-feedback backup-feedback" role="status">
-          {message && <span>{c(lang, message)}</span>}
-          {showUndo && (
-            <span className="backup-undo-bar">
-              <button type="button" onClick={undoImport}>
-                <RotateCcw size={14} aria-hidden="true" />
-                {c(lang, "importUndo")}
-              </button>
-              <button
-                type="button"
-                className="backup-undo-dismiss"
-                aria-label={c(lang, "dismissUndo")}
-                onClick={dismissUndo}
-              >
-                <X size={14} aria-hidden="true" />
-              </button>
-            </span>
-          )}
-        </div>
-      )}
+      {/* Always mounted so screen readers announce export/import/undo results. */}
+      <div className="inline-feedback backup-feedback" role="status">
+        {message && <span>{c(lang, message)}</span>}
+        {showUndo && (
+          <span className="backup-undo-bar">
+            <button type="button" onClick={undoImport}>
+              <RotateCcw size={14} aria-hidden="true" />
+              {c(lang, "importUndo")}
+            </button>
+            <button
+              type="button"
+              className="backup-undo-dismiss"
+              aria-label={c(lang, "dismissUndo")}
+              onClick={dismissUndo}
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          </span>
+        )}
+      </div>
     </div>
   );
 }

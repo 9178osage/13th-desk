@@ -19,7 +19,16 @@ import { uoAcademicTerm, uoTermIsExpired } from "@/lib/calendar";
 import { deskText as c } from "@/lib/desk-copy";
 
 export const Route = createFileRoute("/guide")({
-  head: () => ({ meta: [{ title: "Guide · Eugene Desk" }] }),
+  head: () => ({
+    meta: [
+      { title: "Guide · Eugene Desk" },
+      {
+        name: "description",
+        content:
+          "Eugene student guide: upcoming school dates and deadlines, plus official calendar links for UO, Lane, and local K-12 districts.",
+      },
+    ],
+  }),
   component: GuidePage,
 });
 

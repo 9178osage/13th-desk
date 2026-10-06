@@ -31,6 +31,8 @@ const NAV = [
 
 export function Shell({ children }: { children: ReactNode }) {
   const lang = useLang();
+  // The picker reflects the choice at once, even while its language pack loads.
+  const pickedLang = useDesk((s) => s.lang);
   const level = useDesk((s) => s.level);
   const setLang = useDesk((s) => s.setLang);
   const setLevel = useDesk((s) => s.setLevel);
@@ -45,8 +47,22 @@ export function Shell({ children }: { children: ReactNode }) {
     void ensureDeskHydrated();
   }, []);
 
+  // Route heads ship English titles for crawlers; the open tab follows the
+  // chosen language and school level (e.g. "学校 · Eugene Desk").
+  const pageTitle = path === "/" ? "Eugene Desk · Eugene" : `${label(current.key)} · Eugene Desk`;
+  useEffect(() => {
+    const apply = () => {
+      if (document.title !== pageTitle) document.title = pageTitle;
+    };
+    apply();
+    // Router head updates on navigation would put the English title back.
+    const observer = new MutationObserver(apply);
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [pageTitle]);
+
   const brand = (
-    <Link to="/" className="desk-brand" aria-label="Eugene Desk">
+    <Link to="/" className="desk-brand">
       <img src="/brand/eugene-desk-mark.svg" alt="" width={40} height={40} />
       <span>
         <strong>
@@ -111,7 +127,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <label>
               <span className="sr-only">{c(lang, "language")}</span>
               <select
-                value={lang}
+                value={pickedLang}
                 onChange={(e) => {
                   if (isLang(e.target.value)) setLang(e.target.value);
                 }}

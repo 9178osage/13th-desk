@@ -97,7 +97,7 @@ function ScheduleEditor() {
     >
       <div className="panel-title">
         <div>
-          <span className="eyebrow">YOUR WEEK</span>
+          <span className="eyebrow">{c(lang, "eyebrowWeek")}</span>
           <h2 id="schedule-heading">{c(lang, "timetable")}</h2>
         </div>
         <Button variant="quiet" onClick={() => startEdit()} disabled={!hydrated || open}>

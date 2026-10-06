@@ -30,6 +30,7 @@ import {
   UO_VALID_THROUGH,
 } from "./calendar-meta.ts";
 import { releaseLine } from "../data/k12.ts";
+import { deskBootScript } from "./boot-script.ts";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import esPack from "./i18n/es.json" with { type: "json" };
@@ -467,4 +468,93 @@ test("K12 releaseLine is available in all six languages", () => {
       }
     }
   }
+});
+
+function runBoot(stored: string | null, throws = false) {
+  const attrs: Record<string, string> = {};
+  const root = {
+    lang: "zh-CN",
+    setAttribute(name: string, value: string) {
+      attrs[name] = value;
+    },
+  };
+  const localStorage = {
+    getItem(key: string) {
+      if (throws) throw new Error("blocked");
+      return key === "13th-desk-v1" ? stored : null;
+    },
+  };
+  new Function("localStorage", "document", deskBootScript)(localStorage, {
+    documentElement: root,
+  });
+  return { lang: root.lang, setup: attrs["data-desk-setup"] ?? null };
+}
+
+test("boot script sets <html lang> and setup flag from saved desk only", () => {
+  const saved = (state: Record<string, unknown>) => JSON.stringify({ state, version: 0 });
+  assert.deepEqual(runBoot(null), { lang: "zh-CN", setup: null });
+  assert.deepEqual(runBoot(saved({ lang: "es", langSet: true, level: "high", levelSet: true })), {
+    lang: "es",
+    setup: "done",
+  });
+  // Legacy saves without levelSet still count when the level itself is valid.
+  assert.deepEqual(runBoot(saved({ lang: "ja", langSet: true, level: "uni" })), {
+    lang: "ja",
+    setup: "done",
+  });
+  // Never picked a language: keep the default and keep showing the setup note.
+  assert.deepEqual(runBoot(saved({ lang: "en", langSet: false, level: "uni", levelSet: true })), {
+    lang: "zh-CN",
+    setup: null,
+  });
+  assert.deepEqual(runBoot(saved({ lang: "xx", langSet: true, level: "uni" })), {
+    lang: "zh-CN",
+    setup: null,
+  });
+  assert.deepEqual(runBoot("{not json"), { lang: "zh-CN", setup: null });
+  assert.deepEqual(runBoot("null"), { lang: "zh-CN", setup: null });
+  assert.deepEqual(runBoot(null, true), { lang: "zh-CN", setup: null });
+});
+
+test("Today section kickers exist in all six languages", () => {
+  for (const key of ["eyebrowTasks", "eyebrowWeek", "eyebrowAround", "eyebrowCalendar"] as const) {
+    const seen = new Set<string>();
+    for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+      const text = deskText(lang, key);
+      assert.ok(text.trim().length > 0, `${key} empty for ${lang}`);
+      seen.add(text);
+    }
+    assert.ok(seen.size >= 5, `${key} looks untranslated`);
+  }
+});
+
+test("bundle guards: language packs and Recharts stay code-split", () => {
+  const src = join(import.meta.dirname, "..");
+  const text = readFileSync(join(src, "lib/text.ts"), "utf8");
+  assert.doesNotMatch(text, /^import\s+\w+\s+from\s+["'][^"']*i18n\//m, "text.ts must not statically import packs");
+  for (const lang of ["es", "ko", "vi", "ja"]) {
+    assert.match(text, new RegExp(`import\\(["']\\./i18n/${lang}\\.json["']\\)`), `${lang} pack is lazy`);
+  }
+  const rechartsUsers: string[] = [];
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.(tsx|ts)$/.test(name) && /from\s+["']recharts["']/.test(readFileSync(p, "utf8"))) {
+        rechartsUsers.push(p.slice(src.length + 1));
+      }
+    }
+  };
+  walk(src);
+  assert.deepEqual(rechartsUsers, ["components/gpa-chart.tsx"]);
+  const gpa = readFileSync(join(src, "routes/gpa.tsx"), "utf8");
+  assert.match(gpa, /lazy\(\(\) => import\("@\/components\/gpa-chart"\)\)/);
+});
+
+test("a never-chosen language falls back to the Chinese-first default, not English", () => {
+  const store = readFileSync(join(import.meta.dirname, "store.ts"), "utf8");
+  assert.match(store, /export const DEFAULT_LANG: Lang = "zh";/);
+  const merge = store.slice(store.indexOf("merge: (persisted, current)"));
+  assert.match(merge, /langSet && isLang\(raw\.lang\)\s*\?\s*raw\.lang\s*:\s*DEFAULT_LANG/);
+  assert.doesNotMatch(merge.slice(0, 900), /raw\.lang\s*:\s*"en"/);
 });

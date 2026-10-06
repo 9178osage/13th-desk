@@ -13,7 +13,7 @@
   --color-paper-edge: #d8d7ce;
   --color-card: #fffefa;
   --color-ink: #172b43;
-  --color-muted: #66717d;
+  --color-muted: #5f6a76;
   --color-line: #e1e2dc;
   --color-moss: #285be7;
   --color-moss-deep: #1645bd;
@@ -1400,4 +1400,26 @@
   .desk-panel {
     break-inside: avoid;
   }
+}
+
+/* Returning visitors: boot-script.ts marks <html> before paint, so the
+   server-rendered first-visit note never flashes or shifts the page. */
+html[data-desk-setup="done"] .welcome-note[data-pending] {
+  display: none;
+}
+.backup-feedback:empty {
+  width: 0;
+  min-height: 0;
+  margin: 0;
+}
+/* CJK kickers have no capitals to carry them; give them a readable size. */
+.eyebrow:lang(zh),
+.eyebrow:lang(ja),
+.eyebrow:lang(ko) {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+/* Inline source links: taller hit area without moving the text. */
+.section-description a {
+  padding-block: 0.35rem;
 }

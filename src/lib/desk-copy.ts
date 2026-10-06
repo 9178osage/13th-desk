@@ -617,6 +617,32 @@ const copy = {
     "Có mục điểm không hợp lệ trong bản sao lưu. Chưa thay đổi gì.",
     "バックアップに無効な成績があります。データは変更していません。",
   ],
+  // Small section kickers on Today (were English-only).
+  eyebrowTasks: [
+    "ONE THING AT A TIME",
+    "一次一件事",
+    "UNA COSA A LA VEZ",
+    "한 번에 하나씩",
+    "TỪNG VIỆC MỘT",
+    "ひとつずつ",
+  ],
+  eyebrowWeek: ["YOUR WEEK", "本周安排", "TU SEMANA", "이번 주", "TUẦN CỦA BẠN", "今週の予定"],
+  eyebrowAround: [
+    "AROUND EUGENE",
+    "尤金周边",
+    "POR EUGENE",
+    "유진 곳곳",
+    "QUANH EUGENE",
+    "ユージン周辺",
+  ],
+  eyebrowCalendar: [
+    "ON THE CALENDAR",
+    "日程提醒",
+    "EN EL CALENDARIO",
+    "다가오는 일정",
+    "LỊCH SẮP TỚI",
+    "予定カレンダー",
+  ],
 } as const satisfies Record<string, readonly [string, string, string, string, string, string]>;
 
 const index: Record<Lang, number> = { en: 0, zh: 1, es: 2, ko: 3, vi: 4, ja: 5 };

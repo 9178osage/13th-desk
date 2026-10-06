@@ -3,7 +3,16 @@ import { PlaceBrowser } from "@/components/place-browser";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/town")({
-  head: () => ({ meta: [{ title: "Town · Eugene Desk" }] }),
+  head: () => ({
+    meta: [
+      { title: "Town · Eugene Desk" },
+      {
+        name: "description",
+        content:
+          "Libraries, parks, cafés, and quiet places to study or take a break around Eugene, Oregon.",
+      },
+    ],
+  }),
   component: TownPage,
 });
 
