@@ -1,5 +1,6 @@
 {
   "installCommand": "npm install --omit=dev --no-audit --no-fund",
+  "regions": ["pdx1"],
   "headers": [
     {
       "source": "/(.*)",

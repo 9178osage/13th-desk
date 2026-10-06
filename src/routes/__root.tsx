@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { createIsomorphicFn } from "@tanstack/react-start";
+import { getCookie, setResponseHeader } from "@tanstack/react-start/server";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Shell } from "@/components/shell";
-import { htmlLang, type Lang } from "@/lib/text";
-import { DEFAULT_LANG, useDesk } from "@/lib/store";
+import { PACK_SCRIPT_ID, htmlLang, inlinePackJson, loadLangPack, type Lang } from "@/lib/text";
+import { DEFAULT_LANG, DeskHintContext, useDesk } from "@/lib/store";
+import { PREFS_COOKIE, parsePrefsValue, readPrefsCookie, type PrefsHint } from "@/lib/prefs-cookie";
 import { deskBootScript } from "@/lib/boot-script";
 import appCss from "../styles.css?url";
 // Same hashed files the @font-face rules use; preloaded so text settles sooner.
@@ -12,6 +15,21 @@ import outfit400 from "@fontsource/outfit/files/outfit-latin-400-normal.woff2?ur
 import fraunces500 from "@fontsource/fraunces/files/fraunces-latin-500-normal.woff2?url";
 
 const APP_NAME = "Eugene Desk";
+
+/** Language/level hint from the `eugene-desk-prefs` cookie (see prefs-cookie.ts). */
+const readPrefsHint = createIsomorphicFn()
+  .server((): PrefsHint => {
+    // The HTML now depends on that cookie: keep shared caches from reusing one
+    // visitor's page for another.
+    setResponseHeader("Cache-Control", "private, no-cache");
+    setResponseHeader("Vary", "Cookie");
+    try {
+      return parsePrefsValue(getCookie(PREFS_COOKIE));
+    } catch {
+      return { lang: null, level: null };
+    }
+  })
+  .client((): PrefsHint => readPrefsCookie(document.cookie));
 
 export const Route = createRootRoute({
   head: () => ({
@@ -43,10 +61,21 @@ export const Route = createRootRoute({
     ],
     scripts: [{ children: deskBootScript }],
   }),
+  loader: async (): Promise<PrefsHint> => {
+    const hint = readPrefsHint();
+    // es/ko/vi/ja pages need their pack before the server renders them.
+    if (hint.lang) await loadLangPack(hint.lang).catch(() => {});
+    return hint;
+  },
+  // The hint only shapes the first render; client navigations need no reload.
+  shouldReload: false,
   component: Root,
 });
 
 function Root() {
+  const hint = Route.useLoaderData();
+  const pageLang: Lang = hint.lang ?? DEFAULT_LANG;
+  const packJson = inlinePackJson(pageLang);
   useEffect(() => {
     const sync = (lang: Lang) => {
       if (typeof document === "undefined") return;
@@ -60,18 +89,28 @@ function Root() {
   }, []);
 
   return (
-    // Server HTML is rendered in the default language; boot-script.ts swaps in a
-    // saved choice before paint and the effect above keeps it in sync.
-    <html lang={htmlLang(DEFAULT_LANG)} className="antialiased" suppressHydrationWarning>
+    // Server HTML uses the cookie hint (else the default language); boot-script.ts
+    // corrects it from localStorage before paint and the effect above keeps it in sync.
+    <html lang={htmlLang(pageLang)} className="antialiased" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body className="bg-paper text-ink">
+        {packJson && (
+          <script
+            id={PACK_SCRIPT_ID}
+            type="application/json"
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{ __html: packJson }}
+          />
+        )}
         <PreviewHostBridge />
         <AuthProvider>
-          <Shell>
-            <Outlet />
-          </Shell>
+          <DeskHintContext.Provider value={hint}>
+            <Shell>
+              <Outlet />
+            </Shell>
+          </DeskHintContext.Provider>
         </AuthProvider>
         <Scripts />
       </body>

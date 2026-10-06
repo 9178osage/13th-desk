@@ -31,6 +31,13 @@ import {
 } from "./calendar-meta.ts";
 import { releaseLine } from "../data/k12.ts";
 import { deskBootScript } from "./boot-script.ts";
+import {
+  PREFS_COOKIE,
+  formatPrefsValue,
+  parsePrefsValue,
+  prefsCookieString,
+  readPrefsCookie,
+} from "./prefs-cookie.ts";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import esPack from "./i18n/es.json" with { type: "json" };
@@ -557,4 +564,69 @@ test("a never-chosen language falls back to the Chinese-first default, not Engli
   const merge = store.slice(store.indexOf("merge: (persisted, current)"));
   assert.match(merge, /langSet && isLang\(raw\.lang\)\s*\?\s*raw\.lang\s*:\s*DEFAULT_LANG/);
   assert.doesNotMatch(merge.slice(0, 900), /raw\.lang\s*:\s*"en"/);
+});
+
+test("prefs cookie mirrors only explicit language/level choices", () => {
+  assert.equal(PREFS_COOKIE, "eugene-desk-prefs");
+  assert.equal(formatPrefsValue({ lang: "es", langSet: true, level: "high", levelSet: true }), "es.high");
+  assert.equal(formatPrefsValue({ lang: "ja", langSet: true, level: "uni", levelSet: false }), "ja.-");
+  assert.equal(formatPrefsValue({ lang: "zh", langSet: false, level: "mid", levelSet: true }), "-.mid");
+  // Nothing chosen (or junk): clear the cookie rather than store defaults.
+  assert.equal(formatPrefsValue({ lang: "zh", langSet: false, level: "uni", levelSet: false }), null);
+  assert.equal(formatPrefsValue({ lang: "xx", langSet: true, level: "nope", levelSet: true }), null);
+});
+
+test("prefs cookie parsing never trusts unexpected values", () => {
+  assert.deepEqual(parsePrefsValue("es.high"), { lang: "es", level: "high" });
+  assert.deepEqual(parsePrefsValue("ko.-"), { lang: "ko", level: null });
+  assert.deepEqual(parsePrefsValue("-.elem"), { lang: null, level: "elem" });
+  assert.deepEqual(parsePrefsValue("xx.uni"), { lang: null, level: "uni" });
+  for (const bad of ["", "garbage", "es.high.x", "<script>.uni", "es%2Ehigh%2Eextra", "x".repeat(40)]) {
+    assert.deepEqual(parsePrefsValue(bad), { lang: null, level: null }, bad);
+  }
+  assert.deepEqual(readPrefsCookie("a=1; eugene-desk-prefs=vi.mid; b=2"), { lang: "vi", level: "mid" });
+  assert.deepEqual(readPrefsCookie("other-eugene-desk-prefs=vi.mid"), { lang: null, level: null });
+  assert.deepEqual(readPrefsCookie(undefined), { lang: null, level: null });
+  assert.deepEqual(readPrefsCookie("eugene-desk-prefs=%E0%A4%A"), { lang: null, level: null });
+});
+
+test("prefs cookie is first-party, Lax, site-wide, one year", () => {
+  assert.equal(
+    prefsCookieString("es.high", true),
+    "eugene-desk-prefs=es.high; Max-Age=31536000; Path=/; SameSite=Lax; Secure",
+  );
+  assert.equal(
+    prefsCookieString(null, false),
+    "eugene-desk-prefs=; Max-Age=0; Path=/; SameSite=Lax",
+  );
+});
+
+test("cookie-aware HTML is private, varies on Cookie, and the server store is never mutated", () => {
+  const src = join(import.meta.dirname, "..");
+  const root = readFileSync(join(src, "routes/__root.tsx"), "utf8");
+  assert.match(root, /setResponseHeader\("Cache-Control", "private, no-cache"\)/);
+  assert.match(root, /setResponseHeader\("Vary", "Cookie"\)/);
+  assert.match(root, /<DeskHintContext\.Provider value=\{hint\}>/);
+  const store = readFileSync(join(src, "lib/store.ts"), "utf8");
+  // Server render reads a per-request hinted snapshot, not a shared mutable store.
+  assert.match(store, /\(\) => selector\(hintedInitialState\(hint\)\)/);
+  assert.doesNotMatch(store, /useDesk\.setState\(\{\s*lang: hint/);
+});
+
+test("SSR function runs in a single region near Eugene (Hobby allows one)", () => {
+  const repo = join(import.meta.dirname, "../..");
+  const vercel = JSON.parse(readFileSync(join(repo, "vercel.json"), "utf8")) as { regions?: string[] };
+  assert.deepEqual(vercel.regions, ["pdx1"]);
+  const vite = readFileSync(join(repo, "vite.config.ts"), "utf8");
+  assert.match(vite, /vercel: \{ functions: \{ regions: \["pdx1"\] \} \}/);
+});
+
+test("preview bridge stays mounted but only loads when framed", () => {
+  const src = join(import.meta.dirname, "..");
+  const root = readFileSync(join(src, "routes/__root.tsx"), "utf8");
+  assert.match(root, /<PreviewHostBridge \/>/);
+  const bridge = readFileSync(join(src, "components/preview-host-bridge.tsx"), "utf8");
+  assert.doesNotMatch(bridge, /^import[^;]*from "@\/lib\/preview-host-bridge"/m);
+  assert.match(bridge, /window\.parent === window\) return;/);
+  assert.match(bridge, /import\("@\/lib\/preview-host-bridge"\)/);
 });

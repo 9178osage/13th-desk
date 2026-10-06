@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist, type PersistStorage, type StorageValue } from "zustand/middleware";
 import { isLevel, type Level } from "@/lib/levels";
@@ -14,10 +14,28 @@ import {
 } from "@/lib/text";
 import { validScheduleTime, type ScheduleDraft } from "@/lib/schedule";
 import type { PersistedDeskLike } from "@/lib/desk-backup";
+import {
+  EMPTY_PREFS,
+  formatPrefsValue,
+  prefsCookieString,
+  readPrefsCookie,
+  type PrefsHint,
+} from "@/lib/prefs-cookie";
 
 
 /** Chinese-first portal: the language used until a visitor picks one. */
 export const DEFAULT_LANG: Lang = "zh";
+export const DEFAULT_LEVEL: Level = "uni";
+
+/**
+ * Language/level hint from the `eugene-desk-prefs` cookie for this request.
+ * The server renders with it; the browser starts from the same cookie, so the
+ * first paint and hydration already show the visitor's language and level.
+ */
+export const DeskHintContext = createContext<PrefsHint>(EMPTY_PREFS);
+
+const bootHint: PrefsHint =
+  typeof document === "undefined" ? EMPTY_PREFS : readPrefsCookie(document.cookie);
 export type Note = {
   id: string;
   text: string;
@@ -319,12 +337,12 @@ function createDeferredJsonStorage(): PersistStorage<PersistedDesk> {
   };
 }
 
-export const useDesk = create<DeskState>()(
+const deskStore = create<DeskState>()(
   persist(
     (set, get) => ({
-      lang: DEFAULT_LANG,
+      lang: bootHint.lang ?? DEFAULT_LANG,
       langSet: false,
-      level: "uni",
+      level: bootHint.level ?? DEFAULT_LEVEL,
       levelSet: false,
       buckets: blankBuckets(),
       hydrated: false,
@@ -623,8 +641,50 @@ export const useDesk = create<DeskState>()(
   ),
 );
 
+const hintedStates = new Map<string, DeskState>();
+
+/** Initial desk state with the request's cookie hint applied (cached per hint). */
+function hintedInitialState(hint: PrefsHint): DeskState {
+  const key = `${hint.lang ?? ""}.${hint.level ?? ""}`;
+  let state = hintedStates.get(key);
+  if (!state) {
+    const base = deskStore.getInitialState();
+    state = { ...base, lang: hint.lang ?? base.lang, level: hint.level ?? base.level };
+    hintedStates.set(key, state);
+  }
+  return state;
+}
+
+function useDeskSelector<T>(selector: (state: DeskState) => T): T {
+  const hint = useContext(DeskHintContext);
+  return useSyncExternalStore(
+    deskStore.subscribe,
+    () => selector(deskStore.getState()),
+    // Server render and hydration read the hinted initial state; the server
+    // store itself is shared by every request and is never mutated.
+    () => selector(hintedInitialState(hint)),
+  );
+}
+
+export const useDesk = Object.assign(useDeskSelector, {
+  getState: deskStore.getState,
+  setState: deskStore.setState,
+  subscribe: deskStore.subscribe,
+  getInitialState: deskStore.getInitialState,
+  persist: deskStore.persist,
+});
+
+/** Mirror the explicit language/level choice into the prefs cookie (or clear it). */
+function syncPrefsCookie(state: Pick<DeskState, "lang" | "langSet" | "level" | "levelSet">) {
+  try {
+    document.cookie = prefsCookieString(formatPrefsValue(state), location.protocol === "https:");
+  } catch {
+    /* cookies blocked: the server simply renders the defaults */
+  }
+}
+
 // Last language whose content pack was ready; shown while a newly picked pack loads.
-let shownLang: Lang = "en";
+let shownLang: Lang = DEFAULT_LANG;
 
 export function useLang(): Lang {
   const lang = useDesk((state) => state.lang);
@@ -634,13 +694,24 @@ export function useLang(): Lang {
     shownLang = lang;
     return lang;
   }
-  return isLangReady(shownLang) ? shownLang : "en";
+  return isLangReady(shownLang) ? shownLang : DEFAULT_LANG;
 }
 
 if (typeof window !== "undefined") {
-  // Fetch the pack whenever the language changes (picker, import, undo).
-  useDesk.subscribe((state, prev) => {
+  deskStore.subscribe((state, prev) => {
+    // Fetch the pack whenever the language changes (picker, import, undo).
     if (state.lang !== prev.lang) void loadLangPack(state.lang).catch(() => {});
+    // Keep the server hint in step with localStorage once the desk is loaded.
+    if (
+      state.hydrated &&
+      (state.hydrated !== prev.hydrated ||
+        state.lang !== prev.lang ||
+        state.langSet !== prev.langSet ||
+        state.level !== prev.level ||
+        state.levelSet !== prev.levelSet)
+    ) {
+      syncPrefsCookie(state);
+    }
   });
 }
 
@@ -717,7 +788,14 @@ export function ensureDeskHydrated(): Promise<void> {
       } catch {
         /* broken storage should not blank the desk */
       }
-      useDesk.setState({ hydrated: true });
+      // localStorage is the source of truth: a stale cookie hint for a choice
+      // that was never saved falls back to the defaults.
+      const loaded = useDesk.getState();
+      useDesk.setState({
+        hydrated: true,
+        ...(loaded.langSet ? {} : { lang: DEFAULT_LANG }),
+        ...(loaded.levelSet ? {} : { level: DEFAULT_LEVEL }),
+      });
     })();
   }
   return hydratePromise;

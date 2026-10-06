@@ -42,6 +42,47 @@ function needsPack(lang: Lang): lang is PackLang {
   return lang !== "en" && lang !== "zh";
 }
 
+/** id of the JSON <script> the server inlines for a cookie-hinted es/ko/vi/ja page. */
+export const PACK_SCRIPT_ID = "eugene-desk-pack";
+
+function registerPack(lang: PackLang, pack: Pack) {
+  if (packs[lang]) return;
+  packs[lang] = pack;
+  packVersion += 1;
+  for (const listener of packListeners) listener();
+}
+
+/**
+ * JSON for the inline pack script, or null when the language needs none / is
+ * not loaded. Same string on server and client, so hydration matches.
+ */
+export function inlinePackJson(lang: Lang): string | null {
+  if (!needsPack(lang) || !packs[lang]) return null;
+  return JSON.stringify({ lang, pack: packs[lang] }).replace(/</g, "\\u003c");
+}
+
+// Server-rendered pages in es/ko/vi/ja ship their pack inline: register it
+// before React hydrates so the first client render matches the server HTML.
+if (typeof document !== "undefined") {
+  try {
+    const el = document.getElementById(PACK_SCRIPT_ID);
+    const data = el?.textContent
+      ? (JSON.parse(el.textContent) as { lang?: unknown; pack?: unknown })
+      : null;
+    if (
+      data &&
+      typeof data.lang === "string" &&
+      data.lang in packLoaders &&
+      data.pack &&
+      typeof data.pack === "object"
+    ) {
+      registerPack(data.lang as PackLang, data.pack as Pack);
+    }
+  } catch {
+    /* fall back to loading the pack on demand */
+  }
+}
+
 /** True when `tr(lang, …)` can already return fully translated text. */
 export function isLangReady(lang: Lang): boolean {
   return !needsPack(lang) || packs[lang] !== undefined;
@@ -53,11 +94,7 @@ export function loadLangPack(lang: Lang): Promise<void> {
   const existing = inflight[lang];
   if (existing) return existing;
   const job = packLoaders[lang]()
-    .then((mod) => {
-      packs[lang] = mod.default;
-      packVersion += 1;
-      for (const listener of packListeners) listener();
-    })
+    .then((mod) => registerPack(lang, mod.default))
     .finally(() => {
       delete inflight[lang];
     });

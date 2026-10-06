@@ -203,6 +203,9 @@ export default defineConfig(({ command, isPreview }) => ({
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
             serverDir: "./server",
+            // Run the SSR function in Portland, next to Eugene (Vercel's
+            // default is iad1, Washington D.C.). One region: fine on Hobby.
+            vercel: { functions: { regions: ["pdx1"] } },
           }),
         ]
       : []),
