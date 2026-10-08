@@ -67,6 +67,16 @@ test("Web Locks query: counts other tabs exactly and clears when one closes", as
   assert.equal(a.others(), false);
   a.presence.dispose();
 });
+test("Web Locks query: a new tab whose lock lands after its hello is still noticed", async () => {
+  const join = bus(); const locks = lockManager();
+  const a = tab("a", { channel: join(), locks }); await tick();
+  const late = join(); late.postMessage({ type: "hello", id: "late" }); await tick();
+  assert.equal(a.others(), false);
+  void locks.request("13th-desk-v1:tab:late", () => new Promise<void>(() => {}));
+  await new Promise((r) => setTimeout(r, 350));
+  assert.equal(a.others(), true);
+  a.presence.dispose();
+});
 test("no BroadcastChannel and no Web Locks: never warns, never throws", async () => {
   const a = tab("a", {}); await tick();
   assert.equal(a.others(), false);

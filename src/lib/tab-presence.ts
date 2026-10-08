@@ -22,6 +22,7 @@ export type TabPresenceEnvironment = {
 const PREFIX = "13th-desk-v1:tab:";
 export const PRESENCE_HEARTBEAT_MS = 15_000;
 export const PRESENCE_EXPIRE_MS = 40_000;
+const RECHECK_MS = [300, 1500];
 
 export function createTabPresence(env: TabPresenceEnvironment) {
   const now = env.now ?? Date.now;
@@ -67,9 +68,10 @@ export function createTabPresence(env: TabPresenceEnvironment) {
       peers.set(data.id, now());
       if (data.type === "hello") post("here");
     }
-    // A closing tab releases its lock just after "bye"; look again shortly.
     refresh();
-    if (data.type === "bye" && canQuery) setTimeout(refresh, 300);
+    // Lock requests and releases travel separately from channel messages: a new
+    // tab's lock can land just after its "hello", a closing tab's just after "bye".
+    if (canQuery) for (const delay of RECHECK_MS) setTimeout(refresh, delay);
   });
 
   if (canQuery) {
