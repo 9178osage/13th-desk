@@ -70,7 +70,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const brand = (
     <Link to="/" className="desk-brand">
-      <img src="/brand/eugene-desk-mark.svg" alt="" width={40} height={40} />
+      <img src="/brand/eugene-desk-mark.svg?v=2" alt="" width={40} height={40} />
       <span>
         <strong>
           Eugene Desk<span className="brand-dot">.</span>

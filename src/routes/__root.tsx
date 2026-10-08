@@ -59,7 +59,7 @@ export const Route = createRootRoute({
       { name: "referrer", content: "strict-origin-when-cross-origin" },
     ],
     links: [
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg?v=2" },
       ...FONT_PRELOADS,
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
