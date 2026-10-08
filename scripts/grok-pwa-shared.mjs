@@ -9,6 +9,8 @@ import { join } from "node:path";
 export const DEFAULT_APP_NAME = "Grok App";
 export const OG_SERVICE_URL_DEFAULT = "https://og.grok.me";
 export const OG_SITE_REL_PATH = "src/lib/og/site.json";
+// This app is publicly hosted directly on Vercel, not behind Grok's proxy.
+const EUGENE_PUBLIC_HOST = "eugene-desk.vercel.app";
 
 const SHARE_META_KEYS = new Set([
   "og:title",
@@ -100,7 +102,7 @@ export function publicAppHost(hostHeader) {
     .toLowerCase();
   if (!host || !/^[a-z0-9.-]+$/.test(host) || !host.includes(".")) return "";
   if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return "";
-  if (isVercelSystemHost(host)) return "";
+  if (isVercelSystemHost(host) && host !== EUGENE_PUBLIC_HOST) return "";
   return host;
 }
 
@@ -158,7 +160,8 @@ export function renderInstallPageHtml(template, { host, url } = {}) {
 }
 
 export function renderWebManifest(hostHeader) {
-  const name = appNameFromHost(hostHeader);
+  const isEugene = publicAppHost(hostHeader) === EUGENE_PUBLIC_HOST;
+  const name = isEugene ? "Eugene Desk" : appNameFromHost(hostHeader);
   return JSON.stringify(
     {
       name,
@@ -167,11 +170,11 @@ export function renderWebManifest(hostHeader) {
       start_url: "/",
       scope: "/",
       display: "standalone",
-      background_color: "#000000",
-      theme_color: "#000000",
+      background_color: isEugene ? "#f5f3ed" : "#000000",
+      theme_color: isEugene ? "#f5f3ed" : "#000000",
       icons: [
         {
-          src: "/__grok/icon-180.png",
+          src: isEugene ? "/brand/apple-touch-icon.png?v=2" : "/__grok/icon-180.png",
           sizes: "180x180",
           type: "image/png",
         },
@@ -368,6 +371,7 @@ export function grokOgHeadTags({
     const color = !custom ? placeholderCardColor(site) : "";
     if (color) image += `&color=${encodeURIComponent(color)}`;
     tags.push(`<meta property="og:image" content="${escapeHtml(image)}">`);
+    tags.push(`<meta name="twitter:image" content="${escapeHtml(image)}">`);
     tags.push(`<meta property="og:image:width" content="1200">`);
     tags.push(`<meta property="og:image:height" content="630">`);
     const banner = String(site.banner ?? "").trim();
@@ -451,7 +455,10 @@ export function injectGrokPwaHead(html, ctx = {}) {
   const missing = grokPwaHeadTags(appName)
     .filter(([key]) => {
       if (key === "manifest") return !next.includes('href="/__grok/manifest.webmanifest"');
-      if (key === "apple-touch-icon") return !next.includes('href="/__grok/icon-180.png"');
+      if (key === "apple-touch-icon") {
+        // Honor an app-provided icon regardless of attribute order or quotes.
+        return !/<link\b[^>]*\brel\s*=\s*["']apple-touch-icon["'][^>]*>/i.test(next);
+      }
       return !next.includes(`name="${key}"`);
     })
     .map(([, tag]) => tag);
