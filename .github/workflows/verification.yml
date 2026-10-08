@@ -19,7 +19,6 @@ jobs:
         shell: bash
     env:
       CI: "true"
-      VITE_AUTH_ENABLED: "false"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -64,6 +63,8 @@ jobs:
       - name: Production build
         id: build
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          VITE_AUTH_ENABLED: "false"
         run: npm run build 2>&1 | tee verification/build.log
       - name: Publish verification summary
         if: always()
