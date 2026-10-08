@@ -1,0 +1,101 @@
+name: Verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Keep every push's run; do not cancel older runs when a new push arrives.
+jobs:
+  verify:
+    name: Tests, types, lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      CI: "true"
+      VITE_AUTH_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked dependencies
+        id: install
+        run: |
+          mkdir -p verification
+          npm ci --include=dev --ignore-scripts 2>&1 | tee verification/install.log
+      - name: Record exact source and runtime
+        if: always()
+        run: |
+          mkdir -p verification
+          {
+            echo "Event: $GITHUB_EVENT_NAME"
+            echo "Ref: $GITHUB_REF"
+            echo "Event SHA: $GITHUB_SHA"
+            echo "Checked-out SHA: $(git rev-parse HEAD)"
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "Attempt: $GITHUB_RUN_ATTEMPT"
+            echo "UTC: $(date -u +%FT%TZ)"
+            node --version
+            npm --version
+            sha256sum package-lock.json
+          } | tee verification/source.txt
+      - name: Full automated tests
+        id: tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm test 2>&1 | tee verification/tests.log
+      - name: Type check
+        id: types
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run typecheck 2>&1 | tee verification/types.log
+      - name: Lint
+        id: lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint 2>&1 | tee verification/lint.log
+      - name: Production build
+        id: build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build 2>&1 | tee verification/build.log
+      - name: Publish verification summary
+        if: always()
+        env:
+          INSTALL_RESULT: ${{ steps.install.outcome }}
+          TEST_RESULT: ${{ steps.tests.outcome }}
+          TYPE_RESULT: ${{ steps.types.outcome }}
+          LINT_RESULT: ${{ steps.lint.outcome }}
+          BUILD_RESULT: ${{ steps.build.outcome }}
+        run: |
+          mkdir -p verification
+          {
+            echo '# Eugene Desk verification'
+            echo
+            echo "Commit: $GITHUB_SHA · attempt $GITHUB_RUN_ATTEMPT"
+            echo
+            echo '| Check | Result |'
+            echo '| --- | --- |'
+            echo "| Locked install | $INSTALL_RESULT |"
+            echo "| Full tests | $TEST_RESULT |"
+            echo "| Type check | $TYPE_RESULT |"
+            echo "| Lint | $LINT_RESULT |"
+            echo "| Production build | $BUILD_RESULT |"
+            echo
+            echo 'Logs and source metadata are attached as a verification artifact (90-day retention, subject to repository policy).'
+            echo 'These checks do not include real-device/browser QA and do not gate the independent Vercel deployment.'
+          } | tee verification/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve logs, including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: verification-${{ github.sha }}-${{ github.run_attempt }}
+          path: verification/
+          retention-days: 90
+          if-no-files-found: error

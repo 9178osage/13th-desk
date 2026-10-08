@@ -67,6 +67,12 @@ npm run preview
 
 ## 部署
 
+### 每次推送的可核查记录
+
+GitHub [Verification 检查](https://github.com/9178osage/13th-desk/actions/workflows/verification.yml)在每次 push、PR 和手动触发时执行完整测试、类型检查、ESLint 和生产构建。每次运行记录实际检出的提交、Node/npm 版本、锁文件摘要，以及逐项成功／失败／跳过结果。失败也会上传日志；新推送不会取消旧推送的检查。
+
+运行详情页提供 `verification-提交SHA-尝试次数` 日志下载包，申请保留 90 天（受仓库保留策略限制），不属于永久档案。PR 默认检查合并后的测试提交，准确 SHA 见 `source.txt`。未包含真机／浏览器测试，现有 Vercel 自动部署仍独立运行，不代表测试通过后才发布。
+
 已连接 **Vercel** 项目 `eugene-desk`，推送到 GitHub `main` 会自动部署到：
 
 https://eugene-desk.vercel.app
