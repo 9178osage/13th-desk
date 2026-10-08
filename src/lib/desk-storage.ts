@@ -56,7 +56,11 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
 
   const storage: PersistStorage<T> = {
     getItem() {
-      if (pending) return pending;
+      if (pending && initialized) return pending;
+      // First read is hydration: load what is on disk. A pre-hydration snapshot
+      // (e.g. a language click while the pack loads) would hide the saved desk;
+      // merge keeps that choice and the next set saves it on top of the real data.
+      pending = null;
       try {
         baseline = env.storage.getItem(name);
         initialized = true;

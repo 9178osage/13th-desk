@@ -90,6 +90,15 @@ test("quota failure retains pending edits and retries on the next edit", async (
   env.fail(false); tab.storage.setItem(KEY, value("pending", "next"));
   assert.equal(tab.status(), "ready"); tab.dispose();
 });
+test("an edit made before hydration does not hide the saved desk or block saving", async () => {
+  const env = environment(); env.data.set(KEY, JSON.stringify(value("saved"))); const tab = env.open(); await tick();
+  tab.storage.setItem(KEY, value());
+  assert.deepEqual(await tab.storage.getItem(KEY), value("saved"));
+  assert.deepEqual(JSON.parse(env.data.get(KEY)!).state.notes, ["saved"]);
+  tab.storage.setItem(KEY, value("saved", "new"));
+  assert.deepEqual(JSON.parse(env.data.get(KEY)!).state.notes, ["saved", "new"]);
+  assert.equal(tab.status(), "ready"); tab.dispose();
+});
 test("without Web Locks, fail closed instead of racing other tabs", async () => {
   const env = environment(); let status: SaveStatus = "ready";
   const tab = createDeskStorage<Desk>({ storage: env.storage, status: (s) => { status = s; } });
