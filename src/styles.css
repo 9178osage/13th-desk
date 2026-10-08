@@ -271,6 +271,41 @@
   border-radius: 0.5rem;
   padding: 0.75rem;
 }
+.tab-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 1rem var(--page-gutter);
+  border: 1px solid var(--color-line);
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.5rem 0.625rem 0.75rem;
+  background: var(--color-gold-soft);
+  color: var(--color-ink);
+  font-size: 0.875rem;
+}
+.tab-notice > span {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.375rem;
+}
+.tab-notice-dismiss {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+.tab-notice-dismiss:hover {
+  color: var(--color-ink);
+  background: var(--color-paper-deep);
+}
 .shell-main {
   max-width: 90rem;
   padding: 2.25rem var(--page-gutter) 3rem;

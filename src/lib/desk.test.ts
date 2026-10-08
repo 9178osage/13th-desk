@@ -298,7 +298,7 @@ test("every place-hours hint has six translations and no silent English fallback
   }
 });
 test("save and recovery notices are available in all six languages", () => {
-  for (const key of ["storageConflict", "storageUnsupported", "importSaveFailed"] as const) {
+  for (const key of ["storageError", "otherTabOpen", "dismissNotice", "importSaveFailed"] as const) {
     for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) assert.ok(deskText(lang, key));
   }
 });

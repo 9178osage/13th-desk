@@ -2,6 +2,7 @@ import { createContext, useContext, useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createDeskStorage, type SaveStatus } from "@/lib/desk-storage";
+import { createTabPresence } from "@/lib/tab-presence";
 import { isLevel, type Level } from "@/lib/levels";
 import { isDistrict, type DistrictId } from "@/data/districts";
 import { asStoredCredits, cleanDecimal, isLetter, type Letter } from "@/lib/gpa";
@@ -243,8 +244,8 @@ type PersistedDesk = {
   buckets: Record<Level, Bucket>;
 };
 
-export const useStorageStatus = create<{ failed: boolean; reason: SaveStatus }>(() => ({
-  failed: false, reason: "ready",
+export const useStorageStatus = create<{ failed: boolean; reason: SaveStatus; otherTabs: boolean }>(() => ({
+  failed: false, reason: "ready", otherTabs: false,
 }));
 const deskStorage = typeof window === "undefined" ? null : createDeskStorage<PersistedDesk>({
   // Access localStorage inside these methods: the getter itself may throw.
@@ -253,10 +254,8 @@ const deskStorage = typeof window === "undefined" ? null : createDeskStorage<Per
     setItem: (key, value) => localStorage.setItem(key, value),
     removeItem: (key) => localStorage.removeItem(key),
   },
-  locks: navigator.locks,
   status: (reason) => useStorageStatus.setState({ failed: reason !== "ready", reason }),
 });
-if (import.meta.hot) import.meta.hot.dispose(() => deskStorage?.dispose());
 
 const deskStore = create<DeskState>()(
   persist(
@@ -634,6 +633,63 @@ if (typeof window !== "undefined") {
       syncPrefsCookie(state);
     }
   });
+}
+
+/**
+ * Another tab saved the desk: load its version here (stored values win, including
+ * language and level) so this tab's next save does not overwrite newer data.
+ */
+function syncFromOtherTab(raw: string | null) {
+  if (!deskStorage || !useDesk.getState().hydrated) return;
+  deskStorage.syncFrom(raw, (value) => {
+    if (value.version !== 0) return;
+    const merge = useDesk.persist.getOptions().merge;
+    if (!merge) return;
+    const current = useDesk.getState();
+    useDesk.setState(merge(value.state, { ...current, langSet: false, levelSet: false }));
+  });
+}
+
+if (typeof window !== "undefined") {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== "13th-desk-v1") return;
+    try {
+      if (event.storageArea !== localStorage) return;
+    } catch {
+      return;
+    }
+    syncFromOtherTab(event.newValue);
+  };
+  window.addEventListener("storage", onStorage);
+
+  let presence: ReturnType<typeof createTabPresence> | null = null;
+  try {
+    presence = createTabPresence({
+      id: globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`,
+      channel: typeof BroadcastChannel === "function" ? new BroadcastChannel("13th-desk-v1:tabs") : null,
+      locks: typeof navigator !== "undefined" && navigator.locks && typeof navigator.locks.query === "function" ? navigator.locks : null,
+      setInterval: (fn, ms) => window.setInterval(fn, ms),
+      clearInterval: (handle) => window.clearInterval(handle as number),
+      onChange: (otherTabs) => useStorageStatus.setState({ otherTabs }),
+    });
+  } catch {
+    presence = null;
+  }
+  const onPageHide = () => presence?.leave();
+  const onPageShow = (event: PageTransitionEvent) => { if (event.persisted) presence?.wake(); };
+  const onVisible = () => { if (document.visibilityState === "visible") presence?.wake(); };
+  window.addEventListener("pagehide", onPageHide);
+  window.addEventListener("pageshow", onPageShow);
+  document.addEventListener("visibilitychange", onVisible);
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisible);
+      presence?.dispose();
+    });
+  }
 }
 
 /** Language saved under `13th-desk-v1`, read without touching the store. */

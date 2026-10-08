@@ -1,58 +1,41 @@
 import type { PersistStorage, StorageValue } from "zustand/middleware";
 
-export type SaveStatus = "ready" | "failed" | "conflict" | "unsupported";
+export type SaveStatus = "ready" | "failed";
 export type DeskStorageEnvironment = {
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem">;
-  // A single writable tab prevents read/check/write races, including at pagehide.
-  locks?: Pick<LockManager, "request">;
   status: (status: SaveStatus) => void;
 };
 
-/** One writer per origin; other tabs remain readable and can export their in-memory data. */
+function recoveryId(): string {
+  const id = globalThis.crypto?.randomUUID?.();
+  return id ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/**
+ * Every tab saves (last write wins for truly simultaneous edits). Tabs stay in
+ * step through `syncFrom`, fed by the browser's `storage` event. A corrupt
+ * saved desk is never overwritten until an explicit, successful restore.
+ */
 export function createDeskStorage<T>(env: DeskStorageEnvironment) {
   const name = "13th-desk-v1";
-  let baseline: string | null = null;
   let initialized = false;
   let readFailed = false;
-  let writable = false;
+  let applying = false;
   let pending: StorageValue<T> | null = null;
-  let release: (() => void) | undefined;
-  let readyResolve: () => void = () => {};
-  const ready = new Promise<void>((resolve) => { readyResolve = resolve; });
 
   const flush = () => {
-    if (!pending || !writable || readFailed) return;
+    // Before the first read (hydration) a snapshot holds defaults, not the saved desk.
+    if (!pending || !initialized || readFailed) return;
     try {
-      if (!initialized || env.storage.getItem(name) !== baseline) {
-        env.status("conflict");
-        return;
-      }
       const raw = JSON.stringify(pending);
-      env.storage.setItem(name, raw);
-      baseline = raw;
+      // Unchanged content: skip the write (and the storage event it would send).
+      if (env.storage.getItem(name) !== raw) env.storage.setItem(name, raw);
       pending = null;
       env.status("ready");
     } catch {
       env.status("failed");
     }
   };
-
-  if (env.locks) {
-    void env.locks.request(`${name}:writer`, { ifAvailable: true }, async (lock) => {
-      writable = lock !== null;
-      if (!writable) env.status("conflict");
-      readyResolve();
-      if (!writable) return;
-      flush();
-      // Browser releases this automatically on close/crash. Do not release at
-      // visibilitychange: a background tab must not regain an unguarded writer.
-      await new Promise<void>((resolve) => { release = resolve; });
-    }).catch(() => { env.status("failed"); readyResolve(); });
-  } else {
-    // Never pretend a localStorage lease is atomic across tabs.
-    env.status("unsupported");
-    readyResolve();
-  }
 
   const storage: PersistStorage<T> = {
     getItem() {
@@ -62,16 +45,19 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       // merge keeps that choice and the next set saves it on top of the real data.
       pending = null;
       try {
-        baseline = env.storage.getItem(name);
+        const raw = env.storage.getItem(name);
         initialized = true;
-        return baseline ? JSON.parse(baseline) as StorageValue<T> : null;
+        return raw ? JSON.parse(raw) as StorageValue<T> : null;
       } catch {
+        initialized = true;
         readFailed = true;
         env.status("failed");
         return null;
       }
     },
     setItem(_name, value) {
+      // State applied from another tab is already on disk; writing it back could ping-pong.
+      if (applying) return;
       pending = value;
       flush();
     },
@@ -84,20 +70,38 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
   return {
     storage,
     flush,
-    /** Explicit, confirmed import only. Preserve the original before replacing it. */
+    /**
+     * Another tab wrote the desk. Apply its saved value here so this tab's next
+     * save builds on it. Ignored before hydration, during a corrupt-save hold,
+     * while already applying, and for removed or unreadable values.
+     */
+    syncFrom(raw: string | null, apply: (value: StorageValue<T>) => void): boolean {
+      if (!initialized || readFailed || applying || raw == null) return false;
+      let value: StorageValue<T>;
+      try {
+        value = JSON.parse(raw) as StorageValue<T>;
+      } catch {
+        return false;
+      }
+      if (!value || typeof value !== "object") return false;
+      pending = null;
+      applying = true;
+      try {
+        apply(value);
+      } finally {
+        applying = false;
+      }
+      return true;
+    },
+    /** Explicit, confirmed import only. Preserve a corrupt original before replacing it. */
     async replace(value: StorageValue<T>): Promise<boolean> {
-      await ready;
-      if (!writable) { env.status(env.locks ? "conflict" : "unsupported"); return false; }
       try {
         const previous = env.storage.getItem(name);
-        if (previous !== baseline) { env.status("conflict"); return false; }
         if (readFailed && previous !== null) {
           // If archiving fails (e.g. quota), leave the original untouched.
-          env.storage.setItem(`${name}:recovery:${crypto.randomUUID()}`, previous);
+          env.storage.setItem(`${name}:recovery:${recoveryId()}`, previous);
         }
-        const raw = JSON.stringify(value);
-        env.storage.setItem(name, raw);
-        baseline = raw;
+        env.storage.setItem(name, JSON.stringify(value));
         initialized = true;
         readFailed = false;
         pending = null;
@@ -108,6 +112,6 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
         return false;
       }
     },
-    dispose() { writable = false; release?.(); },
+    dispose() {},
   };
 }

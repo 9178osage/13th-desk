@@ -10,7 +10,7 @@ const fixture = mkdtempSync(join(tmpdir(), "eugene-test-identity-"));
 const groups = [
   { cwd: root, args: ["--test", ...readdirSync(join(root, "scripts")).filter((name) => name.endsWith(".test.mjs") && name !== platformTest).map((name) => join(root, "scripts", name))] },
   { cwd: fixture, args: ["--test", join(root, "scripts", platformTest)] },
-  { cwd: root, args: ["--experimental-strip-types", "--test", "src/lib/desk.test.ts", "src/lib/desk-storage.test.ts", "src/lib/app-data/app-data.test.ts", "src/lib/app-data/readiness-schedule.test.ts", "src/lib/auth/gate-identity.test.ts", "src/lib/auth/sign-in-gate.test.ts"] },
+  { cwd: root, args: ["--experimental-strip-types", "--test", "src/lib/desk.test.ts", "src/lib/desk-storage.test.ts", "src/lib/tab-presence.test.ts", "src/lib/app-data/app-data.test.ts", "src/lib/app-data/readiness-schedule.test.ts", "src/lib/auth/gate-identity.test.ts", "src/lib/auth/sign-in-gate.test.ts"] },
 ];
 let failed = false;
 for (const group of groups) {

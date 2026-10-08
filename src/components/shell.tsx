@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BookOpen,
@@ -8,6 +8,7 @@ import {
   LibraryBig,
   MapPin,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import { DeskBackup } from "@/components/desk-backup";
 import { DistrictBar } from "@/components/district-bar";
@@ -37,7 +38,12 @@ export function Shell({ children }: { children: ReactNode }) {
   const setLang = useDesk((s) => s.setLang);
   const setLevel = useDesk((s) => s.setLevel);
   const failed = useStorageStatus((s) => s.failed);
-  const saveReason = useStorageStatus((s) => s.reason);
+  const otherTabs = useStorageStatus((s) => s.otherTabs);
+  // Dismissed until the other pages close; a later second tab shows it again.
+  const [tabNoticeDismissed, setTabNoticeDismissed] = useState(false);
+  useEffect(() => {
+    if (!otherTabs) setTabNoticeDismissed(false);
+  }, [otherTabs]);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const path = pathname.replace(/\/$/, "") || "/";
   const current = NAV.find((item) => item.to === path) ?? NAV[0];
@@ -149,7 +155,20 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         {failed && (
           <div className="storage-alert" role="alert">
-            {c(lang, saveReason === "conflict" ? "storageConflict" : saveReason === "unsupported" ? "storageUnsupported" : "storageError")}
+            {c(lang, "storageError")}
+          </div>
+        )}
+        {otherTabs && !tabNoticeDismissed && (
+          <div className="tab-notice" role="status">
+            <span>{c(lang, "otherTabOpen")}</span>
+            <button
+              type="button"
+              className="tab-notice-dismiss"
+              aria-label={c(lang, "dismissNotice")}
+              onClick={() => setTabNoticeDismissed(true)}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
           </div>
         )}
         <main id="content" className="shell-main" tabIndex={-1}>
