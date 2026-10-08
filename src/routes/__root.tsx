@@ -63,7 +63,7 @@ export const Route = createRootRoute({
       ...FONT_PRELOADS,
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/brand/apple-touch-icon.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/brand/apple-touch-icon.png?v=2" },
     ],
     scripts: [{ children: deskBootScript }],
   }),
