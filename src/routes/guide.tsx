@@ -64,8 +64,12 @@ function UniGuide() {
         </h1>
         <p className="mt-3 max-w-2xl text-muted">
           {tr(lang, {
-            en: "University of Oregon and Lane Community College. Dates below are a hard-coded UO term snapshot. Your checklist stays in this browser.",
-            zh: "汇总学校日程、新生清单和常用资源。下方日期是硬编码的 UO 学期快照，个人清单保存在当前浏览器。",
+            en: "School dates, a new-student checklist, and everyday resources. The dates below cover the UO term shown here; check your school's calendar for updates. Your checklist is saved in this browser.",
+            zh: "学校日程、新生清单和常用资源，都在这里。下方日期对应所标注的 UO 学期，最新安排请以学校校历为准。你的清单保存在当前浏览器。",
+            es: "Fechas escolares, una lista para estudiantes nuevos y recursos cotidianos. Las fechas corresponden al trimestre de UO indicado; consulta el calendario de tu escuela para ver cambios. Tu lista se guarda en este navegador.",
+            ko: "학교 일정, 신입생 체크리스트와 생활 정보를 모았어요. 아래 날짜는 표시된 UO 학기 기준이며, 최신 일정은 학교 달력에서 확인하세요. 체크리스트는 이 브라우저에 저장돼요.",
+            vi: "Lịch học, danh sách việc cần làm cho tân sinh viên và thông tin hữu ích. Các ngày dưới đây thuộc học kỳ UO được ghi trên trang; hãy xem lịch của trường để biết thay đổi. Danh sách của bạn lưu trong trình duyệt này.",
+            ja: "学校の日程、新入生向けチェックリスト、暮らしに役立つ情報をまとめました。下の日付は表示されたUOの学期のものです。最新情報は学校のカレンダーをご確認ください。リストはこのブラウザに保存されます。",
           })}
         </p>
         <p className="mt-2 max-w-2xl text-sm text-muted">

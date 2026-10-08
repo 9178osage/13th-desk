@@ -37,6 +37,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const setLang = useDesk((s) => s.setLang);
   const setLevel = useDesk((s) => s.setLevel);
   const failed = useStorageStatus((s) => s.failed);
+  const saveReason = useStorageStatus((s) => s.reason);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const path = pathname.replace(/\/$/, "") || "/";
   const current = NAV.find((item) => item.to === path) ?? NAV[0];
@@ -148,7 +149,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         {failed && (
           <div className="storage-alert" role="alert">
-            {c(lang, "storageError")}
+            {c(lang, saveReason === "conflict" ? "storageConflict" : saveReason === "unsupported" ? "storageUnsupported" : "storageError")}
           </div>
         )}
         <main id="content" className="shell-main" tabIndex={-1}>

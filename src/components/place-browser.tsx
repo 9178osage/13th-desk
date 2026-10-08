@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { useDesk, useLang } from "@/lib/store";
 import { tr, type Copy } from "@/lib/text";
 import { deskText as c } from "@/lib/desk-copy";
+import { placeHours } from "@/data/place-hours";
 
 type Filter = "all" | "saved" | PlaceCat;
 
@@ -59,7 +60,7 @@ export function PlaceBrowser({
           tr(lang, place.blurb),
           ...Object.values(areaName[place.area]),
           tr(lang, areaName[place.area]),
-          place.hours ?? "",
+          place.hours ? placeHours(lang, place.hours) : "",
         ]
           .join(" ")
           .toLocaleLowerCase();
@@ -150,7 +151,7 @@ export function PlaceBrowser({
                           <div className="min-w-0">
                             <div className="mb-1.5 flex flex-wrap gap-1.5">
                               <Chip>{tr(lang, areaName[place.area])}</Chip>
-                              {place.hours ? <Chip>{place.hours}</Chip> : null}
+                              {place.hours ? <Chip>{placeHours(lang, place.hours)}</Chip> : null}
                             </div>
                             <h2 className="font-display text-2xl text-ink">{place.name}</h2>
                           </div>

@@ -197,6 +197,9 @@ function parseBucket(value: unknown): Bucket | null {
     schedule.push(row);
   }
   const favs = parseStringList(raw.favs, 80);
+  for (const list of [notes, grades, schedule]) {
+    if (new Set(list.map((item) => item.id)).size !== list.length) return null;
+  }
   const checks = parseStringList(raw.checks, 40);
   if (!favs || !checks) return null;
   if (typeof raw.priorGpa !== "string" || typeof raw.priorWeighted !== "string") return null;
@@ -440,4 +443,3 @@ export function writePreImportSnapshot(state: PersistedDeskLike): boolean {
     return false;
   }
 }
-

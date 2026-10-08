@@ -4,8 +4,6 @@ import {
   UO_TERM_ID,
   UO_VALID_THROUGH,
   k12CalendarSourceMeta,
-  k12HasStoredDates,
-  referenceCalendarLabel,
   termExpiredByValidThrough,
   type CalendarSourceMeta,
 } from "./calendar-meta.ts";

@@ -45,6 +45,8 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [snapshot, setSnapshot] = useState<PersistedDeskLike | null>(null);
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
 
   useEffect(() => {
     const sync = () => setSnapshot(readPreImportSnapshot());
@@ -120,22 +122,37 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
     reader.readAsText(file);
   }
 
-  function confirmImport() {
-    if (!pending) return;
+  async function confirmImport() {
+    if (!pending || busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
     const before = getPersistedDeskState();
     // Always download a before-import backup first.
     downloadDeskBackupFile(before, beforeImportFileName());
+    const saved = await replacePersistedDeskState(pending.state);
+    busyRef.current = false;
+    setBusy(false);
+    if (!saved) {
+      setPending(null);
+      setMessage("importSaveFailed");
+      return;
+    }
     const stored = writePreImportSnapshot(before);
-    replacePersistedDeskState(pending.state);
     setSnapshot(before);
     setPending(null);
     setMessage(stored ? "importDone" : "beforeImportStorageFail");
   }
 
-  function undoImport() {
+  async function undoImport() {
+    if (busyRef.current) return;
     const current = snapshot ?? readPreImportSnapshot();
     if (!current) return;
-    replacePersistedDeskState(current);
+    busyRef.current = true;
+    setBusy(true);
+    const saved = await replacePersistedDeskState(current);
+    busyRef.current = false;
+    setBusy(false);
+    if (!saved) { setMessage("importSaveFailed"); return; }
     clearPreImportSnapshot();
     setSnapshot(null);
     setMessage("importUndone");
@@ -210,7 +227,7 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
               })}
             </ul>
             <div className="form-actions">
-              <Button ref={confirmRef} type="button" onClick={confirmImport}>
+              <Button ref={confirmRef} type="button" disabled={busy} onClick={confirmImport}>
                 {c(lang, "importConfirm")}
               </Button>
               <Button type="button" variant="ghost" onClick={() => setPending(null)}>
@@ -225,7 +242,7 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
         {message && <span>{c(lang, message)}</span>}
         {showUndo && (
           <span className="backup-undo-bar">
-            <button type="button" onClick={undoImport}>
+            <button type="button" disabled={busy} onClick={undoImport}>
               <RotateCcw size={14} aria-hidden="true" />
               {c(lang, "importUndo")}
             </button>

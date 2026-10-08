@@ -45,6 +45,8 @@ import koPack from "./i18n/ko.json" with { type: "json" };
 import viPack from "./i18n/vi.json" with { type: "json" };
 import jaPack from "./i18n/ja.json" with { type: "json" };
 import type { ScheduleBlock } from "./store";
+import { places } from "../data/places.ts";
+import { PLACE_HOURS, placeHours } from "../data/place-hours.ts";
 
 const schedule: ScheduleBlock[] = [
   {
@@ -270,6 +272,36 @@ function sampleState(): PersistedDeskLike {
   };
 }
 
+test("desk backup rejects duplicate IDs in every record list and stage", () => {
+  for (const stage of ["elem", "mid", "high", "uni"] as const) {
+    for (const list of ["notes", "schedule", "grades"] as const) {
+      const state = sampleState();
+      const row = state.buckets.uni[list][0];
+      Object.assign(state.buckets[stage], { [list]: [row, { ...row }] });
+      assert.equal(parseDeskBackup(JSON.stringify(serializeDeskBackup(state))).ok, false, `${stage}.${list}`);
+    }
+  }
+});
+test("the same record ID in separate stages is valid", () => {
+  const state = sampleState();
+  state.buckets.high.notes = [...state.buckets.uni.notes];
+  assert.equal(parseDeskBackup(JSON.stringify(serializeDeskBackup(state))).ok, true);
+});
+test("every place-hours hint has six translations and no silent English fallback", () => {
+  for (const place of places) {
+    if (!place.hours) continue;
+    assert.ok(PLACE_HOURS[place.hours], place.hours);
+    for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+      assert.ok(PLACE_HOURS[place.hours][lang].trim(), `${place.id}.${lang}`);
+      if (lang !== "en") assert.notEqual(placeHours(lang, place.hours), place.hours);
+    }
+  }
+});
+test("save and recovery notices are available in all six languages", () => {
+  for (const key of ["storageConflict", "storageUnsupported", "importSaveFailed"] as const) {
+    for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) assert.ok(deskText(lang, key));
+  }
+});
 test("desk backup serializes and parses a round trip", () => {
   const state = sampleState();
   const file = serializeDeskBackup(state, "2026-10-05T12:00:00.000Z");

@@ -1,6 +1,7 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { create } from "zustand";
-import { persist, type PersistStorage, type StorageValue } from "zustand/middleware";
+import { persist } from "zustand/middleware";
+import { createDeskStorage, type SaveStatus } from "@/lib/desk-storage";
 import { isLevel, type Level } from "@/lib/levels";
 import { isDistrict, type DistrictId } from "@/data/districts";
 import { asStoredCredits, cleanDecimal, isLetter, type Letter } from "@/lib/gpa";
@@ -242,100 +243,20 @@ type PersistedDesk = {
   buckets: Record<Level, Bucket>;
 };
 
-/**
- * Persist after paint: zustand's default storage JSON.stringify + localStorage.setItem
- * runs in the same turn as set(), which delays the language-switch frame.
- */
-export const useStorageStatus = create<{ failed: boolean }>(() => ({ failed: false }));
-
-function createDeferredJsonStorage(): PersistStorage<PersistedDesk> {
-  let pending: { name: string; value: StorageValue<PersistedDesk> } | null = null;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let idleHandle: number | null = null;
-  let readFailed = false;
-
-  const cancelSchedule = () => {
-    if (timer != null) {
-      clearTimeout(timer);
-      timer = null;
-    }
-    if (idleHandle != null && typeof cancelIdleCallback === "function") {
-      cancelIdleCallback(idleHandle);
-      idleHandle = null;
-    }
-  };
-
-  const flush = () => {
-    timer = null;
-    idleHandle = null;
-    const job = pending;
-    pending = null;
-    if (!job || typeof window === "undefined") return;
-    // A corrupt or inaccessible saved desk must not be overwritten with an empty one.
-    if (readFailed) {
-      useStorageStatus.setState({ failed: true });
-      return;
-    }
-    try {
-      localStorage.setItem(job.name, JSON.stringify(job.value));
-      useStorageStatus.setState({ failed: false });
-    } catch {
-      useStorageStatus.setState({ failed: true });
-    }
-  };
-
-  // Flush the latest edit before a tab is hidden or closed, not just at idle.
-  if (typeof window !== "undefined") {
-    const flushPending = () => {
-      cancelSchedule();
-      flush();
-    };
-    window.addEventListener("pagehide", flushPending);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") flushPending();
-    });
-  }
-
-  const schedule = () => {
-    if (timer != null || idleHandle != null) return;
-    // Prefer idle callback when available; timeout keeps writes snappy.
-    if (typeof requestIdleCallback === "function") {
-      idleHandle = requestIdleCallback(flush, { timeout: 120 });
-    } else {
-      timer = setTimeout(flush, 0);
-    }
-  };
-
-  return {
-    getItem: (name) => {
-      if (pending?.name === name) return pending.value;
-      if (typeof window === "undefined") return null;
-      try {
-        const raw = localStorage.getItem(name);
-        if (!raw) return null;
-        return JSON.parse(raw) as StorageValue<PersistedDesk>;
-      } catch {
-        readFailed = true;
-        useStorageStatus.setState({ failed: true });
-        return null;
-      }
-    },
-    setItem: (name, value) => {
-      pending = { name, value };
-      schedule();
-    },
-    removeItem: (name) => {
-      cancelSchedule();
-      pending = null;
-      if (typeof window === "undefined") return;
-      try {
-        localStorage.removeItem(name);
-      } catch {
-        /* ignore */
-      }
-    },
-  };
-}
+export const useStorageStatus = create<{ failed: boolean; reason: SaveStatus }>(() => ({
+  failed: false, reason: "ready",
+}));
+const deskStorage = typeof window === "undefined" ? null : createDeskStorage<PersistedDesk>({
+  // Access localStorage inside these methods: the getter itself may throw.
+  storage: {
+    getItem: (key) => localStorage.getItem(key),
+    setItem: (key, value) => localStorage.setItem(key, value),
+    removeItem: (key) => localStorage.removeItem(key),
+  },
+  locks: navigator.locks,
+  status: (reason) => useStorageStatus.setState({ failed: reason !== "ready", reason }),
+});
+if (import.meta.hot) import.meta.hot.dispose(() => deskStorage?.dispose());
 
 const deskStore = create<DeskState>()(
   persist(
@@ -589,7 +510,7 @@ const deskStore = create<DeskState>()(
     {
       name: "13th-desk-v1",
       skipHydration: true,
-      storage: createDeferredJsonStorage(),
+      storage: deskStorage?.storage ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} },
       partialize: (state) => ({
         lang: state.lang,
         langSet: state.langSet,
@@ -744,7 +665,7 @@ export function getPersistedDeskState(): PersistedDeskLike {
  * Replace the whole persisted desk state in one write.
  * Callers must validate first; this never leaves storage half-written.
  */
-export function replacePersistedDeskState(next: PersistedDeskLike): void {
+export async function replacePersistedDeskState(next: PersistedDeskLike): Promise<boolean> {
   const payload: PersistedDeskLike = {
     lang: next.lang,
     langSet: next.langSet,
@@ -754,20 +675,12 @@ export function replacePersistedDeskState(next: PersistedDeskLike): void {
     district: next.district,
     buckets: structuredClone(next.buckets),
   };
+  if (!deskStorage || !await deskStorage.replace({ state: payload, version: 0 })) return false;
   useDesk.setState({
     ...payload,
     hydrated: true,
   });
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(
-      "13th-desk-v1",
-      JSON.stringify({ state: payload, version: 0 }),
-    );
-    useStorageStatus.setState({ failed: false });
-  } catch {
-    useStorageStatus.setState({ failed: true });
-  }
+  return true;
 }
 
 
