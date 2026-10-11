@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { homeAliasPath } from "@/lib/channels";
 import {
   BookOpen,
   Calculator,
@@ -45,7 +46,7 @@ export function Shell({ children }: { children: ReactNode }) {
     if (!otherTabs) setTabNoticeDismissed(false);
   }, [otherTabs]);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const path = pathname.replace(/\/$/, "") || "/";
+  const path = homeAliasPath(pathname.replace(/\/$/, "") || "/");
   const current = NAV.find((item) => item.to === path) ?? NAV[0];
   const label = (key: DeskCopyKey) =>
     c(lang, key === "campus" && level !== "uni" ? "schools" : key);

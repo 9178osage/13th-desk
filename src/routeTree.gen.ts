@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChannelRouteImport } from './routes/$channel'
 import { Route as CampusRouteImport } from './routes/campus'
 import { Route as GpaRouteImport } from './routes/gpa'
 import { Route as GuideRouteImport } from './routes/guide'
@@ -18,6 +19,11 @@ import { Route as TownRouteImport } from './routes/town'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChannelRoute = ChannelRouteImport.update({
+  id: '/$channel',
+  path: '/$channel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampusRoute = CampusRouteImport.update({
@@ -43,6 +49,7 @@ const TownRoute = TownRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$channel': typeof ChannelRoute
   '/campus': typeof CampusRoute
   '/gpa': typeof GpaRoute
   '/guide': typeof GuideRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$channel': typeof ChannelRoute
   '/campus': typeof CampusRoute
   '/gpa': typeof GpaRoute
   '/guide': typeof GuideRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$channel': typeof ChannelRoute
   '/campus': typeof CampusRoute
   '/gpa': typeof GpaRoute
   '/guide': typeof GuideRoute
@@ -65,14 +74,15 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/campus' | '/gpa' | '/guide' | '/town'
+  fullPaths: '/' | '/$channel' | '/campus' | '/gpa' | '/guide' | '/town'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/campus' | '/gpa' | '/guide' | '/town'
-  id: '__root__' | '/' | '/campus' | '/gpa' | '/guide' | '/town'
+  to: '/' | '/$channel' | '/campus' | '/gpa' | '/guide' | '/town'
+  id: '__root__' | '/' | '/$channel' | '/campus' | '/gpa' | '/guide' | '/town'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChannelRoute: typeof ChannelRoute
   CampusRoute: typeof CampusRoute
   GpaRoute: typeof GpaRoute
   GuideRoute: typeof GuideRoute
@@ -86,6 +96,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$channel': {
+      id: '/$channel'
+      path: '/$channel'
+      fullPath: '/$channel'
+      preLoaderRoute: typeof ChannelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campus': {
@@ -121,6 +138,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChannelRoute: ChannelRoute,
   CampusRoute: CampusRoute,
   GpaRoute: GpaRoute,
   GuideRoute: GuideRoute,
