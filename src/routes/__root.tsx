@@ -4,6 +4,7 @@ import { createIsomorphicFn } from "@tanstack/react-start";
 import { getCookie, setResponseHeader } from "@tanstack/react-start/server";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { SiteAnalytics } from "@/components/site-analytics";
 import { Shell } from "@/components/shell";
 import { PACK_SCRIPT_ID, htmlLang, inlinePackJson, loadLangPack, type Lang } from "@/lib/text";
 import { DEFAULT_LANG, DeskHintContext, useDesk } from "@/lib/store";
@@ -111,6 +112,7 @@ function Root() {
           />
         )}
         <PreviewHostBridge />
+        <SiteAnalytics />
         <AuthProvider>
           <DeskHintContext.Provider value={hint}>
             <Shell>

@@ -181,6 +181,7 @@ export function Shell({ children }: { children: ReactNode }) {
             {c(lang, "local")} · Eugene, OR
             <DeskBackup compact />
           </span>
+          <span className="footer-stats">{c(lang, "stats")}</span>
         </footer>
       </div>
       <nav className="desk-mobile-nav" aria-label={c(lang, "workspace")}>

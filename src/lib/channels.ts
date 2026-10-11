@@ -16,3 +16,12 @@ export function isChannel(slug: string | undefined | null): slug is Channel {
 export function homeAliasPath(path: string): string {
   return isChannel(path.replace(/^\//, "").replace(/\/$/, "")) ? "/" : path;
 }
+
+/**
+ * For a channel entry path, the analytics path to record and where the
+ * visitor ends up afterwards ("/"); null for every other path.
+ */
+export function channelEntry(pathname: string): { record: string; then: "/" } | null {
+  const slug = pathname.replace(/^\//, "").replace(/\/$/, "");
+  return isChannel(slug) ? { record: `/${slug}`, then: "/" } : null;
+}

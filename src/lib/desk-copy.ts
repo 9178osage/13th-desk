@@ -51,6 +51,14 @@ const copy = {
     "Không cần tài khoản. Kế hoạch chỉ lưu tại đây, không đồng bộ lên đám mây.",
     "アカウント不要。予定はクラウドではなく、ここにだけ保存されます。",
   ],
+  stats: [
+    "Page stats are anonymous: no cookies, no personal data.",
+    "访问统计是匿名的：不用 cookie，不收集个人信息。",
+    "Estadísticas de visitas anónimas: sin cookies ni datos personales.",
+    "방문 통계는 익명이에요. 쿠키나 개인정보를 쓰지 않아요.",
+    "Thống kê lượt xem ẩn danh: không cookie, không dữ liệu cá nhân.",
+    "閲覧統計は匿名です。Cookieや個人情報は使いません。",
+  ],
   storageError: [
     "Could not save. Keep this tab open and check your browser storage settings.",
     "暂时无法保存。请先保留此页面，并检查浏览器的存储设置。",

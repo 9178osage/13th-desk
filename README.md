@@ -92,6 +92,8 @@ npx vercel --prod
 - 书桌状态（语言、学段、笔记、课表、绩点行、收藏等）只存在**当前浏览器**，键名 **`13th-desk-v1`**。
 - **备份与恢复**：侧栏「保存在当前浏览器」下方，以及页脚，可导出 / 导入本地数据。导出文件名为 `eugene-desk-backup-YYYY-MM-DD.json`，包含四个学段的完整书桌状态。换设备或清理浏览器缓存前，先导出一份备份；导入时会严格校验，坏文件不会改动现有数据，确认弹层会显示各学段待办与课程数量；确认导入前会自动下载 `eugene-desk-before-import-…json`，并把导入前快照写到独立键 `13th-desk-v1:pre-import`，刷新后仍可撤销（存储满时会提示并依赖已下载文件）。
 - **校历数据（每学期更新）**：大学日期在 `src/data/guide.ts` 与 `src/lib/calendar-meta.ts`（学期标签、`validThrough`、核对日期、官方链接）。K12 日期目前只收录尤金 4J（`src/data/k12.ts`）；其他学区显示「参考校历」并链到该学区官网，不冒充 4J。换学期时改上述文件并更新核对日期。
+- **隐私与访问统计**：网站用 Vercel Web Analytics 做匿名访问统计，只记页面路径和访问次数这类汇总数字。不用 cookie，不收集姓名、邮箱等个人信息，也不往浏览器里存任何统计数据；不记录查询参数，不使用自定义事件。开发环境和预览 iframe 里不加载统计脚本。
+- **渠道入口**：`/card`、`/isa`、`/teacher`、`/eld` 都显示首页，统计里会分别计数，记下后地址栏换回 `/`。只认 `src/lib/channels.ts` 里列出的几个，加新渠道只要在那里加一行；其他路径照常返回 404。
 - 场所开放时间、公告等为参考信息；以各机构官网为准。
 - GPA 为估算工具，不以成绩单为准。
 - 仓库历史名曾为 Eugene Student Web / 13th-desk / 河谷校园仪表盘；产品品牌现为 **Eugene Desk**。
@@ -174,6 +176,8 @@ You must already be logged in and linked to the same Vercel project.
 - Desk state—language, school level, notes, schedule, GPA rows, favorites, and similar settings—stays in the **current browser** under **`13th-desk-v1`**.
 - **Backup & restore:** Under “Stored in this browser” in the sidebar, and again in the footer, you can export or import local desk data. Exports download as `eugene-desk-backup-YYYY-MM-DD.json` and include all four school levels. Use this when moving to another device or before clearing browser cache. Imports are validated strictly—bad files leave your data untouched—show per-level counts for confirmation; before overwriting, the app downloads `eugene-desk-before-import-…json` and stores a pre-import snapshot under `13th-desk-v1:pre-import` so undo survives refresh (if storage is full, it says so and relies on the downloaded file).
 - **Calendar data (update each term):** University dates live in `src/data/guide.ts` plus term metadata in `src/lib/calendar-meta.ts` (label, `validThrough`, last-verified date, official link). K–12 date rows currently cover Eugene 4J only (`src/data/k12.ts`); other districts show “Reference calendar” and link to that district’s site without pretending the dates are theirs. When a term ends, the UI says so instead of going blank or stale.
+- **Privacy & page stats:** The site uses Vercel Web Analytics for anonymous, cookieless page statistics: aggregate counts per page path only. No names, emails, or other personal data are collected, nothing analytics-related is stored in the browser, query strings are not recorded, and there are no custom events. The script does not load in dev or inside a framed preview.
+- **Channel entry paths:** `/card`, `/isa`, `/teacher`, and `/eld` show the home page and are counted as separate paths, then the address bar switches to `/`. Only the slugs listed in `src/lib/channels.ts` work (add a channel with one line there); any other path is still a 404.
 - Location hours, announcements, and similar details are reference information; check each institution's official website for the latest information.
 - GPA is an estimation tool, not an official transcript or grades record.
 - The repository has previously been called Eugene Student Web, 13th-desk, and 河谷校园仪表盘; the current product brand is **Eugene Desk**.
