@@ -1,5 +1,17 @@
 import { useState, type FormEvent } from "react";
-import { AlertTriangle, CalendarDays, Pencil, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  ImageDown,
+  Pencil,
+  Plus,
+  Sparkles,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
+import { LEVELS } from "@/lib/levels";
+import { tr } from "@/lib/text";
 import { sampleSlots } from "@/lib/schedule-samples";
 import { Button, Input } from "@/components/ui";
 import { useDesk, useLang, WEEK_DAYS, type ScheduleBlock, type WeekDay } from "@/lib/store";
@@ -108,6 +120,33 @@ function ScheduleEditor() {
     setMessage(added ? "sampleHint" : "classLimit");
   }
 
+  const [exporting, setExporting] = useState(false);
+  async function exportLockScreen() {
+    setExporting(true);
+    try {
+      // Canvas drawing code is fetched only now; nothing is mounted in the page.
+      const { drawLockScreen, downloadPng } = await import("@/lib/lock-screen");
+      const levelInfo = LEVELS.find((item) => item.id === level);
+      const blob = await drawLockScreen(schedule, {
+        title: c(lang, "weekTitle"),
+        subtitle: `Eugene · ${levelInfo ? tr(lang, levelInfo) : ""}`,
+        days: {
+          mon: dayName(lang, "mon"),
+          tue: dayName(lang, "tue"),
+          wed: dayName(lang, "wed"),
+          thu: dayName(lang, "thu"),
+          fri: dayName(lang, "fri"),
+        },
+      });
+      downloadPng(blob);
+      setMessage(null);
+    } catch {
+      setMessage("lockImageFailed");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function patchDraft(next: ScheduleDraft) {
     setDraft(next);
     setAwaitConfirm(false);
@@ -124,10 +163,18 @@ function ScheduleEditor() {
           <span className="eyebrow">{c(lang, "eyebrowWeek")}</span>
           <h2 id="schedule-heading">{c(lang, "timetable")}</h2>
         </div>
-        <Button variant="quiet" onClick={() => startEdit()} disabled={!hydrated || open}>
-          <Plus size={17} aria-hidden="true" />
-          {c(lang, "addClass")}
-        </Button>
+        <div className="panel-actions">
+          {hydrated && schedule.length > 0 && (
+            <Button variant="ghost" onClick={() => void exportLockScreen()} disabled={exporting}>
+              <ImageDown size={17} aria-hidden="true" />
+              {c(lang, "lockImage")}
+            </Button>
+          )}
+          <Button variant="quiet" onClick={() => startEdit()} disabled={!hydrated || open}>
+            <Plus size={17} aria-hidden="true" />
+            {c(lang, "addClass")}
+          </Button>
+        </div>
       </div>
       <p className="section-description">{c(lang, "recurring")}</p>
       <div className="week-tabs" role="group" aria-label={c(lang, "day")}>
@@ -237,7 +284,9 @@ function ScheduleEditor() {
           )}
           <div className="form-actions">
             <Button type="submit" disabled={!draft.title.trim() || invalid}>
-              {awaitConfirm && overlap ? c(lang, "saveAnyway") : c(lang, editing ? "save" : "addClass")}
+              {awaitConfirm && overlap
+                ? c(lang, "saveAnyway")
+                : c(lang, editing ? "save" : "addClass")}
             </Button>
             <Button
               variant="ghost"
@@ -266,8 +315,7 @@ function ScheduleEditor() {
         ) : (
           rows.map((row) => {
             const inConflict = conflictIds.has(row.id);
-            const conflictsDraft =
-              open && overlap && conflicts.some((item) => item.id === row.id);
+            const conflictsDraft = open && overlap && conflicts.some((item) => item.id === row.id);
             return (
               <div
                 className={`class-row${inConflict || conflictsDraft ? " class-row-conflict" : ""}`}

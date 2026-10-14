@@ -1784,3 +1784,7 @@ html[data-desk-setup="done"] .welcome-note[data-pending] {
   font-family: var(--font-sans);
   font-size: 0.85rem;
 }
+
+.panel-title {
+  flex-wrap: wrap;
+}
