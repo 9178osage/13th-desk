@@ -12,8 +12,14 @@ export function skyAdvice(kind: Kind, level: Level): Copy | null {
   const uni = level === "uni";
   if (kind === "clear") {
     return uni
-      ? { en: "If this holds, the quad is actually usable.", zh: "天气要是保持这样，今天草坪真能坐人。" }
-      : { en: "If this holds, outside is fine after school.", zh: "天气要是保持这样，放学后适合在外面待会儿。" };
+      ? {
+          en: "If this holds, the quad is actually usable.",
+          zh: "天气要是保持这样，今天草坪真能坐人。",
+        }
+      : {
+          en: "If this holds, outside is fine after school.",
+          zh: "天气要是保持这样，放学后适合在外面待会儿。",
+        };
   }
   if (kind === "rain" || kind === "storm") {
     return uni
@@ -21,7 +27,10 @@ export function skyAdvice(kind: Kind, level: Level): Copy | null {
       : { en: "Grab a jacket. Don't stand in the rain.", zh: "带件外套，别在雨里站着。" };
   }
   if (kind === "fog") {
-    return { en: "Fog sits on the river. Give the bike path a minute.", zh: "河面有雾，骑河边车道慢一点。" };
+    return {
+      en: "Fog sits on the river. Give the bike path a minute.",
+      zh: "河面有雾，骑河边车道慢一点。",
+    };
   }
   if (kind === "snow") {
     return {
@@ -31,4 +40,3 @@ export function skyAdvice(kind: Kind, level: Level): Copy | null {
   }
   return null;
 }
-

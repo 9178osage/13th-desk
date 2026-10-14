@@ -738,3 +738,172 @@ test("SSR, boot script and client agree on <html lang> for every language", () =
   }
   assert.equal(htmlLang("zh"), "zh-CN");
 });
+
+// ---- 2026-10-14 upgrade: palette, quick links, weather line, starters, .ics, lock screen ----
+import { buildIcs, icsEscape, icsFold, ICS_FILENAME } from "./ics.ts";
+import { skyAdvice } from "./sky-advice.ts";
+import { sampleSlots } from "./schedule-samples.ts";
+import { quickLinks, ALL_QUICK_LINKS } from "../data/quick-links.ts";
+import { soonDays } from "./days.ts";
+
+test("upgrade copy keys exist in all six languages", () => {
+  const keys = [
+    "quickLinks",
+    "opensNewTab",
+    "paletteOpen",
+    "palettePlaceholder",
+    "paletteEmpty",
+    "palettePages",
+    "palettePlaces",
+    "paletteDates",
+    "paletteSettings",
+    "paletteLinks",
+    "wednesdayRelease",
+    "quickAdd",
+    "fillSample",
+    "sampleHint",
+    "sampleClass",
+    "exportIcs",
+    "icsDone",
+    "icsNone",
+    "lockImage",
+    "lockImageFailed",
+    "weekTitle",
+  ] as const;
+  for (const key of keys) {
+    const seen = new Set<string>();
+    for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+      const text = deskText(lang, key, { n: 1 });
+      assert.ok(text.trim(), `${key}.${lang}`);
+      seen.add(text);
+    }
+    assert.ok(seen.size > 1, `${key} is not just English everywhere`);
+  }
+  assert.equal(deskText("zh", "fillSample"), "填入示例时段");
+  assert.equal(deskText("en", "exportIcs"), "Export to calendar (.ics)");
+  assert.equal(deskText("zh", "lockImage"), "导出锁屏图");
+});
+
+test("weather one-liners reuse existing es/ko/vi/ja pack entries", () => {
+  const packs = [esPack, koPack, viPack, jaPack] as Record<string, string>[];
+  for (const kind of ["clear", "rain", "storm", "fog", "snow"] as const) {
+    for (const level of ["uni", "high"] as const) {
+      const copy = skyAdvice(kind, level);
+      assert.ok(copy?.zh, `${kind}/${level} has zh`);
+      for (const pack of packs) assert.ok(pack[copy!.en], `pack has "${copy!.en}"`);
+    }
+  }
+  assert.equal(skyAdvice("cloud", "uni"), null);
+  assert.equal(skyAdvice("clear", "uni")?.en, "If this holds, the quad is actually usable.");
+  assert.equal(skyAdvice("rain", "mid")?.en, "Grab a jacket. Don't stand in the rain.");
+});
+
+test("quick links follow level and district, https only", () => {
+  assert.ok(quickLinks("uni", null).some((l) => l.href.startsWith("https://canvas.uoregon.edu")));
+  assert.ok(quickLinks("elem", null).some((l) => l.id === "4j-calendar"));
+  assert.deepEqual(
+    quickLinks("mid", "bethel").map((l) => l.id),
+    ["bethel"],
+  );
+  assert.ok(quickLinks("high", "4j").some((l) => l.id === "fafsa"));
+  assert.ok(!quickLinks("mid", "4j").some((l) => l.id === "fafsa"));
+  for (const link of ALL_QUICK_LINKS) {
+    assert.match(link.href, /^https:\/\//);
+    for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const)
+      assert.ok(link.label[lang], link.id);
+  }
+});
+
+test("sample week: UO MWF 10:00-10:50 + TTh 10:00-11:20, valid K-12 slots, no overlaps", () => {
+  const uni = sampleSlots("uni");
+  assert.deepEqual(
+    uni.map((s) => `${s.day} ${s.start}-${s.end}`),
+    ["mon 10:00-10:50", "wed 10:00-10:50", "fri 10:00-10:50", "tue 10:00-11:20", "thu 10:00-11:20"],
+  );
+  for (const level of ["elem", "mid", "high", "uni"] as const) {
+    const slots = sampleSlots(level);
+    assert.ok(slots.length >= 2 && slots.length <= 6);
+    for (const s of slots) assert.ok(validScheduleTime(s.start, s.end), `${level} ${s.start}`);
+    const blocks = slots.map((s, i) => ({
+      ...s,
+      id: String(i),
+      title: "x",
+      place: "",
+      pinned: false,
+    }));
+    assert.equal(conflictingClassIds(blocks).size, 0, level);
+  }
+});
+
+test("soon badge window is today through seven days out", () => {
+  assert.equal(soonDays("2026-10-14", "2026-10-14"), 0);
+  assert.equal(soonDays("2026-10-14", "2026-10-21"), 7);
+  assert.equal(soonDays("2026-10-14", "2026-10-22"), null);
+  assert.equal(soonDays("2026-10-14", "2026-10-13"), null);
+});
+
+test(".ics export builds valid all-day and timed events", () => {
+  const now = new Date("2026-10-14T23:00:00Z");
+  const ics = buildIcs(
+    [
+      {
+        id: "drop",
+        ymd: "2026-11-08",
+        title: "Last day to drop, with W; see notes",
+        detail: "Line 1\nLine 2",
+      },
+      { id: "wait list", ymd: "2026-10-20", time: "09:00", title: "Waitlisting ends" },
+      { id: "bad", ymd: "2026-13-40", title: "skip me" },
+    ],
+    now,
+  );
+  assert.equal(ICS_FILENAME, "eugene-desk-calendar.ics");
+  assert.ok(ics.startsWith("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"));
+  assert.ok(ics.endsWith("END:VCALENDAR\r\n"));
+  assert.doesNotMatch(ics.replace(/\r\n/g, ""), /\n/);
+  assert.equal(ics.match(/BEGIN:VEVENT/g)?.length, 2);
+  assert.match(ics, /DTSTART;VALUE=DATE:20261108\r\nDTEND;VALUE=DATE:20261109/);
+  assert.match(
+    ics,
+    /DTSTART;TZID=America\/Los_Angeles:20261020T090000\r\nDTEND;TZID=America\/Los_Angeles:20261020T093000/,
+  );
+  assert.match(ics, /BEGIN:VTIMEZONE/);
+  assert.match(ics, /UID:wait-list-20261020@eugene-desk\.vercel\.app/);
+  assert.match(ics, /DTSTAMP:20261014T230000Z/);
+  assert.match(ics, /SUMMARY:Last day to drop\\, with W\\; see notes/);
+  assert.match(ics, /DESCRIPTION:Line 1\\nLine 2/);
+  assert.doesNotMatch(ics, /skip me/);
+  // All-day only: no timezone block needed.
+  assert.doesNotMatch(
+    buildIcs([{ id: "a", ymd: "2026-11-26", title: "Thanksgiving" }], now),
+    /VTIMEZONE/,
+  );
+  assert.equal(icsEscape("a\\b;c,d\ne"), "a\\\\b\\;c\\,d\\ne");
+  const folded = icsFold("SUMMARY:" + "期末".repeat(40));
+  for (const line of folded.split("\r\n")) assert.ok(new TextEncoder().encode(line).length <= 75);
+  assert.equal(folded.split("\r\n ").join(""), "SUMMARY:" + "期末".repeat(40));
+});
+
+test("palette and lock-screen code stay out of the first-load bundle", () => {
+  const src = join(import.meta.dirname, "..");
+  const shell = readFileSync(join(src, "components/shell.tsx"), "utf8");
+  assert.match(shell, /import\("@\/components\/command-palette"\)/);
+  assert.doesNotMatch(shell, /^import .*command-palette/m);
+  assert.doesNotMatch(shell, /from\s+["']cmdk["']/);
+  const week = readFileSync(join(src, "components/week-schedule.tsx"), "utf8");
+  assert.match(week, /await import\("@\/lib\/lock-screen"\)/);
+  assert.doesNotMatch(week, /^import .*lock-screen/m);
+  assert.doesNotMatch(week, /<canvas/);
+  const cmdkUsers: string[] = [];
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.(tsx|ts)$/.test(name) && /from\s+["']cmdk["']/.test(readFileSync(p, "utf8"))) {
+        cmdkUsers.push(p.slice(src.length + 1));
+      }
+    }
+  };
+  walk(src);
+  assert.deepEqual(cmdkUsers, ["components/command-palette.tsx"]);
+});
