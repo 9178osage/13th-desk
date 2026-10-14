@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { homeAliasPath } from "@/lib/channels";
 import {
@@ -8,6 +8,7 @@ import {
   House,
   LibraryBig,
   MapPin,
+  Search,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -17,6 +18,10 @@ import { LEVELS, isLevel } from "@/lib/levels";
 import { ensureDeskHydrated, useDesk, useLang, useStorageStatus } from "@/lib/store";
 import { LANGS, isLang, tr } from "@/lib/text";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
+
+// Command palette code (cmdk + Radix dialog) only downloads on first use.
+const loadPalette = () => import("@/components/command-palette");
+const CommandPalette = lazy(loadPalette);
 
 const NAV = [
   { to: "/", key: "today", short: "today", icon: House },
@@ -53,6 +58,26 @@ export function Shell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void ensureDeskHydrated();
+  }, []);
+
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteUsed, setPaletteUsed] = useState(false);
+  const [shortcut, setShortcut] = useState("Ctrl K");
+  const openPalette = () => {
+    setPaletteUsed(true);
+    setPaletteOpen(true);
+  };
+  useEffect(() => {
+    if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) setShortcut("⌘K");
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteUsed(true);
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   // Route heads ship English titles for crawlers; the open tab follows the
@@ -116,6 +141,19 @@ export function Shell({ children }: { children: ReactNode }) {
           <span className="desktop-crumb">
             Eugene Desk <span>/</span> <strong>{label(current.key)}</strong>
           </span>
+          <button
+            type="button"
+            className="palette-trigger"
+            onClick={openPalette}
+            onPointerEnter={() => void loadPalette()}
+            onFocus={() => void loadPalette()}
+            aria-haspopup="dialog"
+            aria-keyshortcuts="Meta+K Control+K"
+          >
+            <Search size={17} aria-hidden="true" />
+            <span className="palette-trigger-label">{c(lang, "paletteOpen")}</span>
+            <kbd>{shortcut}</kbd>
+          </button>
           <div className="desk-preferences">
             <label>
               <span>{c(lang, "level")}</span>
@@ -184,6 +222,11 @@ export function Shell({ children }: { children: ReactNode }) {
           <span className="footer-stats">{c(lang, "stats")}</span>
         </footer>
       </div>
+      {paletteUsed && (
+        <Suspense fallback={null}>
+          <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        </Suspense>
+      )}
       <nav className="desk-mobile-nav" aria-label={c(lang, "workspace")}>
         {NAV.map(({ to, short, icon: Icon }) => (
           <Link key={to} to={to} aria-current={path === to ? "page" : undefined}>

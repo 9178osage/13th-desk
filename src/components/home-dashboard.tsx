@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
+  ArrowUpRight,
   CalendarDays,
   Check,
   CheckCheck,
@@ -15,6 +16,7 @@ import { Button, Input } from "@/components/ui";
 import { WeekSchedule } from "@/components/week-schedule";
 import { WeatherCard } from "@/components/weather";
 import { deadlines } from "@/data/guide";
+import { quickLinks } from "@/data/quick-links";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr } from "@/lib/text";
@@ -239,6 +241,20 @@ export function HomeDashboard() {
           <ArrowRight size={16} className="stat-arrow" />
         </Link>
       </div>
+      <nav className="quick-links" aria-label={c(lang, "quickLinks")}>
+        <span className="quick-links-label">{c(lang, "quickLinks")}</span>
+        <ul>
+          {quickLinks(level, district).map((link) => (
+            <li key={link.id}>
+              <a href={link.href} target="_blank" rel="noopener noreferrer">
+                {tr(lang, link.label)}
+                <ArrowUpRight size={14} aria-hidden="true" />
+                <span className="sr-only"> ({c(lang, "opensNewTab")})</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
       <div className="today-layout">
         <div className="today-primary">
           <TaskList key={level} />

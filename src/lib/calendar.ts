@@ -92,6 +92,19 @@ export function k12DatesExpired(
   return dates.every((item) => deadlinePassed(item, clock));
 }
 
+/** Every not-yet-passed date for the level (empty once the term snapshot expires). */
+export function liveDeadlines(
+  level: Level,
+  district: DistrictId | null,
+  clock: EugeneClock,
+): Deadline[] {
+  if (level === "uni") {
+    return uoTermIsExpired(clock) ? [] : upcomingDeadlines(uniDeadlines, clock, Infinity);
+  }
+  if (k12DatesExpired(level, district, clock)) return [];
+  return upcomingDeadlines(k12DeadlinesForDistrict(level, district), clock, Infinity);
+}
+
 /** Resolve "now" for tests: prefer an injectable Date. */
 export function resolveNow(fallback = new Date()): Date {
   if (typeof globalThis !== "undefined") {

@@ -3,6 +3,9 @@ import { PlaceBrowser } from "@/components/place-browser";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/town")({
+  // ?q= pre-fills the place search (used by the ⌘K palette).
+  validateSearch: (search: Record<string, unknown>): { q?: string } =>
+    typeof search.q === "string" && search.q.trim() ? { q: search.q.slice(0, 80) } : {},
   head: () => ({
     meta: [
       { title: "Town · Eugene Desk" },
@@ -18,10 +21,12 @@ export const Route = createFileRoute("/town")({
 
 function TownPage() {
   const level = useDesk((state) => state.level);
+  const { q } = Route.useSearch();
   const young = level === "elem" || level === "mid";
   return (
     <PlaceBrowser
-      key={level}
+      key={`${level}:${q ?? ""}`}
+      initialQuery={q}
       page="town"
       kicker={
         young
