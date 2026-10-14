@@ -147,6 +147,7 @@ export function Shell({ children }: { children: ReactNode }) {
             onClick={openPalette}
             onPointerEnter={() => void loadPalette()}
             onFocus={() => void loadPalette()}
+            aria-label={c(lang, "paletteOpen")}
             aria-haspopup="dialog"
             aria-keyshortcuts="Meta+K Control+K"
           >
