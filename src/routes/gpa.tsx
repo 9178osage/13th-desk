@@ -147,21 +147,44 @@ function GpaPage() {
       .sort((a, b) => Number(a.points) - Number(b.points));
   }, [grades, level]);
 
+  // High school with only a weighted prior GPA: run the estimate on the weighted scale.
+  const whatIfWeighted = !combined && !plain && !!combinedWeighted;
+  // Highest grade points a single class can earn on the scale in use.
+  const whatIfCeiling = level === "uni" ? 4.3 : whatIfWeighted ? 5 : 4;
   const whatIfHint = useMemo(() => {
-    const targetH = parseGpaInput(target, level === "uni" ? 430 : 400);
+    const targetH = parseGpaInput(target, Math.round(whatIfCeiling * 100));
     const addCredits = parseCredits(whatIfCredits, 1000);
-    const base = combined ?? plain;
+    const base = combined ?? plain ?? combinedWeighted;
     if (!base || targetH == null || addCredits == null) return null;
     // Rough: needed average points (tenths) on the next block to hit target
     // target = (currentPoints + needed*credits) / (currentCredits + credits)
     const totalPoints =
-      currentPoints(level, rows, false) +
-      (combined && priorGpaH != null && priorCreditH != null ? priorGpaH * priorCreditH : 0);
+      currentPoints(level, rows, whatIfWeighted) +
+      (whatIfWeighted
+        ? priorWeightedH != null && priorCreditH != null
+          ? priorWeightedH * priorCreditH
+          : 0
+        : combined && priorGpaH != null && priorCreditH != null
+          ? priorGpaH * priorCreditH
+          : 0);
     // needed is in gpa-hundredths (same units as priorGpaH / gpaHundredths)
     const needed = (targetH * (base.creditHundredths + addCredits) - totalPoints) / addCredits;
     if (!Number.isFinite(needed)) return null;
     return needed / 100;
-  }, [combined, plain, target, whatIfCredits, level, rows, priorGpaH, priorCreditH]);
+  }, [
+    combined,
+    combinedWeighted,
+    plain,
+    target,
+    whatIfCredits,
+    level,
+    rows,
+    priorGpaH,
+    priorWeightedH,
+    priorCreditH,
+    whatIfWeighted,
+    whatIfCeiling,
+  ]);
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -286,7 +309,7 @@ function GpaPage() {
         </Card>
       ) : null}
 
-      {(plain || combined) && (
+      {(plain || combined || combinedWeighted) && (
         <Card>
           <SectionHeader
             className="mb-3"
@@ -319,8 +342,19 @@ function GpaPage() {
               </select>
             </label>
           </div>
-          {whatIfHint != null ? (
-            <p className="mt-3 text-sm text-ink">
+          {whatIfHint != null && whatIfHint <= 0 ? (
+            <p className="mt-3 text-sm text-ink" role="status">
+              {tr(lang, {
+                en: "Your current GPA already meets or beats that target.",
+                zh: "当前累计绩点已达到或超过该目标。",
+                es: "Tu GPA actual ya alcanza o supera ese objetivo.",
+                ko: "현재 누적 GPA가 이미 목표에 도달했거나 넘었어요.",
+                vi: "GPA tích lũy hiện tại đã đạt hoặc vượt mục tiêu này.",
+                ja: "現在の累積GPAはすでに目標に達しているか、上回っています。",
+              })}
+            </p>
+          ) : whatIfHint != null ? (
+            <p className="mt-3 text-sm text-ink" role="status">
               {tr(lang, {
                 en: "To land near that target on the next credits, you’d need about",
                 zh: "若要达到目标，后续课程的平均绩点需要约为",
@@ -329,6 +363,21 @@ function GpaPage() {
                 {whatIfHint.toFixed(2)}
               </span>{" "}
               {tr(lang, { en: "GPA on those credits (estimate).", zh: "（估算）。" })}
+              {whatIfHint > whatIfCeiling && (
+                <>
+                  {" "}
+                  <strong className="font-medium text-ink">
+                    {tr(lang, {
+                      en: "That is above the highest grade a single class can earn. Add more future credits or lower the target.",
+                      zh: "已超过单科最高绩点上限，建议增加后续修读学分或调低目标。",
+                      es: "Supera la nota máxima que da una sola clase. Suma más créditos futuros o baja el objetivo.",
+                      ko: "한 과목에서 받을 수 있는 최고 평점을 넘어요. 앞으로 이수할 학점을 늘리거나 목표를 낮춰 보세요.",
+                      vi: "Con số này vượt điểm tối đa của một môn. Hãy tăng số tín chỉ sắp tới hoặc hạ mục tiêu.",
+                      ja: "1科目で取れる最高評点を超えています。今後の単位を増やすか、目標を下げてください。",
+                    })}
+                  </strong>
+                </>
+              )}
             </p>
           ) : (
             <p className="mt-3 text-sm text-muted">

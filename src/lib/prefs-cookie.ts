@@ -43,7 +43,12 @@ export function formatPrefsValue(state: {
 /** Parse a cookie value; anything unexpected becomes "not chosen". */
 export function parsePrefsValue(value: string | null | undefined): PrefsHint {
   if (!value || value.length > 16) return EMPTY_PREFS;
-  const decoded = decodeURIComponent(value);
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    return EMPTY_PREFS;
+  }
   if (!/^[a-z-]+\.[a-z-]+$/.test(decoded)) return EMPTY_PREFS;
   const [lang, level] = decoded.split(".");
   return { lang: asLang(lang), level: asLevel(level) };

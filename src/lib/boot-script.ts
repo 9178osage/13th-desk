@@ -35,7 +35,9 @@ function boot(key: string, langs: Record<string, string>, levels: string[]) {
     const langSet =
       state.langSet === true && Object.prototype.hasOwnProperty.call(langs, state.lang);
     if (langSet) root.lang = langs[state.lang];
-    const levelSet = state.levelSet === true || levels.indexOf(state.level) !== -1;
+    const levelSet =
+      state.levelSet === true ||
+      (typeof state.levelSet !== "boolean" && levels.indexOf(state.level) !== -1);
     if (langSet && levelSet) root.setAttribute("data-desk-setup", "done");
   } catch {
     /* keep server defaults */

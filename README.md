@@ -258,7 +258,9 @@ Debes estar autenticado y vinculado al mismo proyecto de Vercel.
 ### Notas sobre los datos
 
 - El estado del escritorio—idioma, nivel, notas, horario, filas de GPA, favoritos y ajustes similares—queda en el **navegador actual** bajo **`13th-desk-v1`**.
-- **Copia y restauración:** Debajo de «Guardado en este navegador» en la barra lateral, y también en el pie de página, puedes exportar o importar los datos locales. El archivo se descarga como `eugene-desk-backup-YYYY-MM-DD.json` e incluye los cuatro niveles escolares. Úsalo al cambiar de dispositivo o antes de borrar la caché del navegador. La importación valida el archivo con rigor—si está dañado, no se cambia nada—, muestra conteos por nivel para confirmar y se puede deshacer durante la misma sesión.
+- **Copia y restauración:** Debajo de «Guardado en este navegador» en la barra lateral, y también en el pie de página, puedes exportar o importar los datos locales. El archivo se descarga como `eugene-desk-backup-YYYY-MM-DD.json` e incluye los cuatro niveles escolares. Úsalo al cambiar de dispositivo o antes de borrar la caché del navegador. La importación valida el archivo con rigor—si está dañado, no se cambia nada—, muestra conteos por nivel para confirmar; antes de sobrescribir, descarga `eugene-desk-before-import-…json` y guarda una copia previa en `13th-desk-v1:pre-import`, así que se puede deshacer incluso después de recargar (si el almacenamiento está lleno, lo avisa y queda el archivo descargado).
+- **Privacidad y estadísticas:** El sitio usa Vercel Web Analytics para estadísticas anónimas y sin cookies: solo conteos agregados por ruta de página. No se recogen nombres, correos ni otros datos personales, no se guarda nada de estadísticas en el navegador, no se registran parámetros de consulta y no hay eventos personalizados. El script no se carga en desarrollo ni dentro de una vista previa enmarcada.
+- **Rutas de canal:** `/card`, `/isa`, `/teacher` y `/eld` muestran la página de inicio y se cuentan como rutas separadas; después la barra de direcciones cambia a `/`. Solo funcionan los nombres de `src/lib/channels.ts` (un canal nuevo es una línea ahí); cualquier otra ruta sigue dando 404.
 - **Calendario:** Las fechas universitarias se actualizan en `src/data/guide.ts` y `src/lib/calendar-meta.ts`. Las filas K–12 solo cubren Eugene 4J; otros distritos muestran «Calendario de referencia».
 - Horarios de lugares, avisos y detalles parecidos son información de referencia; confirma en el sitio oficial de cada institución.
 - El GPA es una herramienta de estimación, no un expediente ni calificaciones oficiales.
@@ -340,7 +342,9 @@ npx vercel --prod
 ### 데이터 안내
 
 - 데스크 상태(언어, 학령, 메모, 시간표, GPA 행, 즐겨찾기 등)는 **현재 브라우저**에만 있으며 키는 **`13th-desk-v1`** 입니다.
-- **백업 및 복원:** 사이드바의 「이 브라우저에 저장」 아래와 페이지 하단에서 로컬 데이터를 내보내거나 가져올 수 있습니다. 파일 이름은 `eugene-desk-backup-YYYY-MM-DD.json`이며 네 학령 단계의 데이터를 모두 포함합니다. 다른 기기로 옮기거나 브라우저 캐시를 지우기 전에 백업해 두세요. 가져오기는 엄격히 검사하며, 잘못된 파일은 기존 데이터를 건드리지 않습니다. 확인 전에 학령별 할 일·수업 수를 보여 주고, 같은 세션 안에서 실행 취소할 수 있습니다.
+- **백업 및 복원:** 사이드바의 「이 브라우저에 저장」 아래와 페이지 하단에서 로컬 데이터를 내보내거나 가져올 수 있습니다. 파일 이름은 `eugene-desk-backup-YYYY-MM-DD.json`이며 네 학령 단계의 데이터를 모두 포함합니다. 다른 기기로 옮기거나 브라우저 캐시를 지우기 전에 백업해 두세요. 가져오기는 엄격히 검사하며, 잘못된 파일은 기존 데이터를 건드리지 않습니다. 확인 전에 학령별 할 일·수업 수를 보여 줍니다. 덮어쓰기 전에 `eugene-desk-before-import-…json`을 자동으로 내려받고, 가져오기 전 스냅샷을 별도 키 `13th-desk-v1:pre-import`에 저장하므로 새로고침한 뒤에도 실행 취소할 수 있습니다(저장 공간이 가득 차면 알려 주고 내려받은 파일에 의존합니다).
+- **개인정보와 방문 통계:** Vercel Web Analytics로 쿠키 없는 익명 방문 통계를 냅니다. 페이지 경로별 합계만 기록하며 이름·이메일 등 개인정보는 수집하지 않고, 브라우저에 통계 데이터를 저장하지 않으며, 쿼리 문자열과 사용자 정의 이벤트도 기록하지 않습니다. 개발 환경과 프리뷰 iframe에서는 스크립트를 불러오지 않습니다.
+- **채널 입구:** `/card`, `/isa`, `/teacher`, `/eld`는 홈 화면을 보여 주고 통계에서 각각 따로 집계되며, 그다음 주소창이 `/`로 바뀝니다. `src/lib/channels.ts`에 있는 이름만 동작하고(새 채널은 거기에 한 줄 추가), 그 밖의 경로는 그대로 404입니다.
 - **학사일정:** 대학 날짜는 `src/data/guide.ts`와 `src/lib/calendar-meta.ts`에서 학기마다 갱신합니다. K–12 날짜는 현재 Eugene 4J만 수록되어 있으며, 다른 학군은 「참고 학사일정」으로 표시합니다.
 - 장소 운영 시간·공지 등은 참고용입니다. 최신 정보는 각 기관 공식 사이트를 확인하세요.
 - GPA는 추정 도구이며 공식 성적표가 아닙니다.
@@ -422,7 +426,9 @@ Bạn cần đã đăng nhập và liên kết cùng một dự án Vercel.
 ### Ghi chú dữ liệu
 
 - Trạng thái bàn học—ngôn ngữ, cấp, ghi chú, thời khóa biểu, dòng GPA, yêu thích…—chỉ nằm trong **trình duyệt hiện tại** với khóa **`13th-desk-v1`**.
-- **Sao lưu và khôi phục:** Ngay dưới 「Lưu trong trình duyệt này」 trên thanh bên, và ở chân trang, bạn có thể xuất hoặc nhập dữ liệu cục bộ. Tệp tải về tên `eugene-desk-backup-YYYY-MM-DD.json`, gồm đủ bốn bậc học. Hãy xuất trước khi chuyển máy hoặc xóa bộ nhớ đệm trình duyệt. Nhập vào được kiểm tra nghiêm ngặt—tệp hỏng không đụng tới dữ liệu hiện có—hiển thị số việc/lớp theo từng bậc để xác nhận, và có thể hoàn tác trong cùng phiên.
+- **Sao lưu và khôi phục:** Ngay dưới 「Lưu trong trình duyệt này」 trên thanh bên, và ở chân trang, bạn có thể xuất hoặc nhập dữ liệu cục bộ. Tệp tải về tên `eugene-desk-backup-YYYY-MM-DD.json`, gồm đủ bốn bậc học. Hãy xuất trước khi chuyển máy hoặc xóa bộ nhớ đệm trình duyệt. Nhập vào được kiểm tra nghiêm ngặt—tệp hỏng không đụng tới dữ liệu hiện có—hiển thị số việc/lớp theo từng bậc để xác nhận; trước khi ghi đè, ứng dụng tự tải `eugene-desk-before-import-…json` và lưu bản chụp trước khi nhập vào khóa riêng `13th-desk-v1:pre-import`, nên vẫn hoàn tác được sau khi tải lại trang (nếu bộ nhớ đầy, sẽ báo và dựa vào tệp đã tải).
+- **Quyền riêng tư và thống kê:** Trang dùng Vercel Web Analytics để thống kê ẩn danh, không cookie: chỉ đếm tổng theo đường dẫn trang. Không thu thập tên, email hay dữ liệu cá nhân, không lưu dữ liệu thống kê trong trình duyệt, không ghi tham số truy vấn và không có sự kiện tùy chỉnh. Script không tải trong môi trường dev hay trong khung xem trước.
+- **Đường dẫn kênh:** `/card`, `/isa`, `/teacher` và `/eld` hiện trang chủ và được đếm riêng, sau đó thanh địa chỉ đổi về `/`. Chỉ các tên trong `src/lib/channels.ts` hoạt động (thêm kênh chỉ cần một dòng ở đó); đường dẫn khác vẫn trả 404.
 - **Lịch học:** Ngày đại học cập nhật trong `src/data/guide.ts` và `src/lib/calendar-meta.ts`. Hàng K–12 hiện chỉ có Eugene 4J; học khu khác hiện 「Lịch tham khảo」.
 - Giờ mở cửa địa điểm, thông báo… chỉ mang tính tham khảo; hãy đối chiếu trang chính thức của từng cơ sở.
 - GPA là công cụ ước lượng, không phải bảng điểm chính thức.
@@ -504,7 +510,9 @@ npx vercel --prod
 ### データについて
 
 - デスクの状態（言語、学年段階、メモ、時間割、GPA 行、お気に入りなど）は **現在のブラウザのみ** にあり、キーは **`13th-desk-v1`** です。
-- **バックアップと復元:** サイドバーの「このブラウザに保存」の下、およびページフッターから、ローカルデータを書き出したり取り込んだりできます。ファイル名は `eugene-desk-backup-YYYY-MM-DD.json` で、4つの学校区分すべての状態を含みます。端末を変える前やブラウザのキャッシュを消す前に書き出してください。取り込みは厳格に検証し、壊れたファイルでは既存データを変えません。確認画面で区分ごとのやること・授業数を示し、同じセッション内で元に戻せます。
+- **バックアップと復元:** サイドバーの「このブラウザに保存」の下、およびページフッターから、ローカルデータを書き出したり取り込んだりできます。ファイル名は `eugene-desk-backup-YYYY-MM-DD.json` で、4つの学校区分すべての状態を含みます。端末を変える前やブラウザのキャッシュを消す前に書き出してください。取り込みは厳格に検証し、壊れたファイルでは既存データを変えません。確認画面で区分ごとのやること・授業数を示します。上書き前に `eugene-desk-before-import-…json` を自動でダウンロードし、取り込み前のスナップショットを別キー `13th-desk-v1:pre-import` に保存するので、再読み込み後も元に戻せます（保存容量が足りない場合はその旨を表示し、ダウンロード済みファイルを頼りにします）。
+- **プライバシーとアクセス統計:** Vercel Web Analytics で Cookie を使わない匿名のアクセス統計を取っています。ページのパスごとの合計数だけを記録し、名前やメールなどの個人情報は集めず、統計データをブラウザに保存せず、クエリ文字列やカスタムイベントも記録しません。開発環境とプレビューの iframe ではスクリプトを読み込みません。
+- **チャネル入口:** `/card`、`/isa`、`/teacher`、`/eld` はホーム画面を表示し、統計では別々に数えられ、その後アドレスバーは `/` に戻ります。`src/lib/channels.ts` に載っている名前だけが有効で（新しいチャネルはそこに1行追加）、それ以外のパスは今まで通り 404 です。
 - **学年暦:** 大学の日付は `src/data/guide.ts` と `src/lib/calendar-meta.ts` を学期ごとに更新します。K–12 の日付行は現状 Eugene 4J のみ。「参考カレンダー」表示で他学区の公式サイトへ案内します。
 - 場所の開館時間やお知らせなどは参考情報です。最新は各機関の公式サイトで確認してください。
 - GPA は推定ツールであり、公式の成績表ではありません。

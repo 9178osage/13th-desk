@@ -531,7 +531,10 @@ const deskStore = create<DeskState>()(
           : langSet && isLang(raw.lang)
             ? raw.lang
             : DEFAULT_LANG;
-        const levelSet = current.levelSet || raw.levelSet === true || isLevel(raw.level);
+        const levelSet =
+          current.levelSet ||
+          raw.levelSet === true ||
+          (typeof raw.levelSet !== "boolean" && isLevel(raw.level));
         const level = current.levelSet ? current.level : isLevel(raw.level) ? raw.level : "uni";
         const earlyStart = raw.earlyStart === true;
         const district = isDistrict(raw.district) ? raw.district : null;
@@ -611,7 +614,8 @@ export function useLang(): Lang {
   // Re-render once a lazily loaded language pack arrives.
   useSyncExternalStore(subscribeLangPacks, langPackVersion, langPackVersion);
   if (isLangReady(lang)) {
-    shownLang = lang;
+    // Module state is shared across SSR requests: only remember it in the browser.
+    if (typeof window !== "undefined") shownLang = lang;
     return lang;
   }
   return isLangReady(shownLang) ? shownLang : DEFAULT_LANG;

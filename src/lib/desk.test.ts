@@ -563,6 +563,11 @@ test("boot script sets <html lang> and setup flag from saved desk only", () => {
     lang: "zh-CN",
     setup: null,
   });
+  // Picked a language but never a level: the default "uni" must not count as chosen.
+  assert.deepEqual(runBoot(saved({ lang: "es", langSet: true, level: "uni", levelSet: false })), {
+    lang: "es",
+    setup: null,
+  });
   assert.deepEqual(runBoot("{not json"), { lang: "zh-CN", setup: null });
   assert.deepEqual(runBoot("null"), { lang: "zh-CN", setup: null });
   assert.deepEqual(runBoot(null, true), { lang: "zh-CN", setup: null });
@@ -657,6 +662,8 @@ test("a never-chosen language falls back to the Chinese-first default, not Engli
   const merge = store.slice(store.indexOf("merge: (persisted, current)"));
   assert.match(merge, /langSet && isLang\(raw\.lang\)\s*\?\s*raw\.lang\s*:\s*DEFAULT_LANG/);
   assert.doesNotMatch(merge.slice(0, 900), /raw\.lang\s*:\s*"en"/);
+  // levelSet: false with the default level must stay unset (only legacy saves fall back).
+  assert.match(merge, /typeof raw\.levelSet !== "boolean" && isLevel\(raw\.level\)/);
 });
 
 test("prefs cookie mirrors only explicit language/level choices", () => {
@@ -677,6 +684,8 @@ test("prefs cookie parsing never trusts unexpected values", () => {
   for (const bad of ["", "garbage", "es.high.x", "<script>.uni", "es%2Ehigh%2Eextra", "x".repeat(40)]) {
     assert.deepEqual(parsePrefsValue(bad), { lang: null, level: null }, bad);
   }
+  // Malformed percent-encoding must not throw a URIError.
+  assert.deepEqual(parsePrefsValue("%E0%A4%A"), { lang: null, level: null });
   assert.deepEqual(readPrefsCookie("a=1; eugene-desk-prefs=vi.mid; b=2"), { lang: "vi", level: "mid" });
   assert.deepEqual(readPrefsCookie("other-eugene-desk-prefs=vi.mid"), { lang: null, level: null });
   assert.deepEqual(readPrefsCookie(undefined), { lang: null, level: null });

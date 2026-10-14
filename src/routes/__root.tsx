@@ -7,7 +7,7 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { SiteAnalytics } from "@/components/site-analytics";
 import { Shell } from "@/components/shell";
 import { PACK_SCRIPT_ID, htmlLang, inlinePackJson, loadLangPack, type Lang } from "@/lib/text";
-import { DEFAULT_LANG, DeskHintContext, useDesk } from "@/lib/store";
+import { DEFAULT_LANG, DeskHintContext, useDesk, useLang } from "@/lib/store";
 import { PREFS_COOKIE, parsePrefsValue, readPrefsCookie, type PrefsHint } from "@/lib/prefs-cookie";
 import { deskBootScript } from "@/lib/boot-script";
 import appCss from "../styles.css?url";
@@ -83,17 +83,13 @@ function Root() {
   const hint = Route.useLoaderData();
   const pageLang: Lang = hint.lang ?? DEFAULT_LANG;
   const packJson = inlinePackJson(pageLang);
+  const activeLang = useLang();
+  const hydrated = useDesk((s) => s.hydrated);
   useEffect(() => {
-    const sync = (lang: Lang) => {
-      if (typeof document === "undefined") return;
-      document.documentElement.lang = htmlLang(lang);
-    };
-    sync(useDesk.getState().lang);
-    // Only touch DOM when lang actually changes (persist writes touch other fields).
-    return useDesk.subscribe((state, prev) => {
-      if (state.lang !== prev.lang) sync(state.lang);
-    });
-  }, []);
+    // Wait for the stored desk: before that, boot-script.ts has already set the
+    // right language from localStorage and the store still holds the default.
+    if (hydrated) document.documentElement.lang = htmlLang(activeLang);
+  }, [hydrated, activeLang]);
 
   return (
     // Server HTML uses the cookie hint (else the default language); boot-script.ts
