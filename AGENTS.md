@@ -349,3 +349,5 @@ auth/db: OFF by default — sign-in, @/lib/db or migrations ONLY on an accounts 
 never:   build an app for a greeting/number/question; invent imagine_* calls;
          ask the user to run commands; delete or abandon /workspace/startup.sh
 ```
+
+- 每次改完代码，运行 `python3 eugene-desk-all-code/sync.py` 刷新交给文本阅读器的代码副本（该目录只在本地，已加入 `.gitignore`，不提交、不部署）；日常核对只发 `changes.txt`，全站体检再发 `1/2/3-*.txt`。
