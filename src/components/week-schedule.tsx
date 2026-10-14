@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { AlertTriangle, CalendarDays, Pencil, Plus, Star, Trash2, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, Pencil, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
+import { sampleSlots } from "@/lib/schedule-samples";
 import { Button, Input } from "@/components/ui";
 import { useDesk, useLang, WEEK_DAYS, type ScheduleBlock, type WeekDay } from "@/lib/store";
 import { deskText as c, dayName, type DeskCopyKey } from "@/lib/desk-copy";
@@ -89,6 +90,22 @@ function ScheduleEditor() {
       return;
     }
     saveDraft();
+  }
+
+  function fillSamples() {
+    let added = 0;
+    for (const slot of sampleSlots(level)) {
+      const ok = add({
+        day: slot.day,
+        start: slot.start,
+        end: slot.end,
+        title: c(lang, "sampleClass", { n: slot.n }),
+        place: "",
+      });
+      if (ok) added += 1;
+    }
+    setDay(sampleSlots(level)[0]?.day ?? "mon");
+    setMessage(added ? "sampleHint" : "classLimit");
   }
 
   function patchDraft(next: ScheduleDraft) {
@@ -239,6 +256,12 @@ function ScheduleEditor() {
           <div className="schedule-empty">
             <CalendarDays size={26} strokeWidth={1.4} aria-hidden="true" />
             <p>{c(lang, "noDay")}</p>
+            {hydrated && schedule.length === 0 && !open && (
+              <Button variant="quiet" onClick={fillSamples}>
+                <Sparkles size={16} aria-hidden="true" />
+                {c(lang, "fillSample")}
+              </Button>
+            )}
           </div>
         ) : (
           rows.map((row) => {
