@@ -30,7 +30,7 @@ import {
   UO_VALID_THROUGH,
 } from "./calendar-meta.ts";
 import { releaseLine } from "../data/k12.ts";
-import { deskBootScript } from "./boot-script.ts";
+import { deskBootScript, BOOT_HTML_LANG } from "./boot-script.ts";
 import {
   PREFS_COOKIE,
   formatPrefsValue,
@@ -47,6 +47,7 @@ import jaPack from "./i18n/ja.json" with { type: "json" };
 import type { ScheduleBlock } from "./store";
 import { places } from "../data/places.ts";
 import { PLACE_HOURS, placeHours } from "../data/place-hours.ts";
+import { htmlLang } from "./text.ts";
 
 const schedule: ScheduleBlock[] = [
   {
@@ -298,7 +299,15 @@ test("every place-hours hint has six translations and no silent English fallback
   }
 });
 test("save and recovery notices are available in all six languages", () => {
-  for (const key of ["storageError", "otherTabOpen", "dismissNotice", "importSaveFailed"] as const) {
+  for (const key of [
+    "storageError",
+    "otherTabOpen",
+    "dismissNotice",
+    "importSaveFailed",
+    "classSaved",
+    "classLimit",
+    "classGone",
+  ] as const) {
     for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) assert.ok(deskText(lang, key));
   }
 });
@@ -713,4 +722,10 @@ test("preview bridge stays mounted but only loads when framed", () => {
   assert.doesNotMatch(bridge, /^import[^;]*from "@\/lib\/preview-host-bridge"/m);
   assert.match(bridge, /window\.parent === window\) return;/);
   assert.match(bridge, /import\("@\/lib\/preview-host-bridge"\)/);
+});
+test("SSR, boot script and client agree on <html lang> for every language", () => {
+  for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+    assert.equal(htmlLang(lang), BOOT_HTML_LANG[lang]);
+  }
+  assert.equal(htmlLang("zh"), "zh-CN");
 });

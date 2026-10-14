@@ -54,6 +54,8 @@ export function PlaceBrowser({
       })
       .filter((place) => {
         if (!q) return true;
+        // Fold exactly like the query above: mixing toLowerCase() with
+        // toLocaleLowerCase() makes a few characters (e.g. "İ") stop matching.
         const hay = [
           place.name,
           ...Object.values(place.blurb),
@@ -63,7 +65,7 @@ export function PlaceBrowser({
           place.hours ? placeHours(lang, place.hours) : "",
         ]
           .join(" ")
-          .toLocaleLowerCase();
+          .toLowerCase();
         return hay.includes(q);
       });
   }, [page, cat, query, favs, level, lang]);

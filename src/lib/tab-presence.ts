@@ -60,6 +60,20 @@ export function createTabPresence(env: TabPresenceEnvironment) {
     try { env.channel?.postMessage({ type, id: env.id }); } catch { /* channel closed */ }
   };
 
+  // Lock requests/releases travel separately from channel messages, so each one
+  // schedules two rechecks. Track them: a tab that is disposed (or a page that
+  // navigates away) must not keep querying locks for work it no longer does.
+  const timers = new Set<unknown>();
+  const later = (fn: () => void, ms: number) => {
+    // `const` (not `let`) so lint stays happy about the reassignment-free handle:
+    // the arrow closes over the binding, which is assigned before it can fire.
+    const handle = setTimeout(() => {
+      timers.delete(handle);
+      fn();
+    }, ms);
+    timers.add(handle);
+  };
+
   env.channel?.addEventListener("message", (event) => {
     const data = event.data as { type?: unknown; id?: unknown } | null;
     if (!data || typeof data.id !== "string" || data.id === env.id) return;
@@ -71,7 +85,7 @@ export function createTabPresence(env: TabPresenceEnvironment) {
     refresh();
     // Lock requests and releases travel separately from channel messages: a new
     // tab's lock can land just after its "hello", a closing tab's just after "bye".
-    if (canQuery) for (const delay of RECHECK_MS) setTimeout(refresh, delay);
+    if (canQuery) for (const delay of RECHECK_MS) later(refresh, delay);
   });
 
   if (canQuery) {
@@ -92,6 +106,8 @@ export function createTabPresence(env: TabPresenceEnvironment) {
       if (disposed) return;
       post("bye");
       disposed = true;
+      for (const handle of timers) clearTimeout(handle as number);
+      timers.clear();
       if (timer !== undefined) env.clearInterval?.(timer);
       release?.();
       try { env.channel?.close(); } catch { /* ignore */ }

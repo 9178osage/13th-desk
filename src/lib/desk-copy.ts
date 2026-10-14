@@ -1,4 +1,7 @@
 import type { Lang } from "./text";
+// Relative + `.ts`: desk-copy.ts is loaded by the node test runner, which does
+// not resolve the `@/` alias (see the note in locale.ts).
+import { LOCALE } from "./locale.ts";
 
 // Every new desk control has all six translations. Order: en, zh, es, ko, vi, ja.
 const copy = {
@@ -358,6 +361,14 @@ const copy = {
     "Lưu tối đa 40 lớp học.",
     "40件まで保存できます。",
   ],
+  classGone: [
+    "That class is no longer in your timetable, so nothing was saved. Add it again if you still need it.",
+    "这节课已不在课表中（可能在其他标签页删除），本次未保存。需要的话请重新添加。",
+    "Esa clase ya no está en tu horario, así que no se guardó nada. Añádela de nuevo si la necesitas.",
+    "그 수업은 더 이상 시간표에 없어서 저장하지 않았어요. 필요하면 다시 추가하세요.",
+    "Lớp đó không còn trong thời khóa biểu nên chưa lưu gì. Thêm lại nếu bạn vẫn cần.",
+    "その授業は時間割から削除済みのため、保存していません。必要ならもう一度追加してください。",
+  ],
   pin: [
     "Mark as important",
     "标记为重点",
@@ -695,7 +706,7 @@ export const VI_SHORT_WEEKDAYS = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 
 export function dayName(lang: Lang, day: string) {
   const n = ["mon", "tue", "wed", "thu", "fri"].indexOf(day);
   if (lang === "vi") return VI_SHORT_WEEKDAYS[Math.max(n, 0) + 1];
-  return new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : lang, {
+  return new Intl.DateTimeFormat(LOCALE[lang], {
     weekday: "short",
     timeZone: "UTC",
   }).format(new Date(Date.UTC(2026, 0, 5 + Math.max(n, 0))));

@@ -18,6 +18,7 @@ import { deadlines } from "@/data/guide";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr } from "@/lib/text";
+import { LOCALE } from "@/lib/locale";
 import { eugeneClock, formatDateline, hmToMin } from "@/lib/time";
 import { useClock } from "@/lib/use-clock";
 import { nextClass, scheduleForDay } from "@/lib/schedule";
@@ -371,7 +372,7 @@ export function HomeDashboard() {
               <Link to="/guide" className="desk-date" key={item.id}>
                 <div className="date-stamp">
                   <span>
-                    {new Intl.DateTimeFormat(lang, { month: "short", timeZone: "UTC" }).format(
+                    {new Intl.DateTimeFormat(LOCALE[lang], { month: "short", timeZone: "UTC" }).format(
                       new Date(item.ymd + "T12:00:00Z"),
                     )}
                   </span>

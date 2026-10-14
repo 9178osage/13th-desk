@@ -1,3 +1,4 @@
+import { LOCALE } from "./locale.ts";
 export type Lang = "en" | "zh" | "es" | "ko" | "vi" | "ja";
 
 export type Copy = {
@@ -10,7 +11,7 @@ export type Copy = {
 };
 
 export const LANGS: { id: Lang; label: string; html: string }[] = [
-  { id: "en", label: "English", html: "en" },
+  { id: "en", label: "English", html: "en-US" },
   { id: "zh", label: "中文", html: "zh-CN" },
   { id: "es", label: "Español", html: "es" },
   { id: "ko", label: "한국어", html: "ko" },
@@ -118,7 +119,9 @@ export function isLang(value: unknown): value is Lang {
 }
 
 export function htmlLang(lang: Lang): string {
-  return LANGS.find((item) => item.id === lang)?.html ?? "en";
+  // Same table as the boot script (BOOT_HTML_LANG) and every Intl call, so SSR,
+  // the pre-paint boot and the client effect never disagree on `<html lang>`.
+  return LOCALE[lang] ?? LOCALE.en;
 }
 
 export function tr(lang: Lang, copy: Copy): string {

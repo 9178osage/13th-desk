@@ -1,5 +1,6 @@
 import { tr, type Lang } from "@/lib/text";
 import { VI_SHORT_WEEKDAYS } from "@/lib/desk-copy";
+import { LOCALE } from "@/lib/locale";
 
 export const TERM_START = "2026-09-28";
 export const TERM_END = "2026-12-11";
@@ -79,15 +80,6 @@ export function spanPhase(ymd: string, start: string, end: string): TermPhase {
 export function termPhase(ymd: string): TermPhase {
   return spanPhase(ymd, TERM_START, TERM_END);
 }
-
-const LOCALE: Record<Lang, string> = {
-  en: "en-US",
-  zh: "zh-CN",
-  es: "es",
-  ko: "ko",
-  vi: "vi",
-  ja: "ja",
-};
 
 const WEEKDAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 

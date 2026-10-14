@@ -1,3 +1,5 @@
+import { LOCALE } from "./locale.ts";
+
 /**
  * Tiny inline script that runs in <head> before first paint (see __root.tsx).
  *
@@ -14,15 +16,6 @@
  * It only reads storage; it never writes, and any error leaves the defaults.
  * Keep it alias-free: desk.test.ts evaluates it under node.
  */
-export const BOOT_HTML_LANG: Record<string, string> = {
-  en: "en",
-  zh: "zh-CN",
-  es: "es",
-  ko: "ko",
-  vi: "vi",
-  ja: "ja",
-};
-
 export const BOOT_LEVELS = ["elem", "mid", "high", "uni"];
 
 function boot(key: string, langs: Record<string, string>, levels: string[]) {
@@ -48,5 +41,8 @@ function boot(key: string, langs: Record<string, string>, levels: string[]) {
     /* keep server defaults */
   }
 }
+
+/** The `<html lang>` values the boot script writes, keyed by desk language. */
+export const BOOT_HTML_LANG: Record<string, string> = LOCALE;
 
 export const deskBootScript = `(${boot.toString()})(${JSON.stringify("13th-desk-v1")},${JSON.stringify(BOOT_HTML_LANG)},${JSON.stringify(BOOT_LEVELS)});`;

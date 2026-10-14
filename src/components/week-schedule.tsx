@@ -19,7 +19,7 @@ const emptyDraft = (day: WeekDay): ScheduleDraft => ({
   end: "10:00",
 });
 
-export function WeekSchedule({ compact: _compact = false }: { compact?: boolean }) {
+export function WeekSchedule() {
   const level = useDesk((s) => s.level);
   return <ScheduleEditor key={level} />;
 }
@@ -56,10 +56,17 @@ function ScheduleEditor() {
   }
 
   function saveDraft() {
+    // add() can fail on the 40-class cap or on stale/blank input; update() only
+    // fails when the row is gone (deleted in another tab) or the input is stale,
+    // so never report the cap for an edit — close the form and say what happened.
     const saved = editing ? update(editing, draft) : add(draft);
     if (!saved) {
-      setMessage("classLimit");
+      setMessage(editing ? "classGone" : "classLimit");
       setAwaitConfirm(false);
+      if (editing) {
+        setOpen(false);
+        setEditing(null);
+      }
       return;
     }
     setDay(draft.day);
@@ -176,10 +183,8 @@ function ScheduleEditor() {
                 required
                 aria-invalid={invalid || overlap}
                 value={draft.start}
-                onInput={(e) => {
-                  const start = e.currentTarget.value;
-                  patchDraft({ ...draft, start });
-                }}
+                // onChange already listens to the native input event: no second
+                // onInput handler, or every keystroke would patch the draft twice.
                 onChange={(e) => patchDraft({ ...draft, start: e.target.value })}
               />
             </label>
@@ -191,10 +196,6 @@ function ScheduleEditor() {
                 aria-invalid={invalid}
                 aria-describedby={invalid ? "class-time-error" : undefined}
                 value={draft.end}
-                onInput={(e) => {
-                  const end = e.currentTarget.value;
-                  patchDraft({ ...draft, end });
-                }}
                 onChange={(e) => patchDraft({ ...draft, end: e.target.value })}
               />
             </label>

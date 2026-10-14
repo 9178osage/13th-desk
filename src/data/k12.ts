@@ -38,29 +38,6 @@ export const elemBells: { id: string; time: Copy; wed: Copy; schools: string[] }
   },
 ];
 
-export const middleSchools = [
-  "Roosevelt",
-  "Spencer Butte",
-  "Madison",
-  "Kelly",
-  "Kennedy",
-  "Cal Young",
-  "Monroe",
-  "Arts & Technology Academy",
-  "Cascade (Bethel)",
-];
-
-export const highSchools = [
-  "South Eugene",
-  "Sheldon",
-  "Churchill",
-  "North Eugene",
-  "Eugene International",
-  "Willamette (Bethel)",
-  "Kalapuya (Bethel)",
-];
-
-
 export type SchoolCard = {
   id: string;
   name: string;

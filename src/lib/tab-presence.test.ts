@@ -82,3 +82,30 @@ test("no BroadcastChannel and no Web Locks: never warns, never throws", async ()
   assert.equal(a.others(), false);
   a.presence.wake(); a.presence.leave(); a.presence.dispose();
 });
+test("dispose cancels the pending lock rechecks it scheduled", async () => {
+  // A hello schedules rechecks at +300ms and +1500ms. A disposed presence must
+  // not keep querying locks: the old code left those timers running.
+  const join = bus();
+  const held = new Set<string>();
+  let queries = 0;
+  const locks = {
+    request: (async (name: string, callback: () => Promise<void>) => {
+      held.add(name);
+      try { await callback(); } finally { held.delete(name); }
+    }) as unknown as LockManager["request"],
+    query: async () => {
+      queries += 1;
+      return { held: [...held].map((name) => ({ name })), pending: [] };
+    },
+  };
+  const a = tab("a", { channel: join(), locks });
+  await tick();
+  const peer = join();
+  peer.postMessage({ type: "hello", id: "peer" }); // schedules both rechecks
+  await tick();
+  await tick(); // let the in-flight query from the listener settle
+  const settled = queries;
+  a.presence.dispose();
+  await new Promise((r) => setTimeout(r, 1700));
+  assert.equal(queries, settled, "a disposed tab must not query locks again");
+});
