@@ -6,12 +6,14 @@ import {
   k12CalendarSource,
   k12DeadlinesForDistrict,
   k12DatesExpired,
+  liveDeadlines,
 } from "@/lib/calendar";
 import { deskText as c } from "@/lib/desk-copy";
 import { LEVELS, type Level } from "@/lib/levels";
 import { useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
-import { eugeneClock, formatWhen, hmToMin } from "@/lib/time";
+import { eugeneClock, formatWhen, hmToMin, soonDays } from "@/lib/time";
+import { IcsButton } from "@/components/ics-button";
 
 function isPast(item: { ymd: string; time?: string }, clock: ReturnType<typeof eugeneClock>) {
   if (item.ymd > clock.ymd) return false;
@@ -76,9 +78,18 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
       </header>
 
       <section>
-        <h2 className="font-display text-3xl text-ink">
-          {tr(lang, { en: "Days off", zh: "假期与休课日" })}
-        </h2>
+        <div className="section-heading-row">
+          <h2 className="font-display text-3xl text-ink">
+            {tr(lang, { en: "Days off", zh: "假期与休课日" })}
+          </h2>
+          {clock && source.hasMatchingData && (
+            <IcsButton
+              items={liveDeadlines(level, district, clock)}
+              lang={lang}
+              href={source.href ?? undefined}
+            />
+          )}
+        </div>
         {!source.hasMatchingData ? (
           <p className="mt-4 rounded-lg border border-line bg-card p-4 text-sm text-muted">
             {c(lang, "noDistrictDates")}{" "}
@@ -114,9 +125,15 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
               return (
                 <li key={item.id} className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
                   <p className={cn("font-display text-lg", past ? "text-muted" : "text-ink")}>
-                    {past
-                      ? tr(lang, { en: "Passed", zh: "已过" })
-                      : formatWhen(item.ymd, clock?.ymd ?? "", lang)}
+                    {past ? (
+                      tr(lang, { en: "Passed", zh: "已过" })
+                    ) : clock && soonDays(clock.ymd, item.ymd) !== null ? (
+                      <span className="soon-badge soon-badge-inline">
+                        {formatWhen(item.ymd, clock.ymd, lang)}
+                      </span>
+                    ) : (
+                      formatWhen(item.ymd, clock?.ymd ?? "", lang)
+                    )}
                   </p>
                   <div>
                     <p className={cn("font-medium", past ? "text-muted" : "text-ink")}>

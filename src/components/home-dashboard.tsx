@@ -24,13 +24,15 @@ import type { Level } from "@/lib/levels";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr } from "@/lib/text";
 import { LOCALE } from "@/lib/locale";
-import { eugeneClock, formatDateline, hmToMin } from "@/lib/time";
+import { eugeneClock, formatDateline, formatWhen, hmToMin, soonDays } from "@/lib/time";
+import { IcsButton } from "@/components/ics-button";
 import { useClock } from "@/lib/use-clock";
 import { nextClass, scheduleForDay } from "@/lib/schedule";
 import {
   k12CalendarSource,
   k12DeadlinesForDistrict,
   k12DatesExpired,
+  liveDeadlines,
   upcomingDeadlines,
   uoAcademicTerm,
   uoTermIsExpired,
@@ -199,10 +201,7 @@ export function HomeDashboard() {
   const remaining = next && clock ? hmToMin(next.start) - clock.minutes : null;
   const pending = bucket.notes.filter((note) => !note.done).length;
   const k12Source = level === "uni" ? null : k12CalendarSource(district);
-  const calendarItems =
-    level === "uni"
-      ? deadlines
-      : k12DeadlinesForDistrict(level, district);
+  const calendarItems = level === "uni" ? deadlines : k12DeadlinesForDistrict(level, district);
   const termExpired =
     !!clock &&
     (level === "uni"
@@ -212,13 +211,8 @@ export function HomeDashboard() {
         : false);
   const upcoming = clock && !termExpired ? upcomingDeadlines(calendarItems, clock, 3) : [];
   const sourceName =
-    level === "uni"
-      ? tr(lang, uoAcademicTerm.label)
-      : k12Source
-        ? tr(lang, k12Source.name)
-        : "";
-  const sourceHref =
-    level === "uni" ? uoAcademicTerm.sourceHref : (k12Source?.href ?? null);
+    level === "uni" ? tr(lang, uoAcademicTerm.label) : k12Source ? tr(lang, k12Source.name) : "";
+  const sourceHref = level === "uni" ? uoAcademicTerm.sourceHref : (k12Source?.href ?? null);
 
   return (
     <div className="home-page">
@@ -372,10 +366,19 @@ export function HomeDashboard() {
             <span className="eyebrow">{c(lang, "eyebrowCalendar")}</span>
             <h2 id="dates-heading">{c(lang, "dates")}</h2>
           </div>
-          <Link to="/guide" className="text-link">
-            {c(lang, "viewGuide")}
-            <ArrowRight size={16} />
-          </Link>
+          <div className="panel-actions">
+            {clock && (
+              <IcsButton
+                items={liveDeadlines(level, district, clock)}
+                lang={lang}
+                href={sourceHref ?? undefined}
+              />
+            )}
+            <Link to="/guide" className="text-link">
+              {c(lang, "viewGuide")}
+              <ArrowRight size={16} />
+            </Link>
+          </div>
         </div>
         <p className="section-description">
           {level !== "uni" && k12Source && !k12Source.hasMatchingData
@@ -426,11 +429,15 @@ export function HomeDashboard() {
               <Link to="/guide" className="desk-date" key={item.id}>
                 <div className="date-stamp">
                   <span>
-                    {new Intl.DateTimeFormat(LOCALE[lang], { month: "short", timeZone: "UTC" }).format(
-                      new Date(item.ymd + "T12:00:00Z"),
-                    )}
+                    {new Intl.DateTimeFormat(LOCALE[lang], {
+                      month: "short",
+                      timeZone: "UTC",
+                    }).format(new Date(item.ymd + "T12:00:00Z"))}
                   </span>
                   <strong>{Number(item.ymd.slice(8))}</strong>
+                  {soonDays(clock.ymd, item.ymd) !== null && (
+                    <em className="soon-badge">{formatWhen(item.ymd, clock.ymd, lang)}</em>
+                  )}
                 </div>
                 <div>
                   <h3>{tr(lang, item.title)}</h3>

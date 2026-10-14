@@ -57,6 +57,12 @@ export function daysBetween(fromYmd: string, toYmd: string): number {
   return Math.round((end - start) / 86_400_000);
 }
 
+/** Days until a date when it is 0..7 days away (today counts), else null. */
+export function soonDays(todayYmd: string, ymd: string): number | null {
+  const days = daysBetween(todayYmd, ymd);
+  return days >= 0 && days <= 7 ? days : null;
+}
+
 export type TermPhase =
   | { kind: "before"; daysUntil: number }
   | { kind: "during"; day: number; week: number }

@@ -14,8 +14,9 @@ import { K12Guide } from "@/components/k12-guide";
 import { cn } from "@/lib/cn";
 import { useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
-import { eugeneClock, formatWhen, hmToMin } from "@/lib/time";
-import { uoAcademicTerm, uoTermIsExpired } from "@/lib/calendar";
+import { eugeneClock, formatWhen, hmToMin, soonDays } from "@/lib/time";
+import { IcsButton } from "@/components/ics-button";
+import { liveDeadlines, uoAcademicTerm, uoTermIsExpired } from "@/lib/calendar";
 import { deskText as c } from "@/lib/desk-copy";
 
 export const Route = createFileRoute("/guide")({
@@ -112,9 +113,16 @@ function UniGuide() {
       </section>
 
       <section>
-        <h2 className="font-display text-3xl text-ink">
-          {tr(lang, uoAcademicTerm.label)}
-        </h2>
+        <div className="section-heading-row">
+          <h2 className="font-display text-3xl text-ink">{tr(lang, uoAcademicTerm.label)}</h2>
+          {clock && (
+            <IcsButton
+              items={liveDeadlines("uni", null, clock)}
+              lang={lang}
+              href={uoAcademicTerm.sourceHref}
+            />
+          )}
+        </div>
         {clock && uoTermIsExpired(clock) ? (
           <p className="mt-4 rounded-lg border border-line bg-card p-4 text-sm text-muted">
             {c(lang, "termExpired")}{" "}
@@ -134,9 +142,15 @@ function UniGuide() {
               return (
                 <li key={item.id} className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
                   <p className={cn("font-display text-lg", past ? "text-muted" : "text-ink")}>
-                    {past
-                      ? tr(lang, { en: "Passed", zh: "已过" })
-                      : formatWhen(item.ymd, clock?.ymd ?? "", lang)}
+                    {past ? (
+                      tr(lang, { en: "Passed", zh: "已过" })
+                    ) : clock && soonDays(clock.ymd, item.ymd) !== null ? (
+                      <span className="soon-badge soon-badge-inline">
+                        {formatWhen(item.ymd, clock.ymd, lang)}
+                      </span>
+                    ) : (
+                      formatWhen(item.ymd, clock?.ymd ?? "", lang)
+                    )}
                   </p>
                   <div>
                     <p className={cn("font-medium", past ? "text-muted" : "text-ink")}>
