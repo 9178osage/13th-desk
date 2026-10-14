@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, Sun } from "lucide-react";
-import { useLang } from "@/lib/store";
+import { useDesk, useLang } from "@/lib/store";
+import type { Level } from "@/lib/levels";
 import { tr, type Copy, type Lang } from "@/lib/text";
 import { formatWhen } from "@/lib/time";
 import { Button } from "@/components/ui";
 
-type Kind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
+import { skyAdvice, type Kind } from "@/lib/sky-advice";
 
 type Forecast = {
   current: { temperature_2m: number; weather_code: number };
@@ -76,6 +77,7 @@ function asForecast(value: unknown): Forecast | null {
 
 export function WeatherCard() {
   const lang = useLang();
+  const level = useDesk((s) => s.level);
   const [data, setData] = useState<Forecast | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -139,13 +141,13 @@ export function WeatherCard() {
           {tr(lang, { en: "Checking the sky…", zh: "正在查天气…" })}
         </p>
       ) : (
-        <Sky data={data} lang={lang} />
+        <Sky data={data} lang={lang} level={level} />
       )}
     </section>
   );
 }
 
-function Sky({ data, lang }: { data: Forecast; lang: Lang }) {
+function Sky({ data, lang, level }: { data: Forecast; lang: Lang; level: Level }) {
   const f = Math.round(data.current.temperature_2m);
   const c = Math.round(((data.current.temperature_2m - 32) * 5) / 9);
   const kind = kindOf(data.current.weather_code);
@@ -155,6 +157,7 @@ function Sky({ data, lang }: { data: Forecast; lang: Lang }) {
   const unit = metric ? "°C" : "°F";
   const small = metric ? `${f}°F` : `${c}°C`;
   const today = data.daily.time[0] ?? "";
+  const advice = skyAdvice(kind, level);
 
   return (
     <>
@@ -168,6 +171,7 @@ function Sky({ data, lang }: { data: Forecast; lang: Lang }) {
       <p className="mt-2 text-sm text-muted">
         {small} · {skyLabel(kind, lang)}
       </p>
+      {advice && <p className="weather-advice">{tr(lang, advice)}</p>}
       <ul className="mt-4 grid grid-cols-3 gap-2 border-t border-line pt-3">
         {data.daily.time.slice(0, 3).map((ymd, index) => {
           const dayKind = kindOf(data.daily.weather_code[index] ?? 3);

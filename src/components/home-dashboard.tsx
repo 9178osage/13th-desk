@@ -8,6 +8,7 @@ import {
   CheckCheck,
   Heart,
   MapPin,
+  Megaphone,
   Plus,
   Star,
   Trash2,
@@ -16,6 +17,7 @@ import { Button, Input } from "@/components/ui";
 import { WeekSchedule } from "@/components/week-schedule";
 import { WeatherCard } from "@/components/weather";
 import { deadlines } from "@/data/guide";
+import { releaseLine } from "@/data/k12";
 import { quickLinks } from "@/data/quick-links";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
@@ -257,6 +259,15 @@ export function HomeDashboard() {
       </nav>
       <div className="today-layout">
         <div className="today-primary">
+          {level !== "uni" && (district === null || district === "4j") && clock?.weekday === 3 && (
+            <aside className="release-banner" role="note">
+              <Megaphone size={20} aria-hidden="true" />
+              <div>
+                <strong>{c(lang, "wednesdayRelease")}</strong>
+                <p>{tr(lang, releaseLine(level, true))}</p>
+              </div>
+            </aside>
+          )}
           <TaskList key={level} />
           <WeekSchedule />
         </div>
