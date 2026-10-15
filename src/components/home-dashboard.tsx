@@ -16,17 +16,17 @@ import {
 import { Button, Input } from "@/components/ui";
 import { WeekSchedule } from "@/components/week-schedule";
 import { WeatherCard } from "@/components/weather";
-import { checklist, deadlines } from "@/data/guide";
-import { k12Checks, releaseLine } from "@/data/k12";
+import { deadlines } from "@/data/guide";
+import { releaseLine } from "@/data/k12";
 import { quickLinks } from "@/data/quick-links";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
-import type { Level } from "@/lib/levels";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr } from "@/lib/text";
 import { LOCALE } from "@/lib/locale";
 import { eugeneClock, formatDateline, formatWhen, hmToMin, soonDays } from "@/lib/time";
 import { IcsButton } from "@/components/ics-button";
 import { useClock } from "@/lib/use-clock";
+import { starterTasks } from "@/lib/starter-tasks";
 import { nextClass, scheduleForDay } from "@/lib/schedule";
 import {
   k12CalendarSource,
@@ -38,17 +38,12 @@ import {
   uoTermIsExpired,
 } from "@/lib/calendar";
 
-// Starter tasks for an empty list: UO's first-weeks checklist (drop check,
-// Knight, EmX) or the first three K–12 checks for the level.
-const UNI_STARTERS = ["schedule", "knight", "bus"];
-function starterTasks(level: Level) {
-  if (level === "uni") return checklist.filter((item) => UNI_STARTERS.includes(item.id));
-  return k12Checks[level].slice(0, 3);
-}
-
 function TaskList() {
   const lang = useLang();
   const level = useDesk((s) => s.level);
+  const district = useDesk((s) => s.district);
+  const now = useClock();
+  const clock = now ? eugeneClock(now) : null;
   const hydrated = useDesk((s) => s.hydrated);
   const notes = useDesk((s) => s.buckets[s.level].notes);
   const add = useDesk((s) => s.addNote);
@@ -125,7 +120,7 @@ function TaskList() {
           {hydrated && notes.length === 0 && (
             <div className="task-starters" role="group" aria-label={c(lang, "quickAdd")}>
               <span>{c(lang, "quickAdd")}</span>
-              {starterTasks(level).map((item) => (
+              {starterTasks(level, district, clock?.ymd ?? null).map((item) => (
                 <button
                   type="button"
                   key={item.id}

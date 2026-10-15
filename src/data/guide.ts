@@ -83,9 +83,14 @@ export const deadlines: Deadline[] = [
   },
 ];
 
-export const checklist: { id: string; label: Bilingual }[] = [
+/**
+ * `until`: last day (Eugene date) the item still makes sense as a to-do; after it
+ * the home page stops suggesting it. Optional, so older entries need nothing.
+ */
+export const checklist: { id: string; label: Bilingual; until?: string }[] = [
   {
     id: "schedule",
+    until: "2026-10-03",
     label: {
       en: "Open your schedule and mark anything you might drop. No-W day is October 3.",
       zh: "打开课表，标出可能要退的课。不记 W 的截止日期是 10 月 3 日。",
@@ -93,6 +98,7 @@ export const checklist: { id: string; label: Bilingual }[] = [
   },
   {
     id: "add",
+    until: "2026-10-05",
     label: {
       en: "If a class is still wrong, add or swap before October 5.",
       zh: "课还不对的话，10 月 5 日前加完或换完。",

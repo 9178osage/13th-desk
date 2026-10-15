@@ -241,7 +241,13 @@ export function releaseLine(level: Level, wednesday: boolean): Copy {
   };
 }
 
-export const k12Checks: Record<Exclude<Level, "uni">, { id: string; label: Copy }[]> = {
+/**
+ * `district: "4j"` marks a check that only holds for 4J (its calendar, bell times,
+ * grading days); `until` is the last Eugene date it is still worth doing. Both
+ * optional: the home page uses them to skip starter tasks that do not apply.
+ */
+export type K12Check = { id: string; label: Copy; district?: "4j"; until?: string };
+export const k12Checks: Record<Exclude<Level, "uni">, K12Check[]> = {
   elem: [
     {
       id: "bell",
@@ -251,7 +257,7 @@ export const k12Checks: Record<Exclude<Level, "uni">, { id: string; label: Copy 
       },
     },
     {
-      id: "pdf",
+      id: "pdf", district: "4j",
       label: {
         en: "Put the 4J calendar PDF somewhere you will see it. Elementary days off are not a copy of the high school list.",
         zh: "把 4J 校历 PDF 放在你会看见的地方。小学的放假日和高中不是同一张表。",
@@ -309,14 +315,14 @@ export const k12Checks: Record<Exclude<Level, "uni">, { id: string; label: Copy 
       },
     },
     {
-      id: "wed",
+      id: "wed", district: "4j",
       label: {
-        en: "Wednesday release is 2:35. Rides that assume 3:40 will be early.",
-        zh: "周三 2:35 放学。还按 3:40 来接的人会早到。",
+        en: "Wednesday release is 2:35. Rides that assume 3:40 will be late.",
+        zh: "周三 2:35 放学。还按 3:40 来接的人会晚到。",
       },
     },
     {
-      id: "grade",
+      id: "grade", district: "4j", until: "2026-11-06",
       label: {
         en: "November 6 is a grading day with no school.",
         zh: "11 月 6 日是登分日，不上课。",
@@ -344,7 +350,7 @@ export const k12Checks: Record<Exclude<Level, "uni">, { id: string; label: Copy 
       },
     },
     {
-      id: "sem",
+      id: "sem", district: "4j", until: "2027-02-02",
       label: {
         en: "Second semester starts February 2. February 1 is a day off.",
         zh: "下学期 2 月 2 日开始。2 月 1 日不上课。",
@@ -360,14 +366,14 @@ export const k12Checks: Record<Exclude<Level, "uni">, { id: string; label: Copy 
   ],
   high: [
     {
-      id: "wed",
+      id: "wed", district: "4j",
       label: {
         en: "Wednesday release is 2:30. A job or practice can start then only if the school actually allows it.",
         zh: "周三 2:30 放学。兼职或训练能不能接着开始，先问学校。",
       },
     },
     {
-      id: "early",
+      id: "early", until: "2026-11-01",
       label: {
         en: "Seniors: November 1 is a common early-application date. Check each college.",
         zh: "高三：11 月 1 日是很多学校的提前申请日。一所一所核对。",
@@ -381,14 +387,14 @@ export const k12Checks: Record<Exclude<Level, "uni">, { id: string; label: Copy 
       },
     },
     {
-      id: "grade",
+      id: "grade", district: "4j", until: "2027-01-29",
       label: {
         en: "November 6 and January 29 are grading days. No school.",
         zh: "11 月 6 日和 1 月 29 日是登分日，不上课。",
       },
     },
     {
-      id: "sem",
+      id: "sem", district: "4j", until: "2027-02-02",
       label: {
         en: "Second semester starts February 2.",
         zh: "下学期 2 月 2 日开始。",
@@ -402,7 +408,7 @@ export const k12Checks: Record<Exclude<Level, "uni">, { id: string; label: Copy 
       },
     },
     {
-      id: "ihs",
+      id: "ihs", district: "4j",
       label: {
         en: "Eugene International sits inside the four 4J high schools. Your building is still South, Sheldon, Churchill, or North.",
         zh: "Eugene International 在 4J 学区四所高中里面。你的楼还是 South、Sheldon、Churchill 或 North。",

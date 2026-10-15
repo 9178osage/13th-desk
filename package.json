@@ -15,7 +15,7 @@
     "preview:restart": "node scripts/preview.mjs restart",
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
-    "test:desk": "node --experimental-strip-types --test src/lib/desk.test.ts src/lib/desk-storage.test.ts src/lib/tab-presence.test.ts src/lib/channels.test.ts",
+    "test:desk": "node --experimental-strip-types --test src/lib/desk.test.ts src/lib/desk-storage.test.ts src/lib/merge3.test.ts src/lib/tab-presence.test.ts src/lib/channels.test.ts",
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "test": "node scripts/test-all.mjs",
     "lint": "eslint .",

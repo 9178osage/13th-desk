@@ -745,7 +745,7 @@ import { skyAdvice } from "./sky-advice.ts";
 import { sampleSlots } from "./schedule-samples.ts";
 import { quickLinks, ALL_QUICK_LINKS } from "../data/quick-links.ts";
 import { soonDays } from "./days.ts";
-import { wrap } from "./lock-screen.ts";
+import { wrap, lockLayout, MIN_CARD_H } from "./lock-screen.ts";
 
 test("upgrade copy keys exist in all six languages", () => {
   const keys = [
@@ -949,4 +949,58 @@ test("lock-screen wrap never drops a title tail without an ellipsis", () => {
   const filled = wrap(ctx, "数据结构与算法设计基础课表", width, maxLines);
   assert.equal(filled.at(-1)?.endsWith("…"), true, JSON.stringify(filled));
   assert.ok(filled.join("").replace("…", "").length <= width * maxLines);
+});
+
+test("lock-screen layout never squeezes cards below a readable height (audit 10-15 P2)", () => {
+  const avail = 926; // gridBottom - gridTop - header on the 1080x1920 canvas
+  const gap = 14;
+  for (const count of [1, 3, 8, 10, 11, 15, 40]) {
+    const { shown, more, cardH } = lockLayout(count, avail, gap);
+    const slots = shown + (more > 0 ? 1 : 0);
+    assert.equal(shown + more, count);
+    assert.ok(cardH >= MIN_CARD_H, `count ${count}: cardH ${cardH}`);
+    assert.ok(slots * cardH + (slots - 1) * gap <= avail + 0.001, `count ${count} overflows`);
+  }
+  assert.deepEqual(lockLayout(15, avail, gap).more > 0, true);
+  assert.equal(lockLayout(3, avail, gap).more, 0);
+});
+
+test("lock-screen wrap breaks a word wider than the card", () => {
+  const ctx = { measureText: (s: string) => ({ width: s.length * 14 }) } as unknown as CanvasRenderingContext2D;
+  const lines = wrap(ctx, "IntroductionToMicroeconomics Seminar", 147, 3);
+  for (const line of lines) assert.ok(line.length * 14 <= 147, JSON.stringify(lines));
+  assert.ok(lines.at(-1)!.endsWith("…"));
+  assert.deepEqual(wrap(ctx, "Calculus", 147, 3), ["Calculus"]);
+});
+
+import { starterTasks } from "./starter-tasks.ts";
+test("starter tasks drop past dates and 4J-only items for other districts (audit 10-15 P2)", () => {
+  const ids = (level: Parameters<typeof starterTasks>[0], district: Parameters<typeof starterTasks>[1], ymd: string | null) =>
+    starterTasks(level, district, ymd).map((t) => t.id);
+  assert.deepEqual(ids("uni", null, "2026-10-02"), ["schedule", "knight", "bus"]);
+  assert.deepEqual(ids("uni", null, "2026-10-03"), ["schedule", "knight", "bus"]); // still the day itself
+  assert.ok(!ids("uni", null, "2026-10-15").includes("schedule"));
+  assert.equal(ids("uni", null, "2026-10-15").length, 3);
+  for (const level of ["elem", "mid", "high"] as const) {
+    for (const district of ["bethel", "springfield"] as const) {
+      const picked = starterTasks(level, district, "2026-10-15");
+      assert.ok(picked.every((t) => t.district !== "4j"), `${level}/${district}`);
+      assert.equal(picked.length, 3);
+    }
+  }
+  assert.ok(ids("mid", "4j", "2026-10-15").includes("wed"));
+  assert.ok(ids("mid", null, "2026-10-15").includes("wed"));
+  assert.ok(!ids("mid", "bethel", "2026-10-15").includes("wed"));
+  assert.ok(!ids("mid", "bethel", "2026-10-15").includes("grade"));
+});
+test("Wednesday pickup line says 3:40 rides arrive late, in all six languages (audit 10-15 P3)", async () => {
+  const fs = await import("node:fs");
+  const k12 = fs.readFileSync(new URL("../data/k12.ts", import.meta.url), "utf8");
+  assert.match(k12, /Rides that assume 3:40 will be late\./);
+  assert.match(k12, /会晚到/);
+  assert.doesNotMatch(k12, /3:40 will be early|会早到/);
+  for (const l of ["es", "ko", "vi", "ja"]) {
+    const pack = JSON.parse(fs.readFileSync(new URL(`./i18n/${l}.json`, import.meta.url), "utf8"));
+    assert.ok(pack["Wednesday release is 2:35. Rides that assume 3:40 will be late."], l);
+  }
 });

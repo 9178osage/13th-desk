@@ -47,7 +47,11 @@ function roundRect(
  * that does not fit must never lose its tail silently.
  */
 export function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, maxLines: number) {
-  const tokens = /\s/.test(text) ? text.split(/(\s+)/) : [...text];
+  // A single word wider than the card (IntroductionToMicroeconomics) is broken
+  // by characters, so no line can run past the card edge.
+  const tokens = (/\s/.test(text) ? text.split(/(\s+)/) : [...text]).flatMap((token) =>
+    token.length > 1 && !/^\s+$/.test(token) && ctx.measureText(token).width > width ? [...token] : [token],
+  );
   const lines: string[] = [];
   let line = "";
   // Track the overflow while wrapping instead of comparing character counts after
@@ -75,6 +79,24 @@ export function wrap(ctx: CanvasRenderingContext2D, text: string, width: number,
     lines[maxLines - 1] = last + "…";
   }
   return lines;
+}
+
+/** Smallest card that still fits a time line and one title line legibly. */
+export const MIN_CARD_H = 72;
+const MAX_CARD_H = 230;
+
+/**
+ * How one day column is laid out in `avail` px. If the day has more classes than
+ * fit at MIN_CARD_H, the last slot becomes a "+N" chip instead of cards being
+ * squeezed until text overlaps (audit 10-15 P2: 15 classes on one day).
+ */
+export function lockLayout(count: number, avail: number, gap: number) {
+  const fit = Math.max(1, Math.floor((avail + gap) / (MIN_CARD_H + gap)));
+  const slots = Math.max(1, Math.min(count, fit));
+  const shown = count > fit ? fit - 1 : count;
+  const more = count - shown;
+  const cardH = Math.min(MAX_CARD_H, (avail - gap * (slots - 1)) / slots);
+  return { shown, more, cardH };
 }
 
 export async function drawLockScreen(
@@ -111,7 +133,7 @@ export async function drawLockScreen(
   );
   const most = Math.max(1, ...byDay.map((rows) => rows.length));
   const headerH = 64;
-  const cardH = Math.min(230, (gridBottom - gridTop - headerH - gap * (most - 1)) / most);
+  const { shown, cardH } = lockLayout(most, gridBottom - gridTop - headerH, gap);
 
   DAYS.forEach((day, i) => {
     const x = left + i * (colW + gap);
@@ -120,8 +142,21 @@ export async function drawLockScreen(
     ctx.fillText(labels.days[day], x + 6, gridTop + 36);
     ctx.fillStyle = LINE;
     ctx.fillRect(x, gridTop + headerH - 14, colW, 2);
-    byDay[i].forEach((row, j) => {
+    const rows = byDay[i];
+    const visible = rows.length > shown ? rows.slice(0, shown) : rows;
+    if (rows.length > visible.length) {
+      const y = gridTop + headerH + visible.length * (cardH + gap);
+      roundRect(ctx, x, y, colW, cardH, 18);
+      ctx.strokeStyle = LINE;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = MUTED;
+      ctx.font = `600 28px ${FONT}`;
+      ctx.fillText(`+${rows.length - visible.length}`, x + 16, y + cardH / 2 + 10);
+    }
+    visible.forEach((row, j) => {
       const y = gridTop + headerH + j * (cardH + gap);
+      ctx.save();
       roundRect(ctx, x, y, colW, cardH, 18);
       ctx.fillStyle = row.pinned ? BLUE : CARD;
       ctx.fill();
@@ -132,18 +167,22 @@ export async function drawLockScreen(
       }
       const pad = 16;
       const inner = colW - pad * 2;
+      // Nothing drawn for a card may spill onto the next one.
+      ctx.clip();
+      const compact = cardH < 120;
       ctx.fillStyle = row.pinned ? "#eaf0ff" : MUTED;
-      ctx.font = `500 ${cardH < 120 ? 22 : 26}px ${FONT}`;
-      ctx.fillText(row.start, x + pad, y + 38);
-      if (cardH >= 120) ctx.fillText(row.end, x + pad, y + 68);
+      ctx.font = `500 ${compact ? 22 : 26}px ${FONT}`;
+      ctx.fillText(row.start, x + pad, y + (compact ? 30 : 38));
+      if (!compact) ctx.fillText(row.end, x + pad, y + 68);
       ctx.fillStyle = row.pinned ? "#ffffff" : INK;
-      const size = cardH < 120 ? 24 : 28;
+      const size = compact ? 22 : 28;
       ctx.font = `600 ${size}px ${FONT}`;
-      const titleTop = y + (cardH < 120 ? 70 : 108);
-      const room = Math.max(1, Math.floor((y + cardH - pad - titleTop + size) / (size + 6)));
+      const titleTop = y + (compact ? 58 : 108);
+      const room = Math.max(1, Math.floor((y + cardH - 10 - titleTop) / (size + 6)) + 1);
       wrap(ctx, row.title, inner, Math.min(room, 3)).forEach((line, k) => {
         ctx.fillText(line, x + pad, titleTop + k * (size + 6));
       });
+      ctx.restore();
     });
   });
 

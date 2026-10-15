@@ -140,3 +140,74 @@ test("no Web Locks needed: the adapter saves with plain localStorage", async () 
   assert.equal(await tab.replace(value("import")), true);
   assert.deepEqual(saved(env.data), ["import"]);
 });
+
+/** Like `environment()`, but storage events are queued tasks, as in real browsers. */
+function queuedEnvironment() {
+  const data = new Map<string, string>();
+  const queue: { to: number; raw: string }[] = [];
+  const tabs: { receive: (raw: string) => void }[] = [];
+  const open = () => {
+    const id = tabs.length;
+    let memory: Desk = { notes: [] };
+    const adapter = createDeskStorage<Desk>({
+      storage: {
+        getItem: (key) => data.get(key) ?? null,
+        setItem: (key, raw) => {
+          const changed = data.get(key) !== raw;
+          data.set(key, raw);
+          if (changed) tabs.forEach((_, to) => { if (to !== id) queue.push({ to, raw }); });
+        },
+        removeItem: (key) => { data.delete(key); },
+      },
+      status() {},
+      merged: (v) => { memory = v.state as Desk; },
+    });
+    const set = (next: Desk) => { memory = next; adapter.storage.setItem(KEY, { state: next, version: 0 }); };
+    tabs.push({ receive: (raw) => adapter.syncFrom(raw, (v) => set(v.state)) });
+    return {
+      hydrate: async () => { memory = (await adapter.storage.getItem(KEY))?.state ?? { notes: [] }; },
+      add: (note: string) => set({ notes: [...memory.notes, note] }),
+      remove: (note: string) => set({ notes: memory.notes.filter((n) => n !== note) }),
+      memory: () => memory.notes,
+    };
+  };
+  const deliver = () => { for (const e of queue.splice(0)) tabs[e.to].receive(e.raw); };
+  return { data, open, deliver };
+}
+
+test("a late storage event never rolls back a newer save (audit 10-15 P1)", async () => {
+  const env = queuedEnvironment(); const a = env.open(); const b = env.open();
+  await a.hydrate(); await b.hydrate();
+  a.add("A");
+  b.add("B"); // B saves before A's event arrives
+  assert.deepEqual(saved(env.data), ["A", "B"]); // merged, not overwritten
+  env.deliver();
+  assert.deepEqual(a.memory(), ["A", "B"]);
+  assert.deepEqual(b.memory(), ["A", "B"]);
+  b.add("B later");
+  env.deliver();
+  assert.deepEqual(saved(env.data), ["A", "B", "B later"]);
+  assert.deepEqual(a.memory(), ["A", "B", "B later"]);
+});
+
+test("interleaved deletes and adds across tabs keep every save", async () => {
+  const env = queuedEnvironment(); const a = env.open(); const b = env.open();
+  await a.hydrate(); await b.hydrate();
+  a.add("x"); a.add("y"); env.deliver();
+  a.remove("x");
+  b.add("z"); // B has not seen the delete yet
+  env.deliver();
+  assert.deepEqual(saved(env.data), ["y", "z"]);
+  assert.deepEqual(a.memory(), ["y", "z"]);
+  assert.deepEqual(b.memory(), ["y", "z"]);
+});
+
+test("old saves without any new field still load and save unchanged", async () => {
+  const env = queuedEnvironment();
+  env.data.set(KEY, JSON.stringify(value("old")));
+  const a = env.open(); await a.hydrate();
+  assert.deepEqual(a.memory(), ["old"]);
+  a.add("new");
+  assert.deepEqual(Object.keys(JSON.parse(env.data.get(KEY)!)).sort(), ["state", "version"]);
+  assert.equal(JSON.parse(env.data.get(KEY)!).version, 0);
+});

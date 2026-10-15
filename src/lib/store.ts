@@ -1,6 +1,6 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, type StorageValue } from "zustand/middleware";
 import { createDeskStorage, type SaveStatus } from "@/lib/desk-storage";
 import { createTabPresence } from "@/lib/tab-presence";
 import { isLevel, type Level } from "@/lib/levels";
@@ -255,6 +255,8 @@ const deskStorage = typeof window === "undefined" ? null : createDeskStorage<Per
     removeItem: (key) => localStorage.removeItem(key),
   },
   status: (reason) => useStorageStatus.setState({ failed: reason !== "ready", reason }),
+  // A save was merged with a newer save from another tab: show the merged desk.
+  merged: (value) => applyStoredDesk(value as StorageValue<PersistedDesk>),
 });
 
 const deskStore = create<DeskState>()(
@@ -649,13 +651,16 @@ if (typeof window !== "undefined") {
  */
 function syncFromOtherTab(raw: string | null) {
   if (!deskStorage || !useDesk.getState().hydrated) return;
-  deskStorage.syncFrom(raw, (value) => {
-    if (value.version !== 0) return;
-    const merge = useDesk.persist.getOptions().merge;
-    if (!merge) return;
-    const current = useDesk.getState();
-    useDesk.setState(merge(value.state, { ...current, langSet: false, levelSet: false }));
-  });
+  deskStorage.syncFrom(raw, applyStoredDesk);
+}
+
+/** Load a saved desk value into memory (stored values win, including language and level). */
+function applyStoredDesk(value: StorageValue<PersistedDesk>) {
+  if (value.version !== 0) return;
+  const merge = useDesk.persist.getOptions().merge;
+  if (!merge) return;
+  const current = useDesk.getState();
+  useDesk.setState(merge(value.state, { ...current, langSet: false, levelSet: false }));
 }
 
 if (typeof window !== "undefined") {
