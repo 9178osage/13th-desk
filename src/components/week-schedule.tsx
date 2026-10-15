@@ -66,6 +66,9 @@ function ScheduleEditor() {
     setOpen(true);
     setMessage(null);
     setAwaitConfirm(false);
+    // Same reason as the save path: the stale undo key no longer matches what the
+    // feedback line is talking about.
+    setDeleted(null);
   }
 
   function saveDraft() {
@@ -87,6 +90,7 @@ function ScheduleEditor() {
     setEditing(null);
     setAwaitConfirm(false);
     setMessage("classSaved");
+    setDeleted(null);
   }
 
   function submit(e: FormEvent) {
@@ -118,6 +122,7 @@ function ScheduleEditor() {
     }
     setDay(sampleSlots(level)[0]?.day ?? "mon");
     setMessage(added ? "sampleHint" : "classLimit");
+    if (added) setDeleted(null);
   }
 
   const [exporting, setExporting] = useState(false);
@@ -139,7 +144,8 @@ function ScheduleEditor() {
         },
       });
       downloadPng(blob);
-      setMessage(null);
+      setMessage("lockImageSaved");
+      setDeleted(null);
     } catch {
       setMessage("lockImageFailed");
     } finally {

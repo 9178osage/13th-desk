@@ -745,6 +745,7 @@ import { skyAdvice } from "./sky-advice.ts";
 import { sampleSlots } from "./schedule-samples.ts";
 import { quickLinks, ALL_QUICK_LINKS } from "../data/quick-links.ts";
 import { soonDays } from "./days.ts";
+import { wrap } from "./lock-screen.ts";
 
 test("upgrade copy keys exist in all six languages", () => {
   const keys = [
@@ -768,6 +769,7 @@ test("upgrade copy keys exist in all six languages", () => {
     "icsNone",
     "lockImage",
     "lockImageFailed",
+    "lockImageSaved",
     "weekTitle",
   ] as const;
   for (const key of keys) {
@@ -906,4 +908,45 @@ test("palette and lock-screen code stay out of the first-load bundle", () => {
   };
   walk(src);
   assert.deepEqual(cmdkUsers, ["components/command-palette.tsx"]);
+});
+
+test(".ics skips days that do not exist on the calendar", () => {
+  const ics = buildIcs(
+    [
+      { id: "ok", ymd: "2026-11-11", title: "Veterans Day" },
+      { id: "bad", ymd: "2026-02-31", title: "Not a day" },
+      { id: "bad2", ymd: "2027-02-29", title: "Not a leap day" },
+      { id: "leap", ymd: "2028-02-29", title: "Real leap day" },
+    ],
+    new Date("2026-10-14T12:00:00Z"),
+  );
+  assert.match(ics, /DTSTART;VALUE=DATE:20261111/);
+  assert.match(ics, /DTSTART;VALUE=DATE:20280229/);
+  // Date.parse would have rolled these two into March and exported them.
+  assert.doesNotMatch(ics, /2026-02-31|20260303|20270301/);
+  assert.doesNotMatch(ics, /Not a day|Not a leap day/);
+  assert.equal((ics.match(/BEGIN:VEVENT/g) ?? []).length, 2);
+});
+
+test("lock-screen wrap never drops a title tail without an ellipsis", () => {
+  // Real text metrics are not available under node, so each glyph is one unit wide.
+  const ctx = { measureText: (s: string) => ({ width: [...s].length }) } as unknown as CanvasRenderingContext2D;
+  const width = 6;
+  const maxLines = 2;
+
+  // 11 glyphs fit in two six-wide lines: nothing may be dropped or marked.
+  assert.deepEqual(wrap(ctx, "微观经济学原理研讨课程", width, maxLines), ["微观经济学原", "理研讨课程"]);
+  // 14 glyphs: the tail must be marked, never silently dropped.
+  const cjk = wrap(ctx, "微观经济学原理研讨课程安排表", width, maxLines);
+  assert.deepEqual(cjk, ["微观经济学原", "理研讨课程…"]);
+  assert.ok(cjk.join("").endsWith("…"));
+
+  const english = wrap(ctx, "Advanced Microeconomics Seminar Series", 12, maxLines);
+  assert.equal(english.at(-1)?.endsWith("…"), true, JSON.stringify(english));
+  assert.deepEqual(wrap(ctx, "Calculus", 12, maxLines), ["Calculus"]);
+
+  // A title that fills the last line completely still gets its ellipsis.
+  const filled = wrap(ctx, "数据结构与算法设计基础课表", width, maxLines);
+  assert.equal(filled.at(-1)?.endsWith("…"), true, JSON.stringify(filled));
+  assert.ok(filled.join("").replace("…", "").length <= width * maxLines);
 });

@@ -35,7 +35,7 @@ export const places: Place[] = [
     area: "campus",
     name: "Knight Library",
     hours: "Varies · check library hours (finals shift)",
-    href: "https://library.uoregon.edu/hours",
+    href: "https://library.uoregon.edu/knight/knight-library-hours",
     blurb: {
       en: "The default. Learn which floor is actually quiet. Hours shift in finals week — check before you cross campus in the rain.",
       zh: "校园自习的常用选择，可按需要寻找安静楼层。期末和假期开放时间可能调整，出发前请查看官网。",

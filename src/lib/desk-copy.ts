@@ -775,6 +775,14 @@ const copy = {
     "Ảnh màn hình khóa",
     "ロック画面画像",
   ],
+  lockImageSaved: [
+    "Lock-screen image downloaded.",
+    "锁屏图已下载。",
+    "Imagen de pantalla de bloqueo descargada.",
+    "잠금 화면 이미지를 내려받았어요.",
+    "Đã tải ảnh màn hình khóa.",
+    "ロック画面画像をダウンロードしました。",
+  ],
   lockImageFailed: [
     "Couldn't make the image in this browser.",
     "当前浏览器无法生成图片。",

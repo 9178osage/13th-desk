@@ -275,7 +275,7 @@ export const helpLinks: { href: string; label: Bilingual; note: Bilingual }[] = 
     note: { en: "Building names are not intuitive. PLC is a real place.", zh: "楼的名字不好猜。PLC 是一栋真的教学楼。" },
   },
   {
-    href: "https://library.uoregon.edu/hours",
+    href: "https://library.uoregon.edu/knight/knight-library-hours",
     label: { en: "Library hours", zh: "图书馆时间" },
     note: { en: "Today, not a rumor from fall of last year.", zh: "看今天的开放时间，别用去年秋天的说法。" },
   },

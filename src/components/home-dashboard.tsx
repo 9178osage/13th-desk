@@ -72,6 +72,9 @@ function TaskList() {
     setDraft("");
     setFilter("all");
     setMessage("added");
+    // The undo key belonged to the previous deletion: leaving it next to "Added
+    // to your list." reads as if it would undo the addition.
+    setDeleted(null);
   }
 
   return (
@@ -127,8 +130,10 @@ function TaskList() {
                   type="button"
                   key={item.id}
                   onClick={() => {
-                    if (add(tr(lang, item.label))) setMessage("added");
-                    else setMessage("taskLimit");
+                    if (add(tr(lang, item.label))) {
+                      setMessage("added");
+                      setDeleted(null);
+                    } else setMessage("taskLimit");
                   }}
                 >
                   <Plus size={14} aria-hidden="true" />

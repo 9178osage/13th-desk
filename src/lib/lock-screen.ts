@@ -41,11 +41,20 @@ function roundRect(
   ctx.closePath();
 }
 
-/** Wrap by words, or by characters for CJK text without spaces. */
-function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, maxLines: number) {
+/**
+ * Wrap by words, or by characters for CJK text without spaces. Exported (and
+ * canvas-only, no DOM) so desk.test.ts can pin the ellipsis behaviour: a title
+ * that does not fit must never lose its tail silently.
+ */
+export function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, maxLines: number) {
   const tokens = /\s/.test(text) ? text.split(/(\s+)/) : [...text];
   const lines: string[] = [];
   let line = "";
+  // Track the overflow while wrapping instead of comparing character counts after
+  // the fact: `lines.join(" ")` inserts separator spaces a CJK title never had, so
+  // the old length test read "fits" and the last line lost its tail with no
+  // ellipsis (线性代数与微分方程 rendered as 线性代数 / 与微分方).
+  let truncated = false;
   for (const token of tokens) {
     const next = line + token;
     if (ctx.measureText(next).width <= width || !line) {
@@ -54,16 +63,16 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, maxLin
     }
     lines.push(line.trim());
     line = token.trimStart();
-    if (lines.length === maxLines) break;
-  }
-  if (lines.length < maxLines && line.trim()) lines.push(line.trim());
-  if (lines.length === maxLines) {
-    let last = lines[maxLines - 1];
-    const used = lines.join(" ").length;
-    if (used < text.trim().length) {
-      while (last && ctx.measureText(last + "…").width > width) last = last.slice(0, -1);
-      lines[maxLines - 1] = last + "…";
+    if (lines.length === maxLines) {
+      truncated = true;
+      break;
     }
+  }
+  if (!truncated && line.trim()) lines.push(line.trim());
+  if (truncated) {
+    let last = lines[maxLines - 1];
+    while (last && ctx.measureText(last + "…").width > width) last = last.slice(0, -1);
+    lines[maxLines - 1] = last + "…";
   }
   return lines;
 }

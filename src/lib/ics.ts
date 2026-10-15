@@ -83,8 +83,15 @@ function stamp(now: Date): string {
   );
 }
 
+/**
+ * A real calendar day, not just a well-formed string: `Date.parse` happily rolls
+ * "2026-02-31" over to March 3, so the round trip is what rejects it. Invalid days
+ * used to be exported as an event on the wrong date.
+ */
 function validYmd(ymd: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(ymd) && !Number.isNaN(Date.parse(`${ymd}T12:00:00Z`));
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
+  const parsed = new Date(`${ymd}T12:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === ymd;
 }
 
 function validTime(hm: string | undefined): hm is string {

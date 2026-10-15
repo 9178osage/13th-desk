@@ -1,7 +1,7 @@
 import { Command } from "cmdk";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowUpRight, CalendarDays, Compass, Languages, MapPin, Search } from "lucide-react";
-import { places, forLevel } from "@/data/places";
+import { places, forLevel, areaName } from "@/data/places";
 import { ALL_QUICK_LINKS } from "@/data/quick-links";
 import { LEVELS } from "@/lib/levels";
 import { useDesk, useLang } from "@/lib/store";
@@ -82,7 +82,14 @@ export default function CommandPalette({
             <Command.Item
               key={place.id}
               value={`place:${place.id}`}
-              keywords={[place.name, tr(lang, place.blurb)]}
+              keywords={[
+                place.name,
+                tr(lang, place.blurb),
+                // The town/campus pages filter by area name too ("downtown", "市中心"),
+                // so the palette has to match the same words.
+                tr(lang, areaName[place.area]),
+                areaName[place.area].en,
+              ]}
               onSelect={() =>
                 run(() => void navigate({ to: `/${place.page}`, search: { q: place.name } }))
               }
