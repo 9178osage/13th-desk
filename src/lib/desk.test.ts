@@ -1004,3 +1004,25 @@ test("Wednesday pickup line says 3:40 rides arrive late, in all six languages (a
     assert.ok(pack["Wednesday release is 2:35. Rides that assume 3:40 will be late."], l);
   }
 });
+
+test("the place search lives in the route, so ?q= can pre-fill twice", () => {
+  const src = join(import.meta.dirname, "..");
+  const shared = readFileSync(join(src, "routes/place-search.ts"), "utf8");
+  assert.match(shared, /export function usePlaceQueryWriter/);
+  // Writes replace the history entry: typing must not fill the back button.
+  assert.match(shared, /replace: true/);
+  for (const [route, path, to] of [
+    ["town", "town.tsx", "/town"],
+    ["campus", "campus.tsx", "/campus"],
+  ] as const) {
+    const text = readFileSync(join(src, "routes", path), "utf8");
+    assert.match(text, new RegExp(`usePlaceQueryWriter\\("${to}"\\)`), `${route} writes ?q=`);
+    assert.match(text, /<PlaceBrowser[\s\S]*?query=\{q \?\? ""\}/, `${route} drives the box from ?q=`);
+    // The key is what made a same-URL pick a no-op: the box stayed empty because the
+    // component never remounted and the parameter had already been consumed.
+    assert.doesNotMatch(text, /key=\{(?:`\$\{level\}:)?q/, `${route} must not key on ?q=`);
+  }
+  const browser = readFileSync(join(src, "components/place-browser.tsx"), "utf8");
+  assert.match(browser, /onQueryChange: \(next: string\) => void/);
+  assert.doesNotMatch(browser, /useState\(initialQuery\)/, "the box is controlled by the route");
+});

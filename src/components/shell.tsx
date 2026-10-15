@@ -190,7 +190,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </header>
         {level !== "uni" && (
           <div className="district-toolbar">
-            <DistrictBar compact />
+            <DistrictBar />
           </div>
         )}
         {failed && (

@@ -28,21 +28,23 @@ export function PlaceBrowser({
   title,
   lead,
   cats,
-  initialQuery = "",
+  query,
+  onQueryChange,
 }: {
   page: "campus" | "town";
   kicker: Copy;
   title: Copy;
   lead: Copy;
   cats: { id: Filter; label: Copy }[];
-  initialQuery?: string;
+  /** The search text lives in the route (`?q=`), so this component stays controlled. */
+  query: string;
+  onQueryChange: (next: string) => void;
 }) {
   const lang = useLang();
   const level = useDesk((state) => state.level);
   const favs = useDesk((state) => state.buckets[state.level].favs);
   const toggleFav = useDesk((state) => state.toggleFav);
   const [cat, setCat] = useState<Filter>("all");
-  const [query, setQuery] = useState(initialQuery);
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -104,7 +106,7 @@ export function PlaceBrowser({
           />
           <Input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => onQueryChange(event.target.value)}
             placeholder={c(lang, "search")}
             className="pl-10"
           />
@@ -126,7 +128,7 @@ export function PlaceBrowser({
 
       <div className="search-results">
         <span role="status">{c(lang, "results", { n: list.length })}</span>
-        {query && <button onClick={() => setQuery("")}>{c(lang, "clear")}</button>}
+        {query && <button onClick={() => onQueryChange("")}>{c(lang, "clear")}</button>}
       </div>
       {list.length === 0 ? (
         <EmptyState

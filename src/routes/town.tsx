@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PlaceBrowser } from "@/components/place-browser";
+import { usePlaceQueryWriter, type PlaceSearch } from "@/routes/place-search";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/town")({
-  // ?q= pre-fills the place search (used by the ⌘K palette).
-  validateSearch: (search: Record<string, unknown>): { q?: string } =>
+  // ?q= is the place search itself, not a one-shot pre-fill (see place-search.ts).
+  validateSearch: (search: Record<string, unknown>): PlaceSearch =>
     typeof search.q === "string" && search.q.trim() ? { q: search.q.slice(0, 80) } : {},
   head: () => ({
     meta: [
@@ -22,11 +23,12 @@ export const Route = createFileRoute("/town")({
 function TownPage() {
   const level = useDesk((state) => state.level);
   const { q } = Route.useSearch();
+  const setQuery = usePlaceQueryWriter("/town");
   const young = level === "elem" || level === "mid";
   return (
     <PlaceBrowser
-      key={`${level}:${q ?? ""}`}
-      initialQuery={q}
+      query={q ?? ""}
+      onQueryChange={setQuery}
       page="town"
       kicker={
         young

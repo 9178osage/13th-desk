@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { K12Campus } from "@/components/k12-campus";
 import { PlaceBrowser } from "@/components/place-browser";
+import { usePlaceQueryWriter, type PlaceSearch } from "@/routes/place-search";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/campus")({
-  // ?q= pre-fills the place search (used by the ⌘K palette).
-  validateSearch: (search: Record<string, unknown>): { q?: string } =>
+  // ?q= is the place search itself, not a one-shot pre-fill (see place-search.ts).
+  validateSearch: (search: Record<string, unknown>): PlaceSearch =>
     typeof search.q === "string" && search.q.trim() ? { q: search.q.slice(0, 80) } : {},
   head: () => ({
     meta: [
@@ -23,11 +24,12 @@ export const Route = createFileRoute("/campus")({
 function CampusPage() {
   const level = useDesk((state) => state.level);
   const { q } = Route.useSearch();
+  const setQuery = usePlaceQueryWriter("/campus");
   if (level !== "uni") return <K12Campus level={level} />;
   return (
     <PlaceBrowser
-      key={q ?? ""}
-      initialQuery={q}
+      query={q ?? ""}
+      onQueryChange={setQuery}
       page="campus"
       kicker={{ en: "University of Oregon & Lane", zh: "俄勒冈大学和莱恩社区学院" }}
       title={{
