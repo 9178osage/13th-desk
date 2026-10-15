@@ -1,4 +1,5 @@
 import { Command } from "cmdk";
+import * as Dialog from "@radix-ui/react-dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowUpRight, CalendarDays, Compass, Languages, MapPin, Search } from "lucide-react";
 import { places, forLevel, areaName } from "@/data/places";
@@ -58,6 +59,16 @@ export default function CommandPalette({
       overlayClassName="palette-overlay"
       contentClassName="palette-content"
     >
+      {/*
+        Explicit title for the dialog: Radix labels the content with
+        aria-labelledby when a Title exists, which is the shape assistive
+        technology and audits expect. `asChild` keeps it a span so no extra
+        heading enters the document outline, and `sr-only` keeps it off screen.
+        cmdk's own hidden label still names the input.
+      */}
+      <Dialog.Title asChild>
+        <span className="sr-only">{c(lang, "paletteOpen")}</span>
+      </Dialog.Title>
       <div className="palette-input">
         <Search size={18} aria-hidden="true" />
         <Command.Input placeholder={c(lang, "palettePlaceholder")} />
