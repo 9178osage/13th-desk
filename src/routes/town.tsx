@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PlaceBrowser } from "@/components/place-browser";
-import { usePlaceQueryWriter, type PlaceSearch } from "@/routes/place-search";
+import { usePlaceQueryWriter, type PlaceSearch } from "@/lib/place-search";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/town")({

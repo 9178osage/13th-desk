@@ -1007,7 +1007,7 @@ test("Wednesday pickup line says 3:40 rides arrive late, in all six languages (a
 
 test("the place search lives in the route, so ?q= can pre-fill twice", () => {
   const src = join(import.meta.dirname, "..");
-  const shared = readFileSync(join(src, "routes/place-search.ts"), "utf8");
+  const shared = readFileSync(join(src, "lib/place-search.ts"), "utf8");
   assert.match(shared, /export function usePlaceQueryWriter/);
   // Writes replace the history entry: typing must not fill the back button.
   assert.match(shared, /replace: true/);
