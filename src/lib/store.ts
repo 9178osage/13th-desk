@@ -618,6 +618,10 @@ export function useLang(): Lang {
     if (typeof window !== "undefined") shownLang = lang;
     return lang;
   }
+  // On the server, do not fall back through module state: it belongs to whichever
+  // request ran last, so a shared worker could render this visitor's page in the
+  // previous visitor's language. The defaults are the only request-independent answer.
+  if (typeof window === "undefined") return DEFAULT_LANG;
   return isLangReady(shownLang) ? shownLang : DEFAULT_LANG;
 }
 
