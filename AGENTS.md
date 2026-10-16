@@ -352,7 +352,7 @@ never:   build an app for a greeting/number/question; invent imagine_* calls;
 
 - 每次改完代码，运行 `python3 eugene-desk-all-code/sync.py` 刷新交给文本阅读器的代码副本（该目录只在本地，已加入 `.gitignore`，不提交、不部署）；日常核对只发 `changes.txt`，全站体检再发 `1/2/3-*.txt`。
 - `sync.py` 的几条硬约束（改脚本前先读）：
-  - 单卷上限：目标 149 kB、硬上限 150 kB（超了阅读器会静默截断），且**整个导出最多 10 个文件**（`MAX_FILES`，超出直接报错）。分卷是 first-fit decreasing（按体积降序放入首个能容纳的卷），所以目标值调**小**不会让卷数变少、只会变多——内容长大后应当**调大**目标值来压回 10 个文件；
+  - 单卷上限：目标 150 kB、硬上限 150 kB（超了阅读器会静默截断）。**真正的约束只有单卷大小：上传文件数没有 10 个的限制**（`MAX_FILES = 24` 只是防跑飞的保险）。分卷是 first-fit decreasing，内容长大后**不要**再为了凑文件数去调 `TARGET`（调小只会多开卷），直接接受多出来的卷即可；
   - **二进制文件永远不进导出**（`BINARY`）：模块分卷里不出现，`changes.txt` 里也只留一行说明（`# 删除（二进制，内容不随包发送）：路径（大小）`）。被删的 `.ai` 文件在 git 眼里不是二进制（前 8 kB 没有 NUL），其补丁不是合法 UTF-8，所以改动列表必须与模块导出用同一份 `BINARY` 过滤，否则整个导出会崩在解码上；
   - `changes.txt` 的基线是 `.review-base`：日常增量核对前先 `--mark-reviewed` 推进到已审查的提交，否则每包都会重发全量 diff；
   - 交付分两用：日常只发 `changes.txt`，全站体检只发 `1/2/3-*.txt`，两者不同时发、内容不重叠。
