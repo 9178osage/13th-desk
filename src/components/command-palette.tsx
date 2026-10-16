@@ -11,6 +11,7 @@ import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { liveDeadlines } from "@/lib/calendar";
 import { eugeneClock, formatWhen } from "@/lib/time";
 import { useClock } from "@/lib/use-clock";
+import { placeSelectionSearch } from "@/lib/place-search-state";
 
 const PAGES = [
   { to: "/", key: "today" },
@@ -102,7 +103,7 @@ export default function CommandPalette({
                 areaName[place.area].en,
               ]}
               onSelect={() =>
-                run(() => void navigate({ to: `/${place.page}`, search: { q: place.name } }))
+                run(() => void navigate({ to: `/${place.page}`, search: placeSelectionSearch(place.name) }))
               }
             >
               <MapPin size={16} aria-hidden="true" />

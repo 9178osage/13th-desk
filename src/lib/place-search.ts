@@ -1,10 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
-
-/** The search-param shape both place pages validate (`?q=`). */
-export type PlaceSearch = { q?: string };
+import { placeSearchWithQuery, placeSearchWithCategory, type PlaceFilter } from "./place-search-state";
+export { validatePlaceSearch } from "./place-search-state";
+export type { PlaceSearch } from "./place-search-state";
 
 /**
- * The `?q=` place search, held by the route instead of by `PlaceBrowser`.
+ * Query and category live in the route, not in `PlaceBrowser`. Typing preserves
+ * the category; an explicit palette pick supplies only `q`, clearing it.
  *
  * The pages used to hand the parameter to the component as a one-shot pre-fill and key
  * the component by it (`key={...q...}`). The two roles fought: editing the box left the
@@ -26,6 +27,13 @@ export type PlaceSearch = { q?: string };
 export function usePlaceQueryWriter(to: "/town" | "/campus"): (next: string) => void {
   const navigate = useNavigate();
   return (next: string) => {
-    void navigate({ to, search: next ? { q: next } : {}, replace: true, resetScroll: false });
+    void navigate({ to, search: (current) => placeSearchWithQuery(current, next), replace: true, resetScroll: false });
+  };
+}
+
+export function usePlaceCategoryWriter(to: "/town" | "/campus"): (next: PlaceFilter) => void {
+  const navigate = useNavigate();
+  return (next) => {
+    void navigate({ to, search: (current) => placeSearchWithCategory(current, next), replace: true, resetScroll: false });
   };
 }

@@ -18,6 +18,7 @@ import { LEVELS, isLevel } from "@/lib/levels";
 import { ensureDeskHydrated, useDesk, useLang, useStorageStatus } from "@/lib/store";
 import { LANGS, isLang, tr } from "@/lib/text";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
+import { hasDeskOverflow } from "@/lib/desk-limits";
 
 // Command palette code (cmdk + Radix dialog) only downloads on first use.
 const loadPalette = () => import("@/components/command-palette");
@@ -44,6 +45,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const setLang = useDesk((s) => s.setLang);
   const setLevel = useDesk((s) => s.setLevel);
   const failed = useStorageStatus((s) => s.failed);
+  const overflow = useDesk((s) => hasDeskOverflow(s.buckets));
   const otherTabs = useStorageStatus((s) => s.otherTabs);
   // Dismissed until the other pages close; a later second tab shows it again.
   const [tabNoticeDismissed, setTabNoticeDismissed] = useState(false);
@@ -191,6 +193,11 @@ export function Shell({ children }: { children: ReactNode }) {
         {level !== "uni" && (
           <div className="district-toolbar">
             <DistrictBar />
+          </div>
+        )}
+        {overflow && (
+          <div className="tab-notice" role="status">
+            <span>{c(lang, "storageOverflow")}</span>
           </div>
         )}
         {failed && (

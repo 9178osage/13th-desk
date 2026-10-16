@@ -2,6 +2,7 @@ import { createContext, useContext, useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist, type StorageValue } from "zustand/middleware";
 import { createDeskStorage, type SaveStatus } from "@/lib/desk-storage";
+import { DESK_LIMITS } from "@/lib/desk-limits";
 import { createTabPresence } from "@/lib/tab-presence";
 import { isLevel, type Level } from "@/lib/levels";
 import { isDistrict, type DistrictId } from "@/data/districts";
@@ -202,25 +203,22 @@ function asBucket(value: unknown): Bucket | null {
     ? raw.notes
         .map(asNote)
         .filter((item): item is Note => item !== null)
-        .slice(0, 20)
     : [];
   const favs = Array.isArray(raw.favs)
-    ? raw.favs.filter((item): item is string => typeof item === "string").slice(0, 80)
+    ? raw.favs.filter((item): item is string => typeof item === "string")
     : [];
   const checks = Array.isArray(raw.checks)
-    ? raw.checks.filter((item): item is string => typeof item === "string").slice(0, 40)
+    ? raw.checks.filter((item): item is string => typeof item === "string")
     : [];
   const grades = Array.isArray(raw.grades)
     ? raw.grades
         .map(asGrade)
         .filter((item): item is GradeRow => item !== null)
-        .slice(0, 40)
     : [];
   const schedule = Array.isArray(raw.schedule)
     ? raw.schedule
         .map(asSchedule)
         .filter((item): item is ScheduleBlock => item !== null)
-        .slice(0, 40)
     : [];
   return {
     favs,
@@ -310,7 +308,7 @@ const deskStore = create<DeskState>()(
         const { level, buckets } = get();
         const bucket = buckets[level];
         const has = bucket.favs.includes(id);
-        if (!has && bucket.favs.length >= 80) return;
+        if (!has && bucket.favs.length >= DESK_LIMITS.favs) return;
         const favs = has ? bucket.favs.filter((item) => item !== id) : [...bucket.favs, id];
         set({ buckets: { ...buckets, [level]: { ...bucket, favs } } });
       },
@@ -318,7 +316,7 @@ const deskStore = create<DeskState>()(
         const clean = text.trim().slice(0, 140);
         const { level, buckets } = get();
         const bucket = buckets[level];
-        if (!clean || bucket.notes.length >= 20) return false;
+        if (!clean || bucket.notes.length >= DESK_LIMITS.notes) return false;
         set({
           buckets: {
             ...buckets,
@@ -333,7 +331,7 @@ const deskStore = create<DeskState>()(
       restoreNote: (note, level) => {
         const { buckets } = get();
         const bucket = buckets[level];
-        if (bucket.notes.length >= 20 || bucket.notes.some((item) => item.id === note.id))
+        if (bucket.notes.length >= DESK_LIMITS.notes || bucket.notes.some((item) => item.id === note.id))
           return false;
         set({ buckets: { ...buckets, [level]: { ...bucket, notes: [note, ...bucket.notes] } } });
         return true;
@@ -367,7 +365,7 @@ const deskStore = create<DeskState>()(
         const { level, buckets } = get();
         const bucket = buckets[level];
         const has = bucket.checks.includes(id);
-        if (!has && bucket.checks.length >= 40) return;
+        if (!has && bucket.checks.length >= DESK_LIMITS.checks) return;
         const checks = has ? bucket.checks.filter((item) => item !== id) : [...bucket.checks, id];
         set({ buckets: { ...buckets, [level]: { ...bucket, checks } } });
       },
@@ -376,7 +374,7 @@ const deskStore = create<DeskState>()(
         if (!isLetter(row.grade) || credits == null) return;
         const { level, buckets } = get();
         const bucket = buckets[level];
-        if (bucket.grades.length >= 40) return;
+        if (bucket.grades.length >= DESK_LIMITS.grades) return;
         const next: GradeRow = {
           id: crypto.randomUUID(),
           title: row.title.trim().slice(0, 80),
@@ -437,7 +435,7 @@ const deskStore = create<DeskState>()(
           return false;
         const { level, buckets } = get();
         const bucket = buckets[level];
-        if (bucket.schedule.length >= 40) return false;
+        if (bucket.schedule.length >= DESK_LIMITS.schedule) return false;
         const next: ScheduleBlock = {
           id: crypto.randomUUID(),
           day: row.day,
@@ -475,7 +473,7 @@ const deskStore = create<DeskState>()(
       restoreScheduleBlock: (row, level) => {
         const { buckets } = get();
         const bucket = buckets[level];
-        if (bucket.schedule.length >= 40 || bucket.schedule.some((item) => item.id === row.id))
+        if (bucket.schedule.length >= DESK_LIMITS.schedule || bucket.schedule.some((item) => item.id === row.id))
           return false;
         set({
           buckets: { ...buckets, [level]: { ...bucket, schedule: [...bucket.schedule, row] } },

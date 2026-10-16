@@ -195,6 +195,28 @@ export function formatGpa(gpaHundredths: number): string {
   return `${Math.floor(n / 100)}.${String(n % 100).padStart(2, "0")}`;
 }
 
+/** Select the historical scale independently of whether current classes exist. */
+export function targetGpaEstimate(
+  level: Level,
+  rows: GpaInput[],
+  prior: { gpa: number | null; weighted: number | null; credits: number | null },
+  target: string,
+  nextCredits: string,
+): { weighted: boolean; ceiling: number; needed: number | null } {
+  const weighted = level === "high" && prior.gpa == null && prior.weighted != null && prior.credits != null;
+  const ceiling = level === "uni" ? 4.3 : weighted ? 5 : 4;
+  const targetH = parseGpaInput(target, Math.round(ceiling * 100));
+  const addCredits = parseCredits(nextCredits, 1000);
+  const priorGpa = weighted ? prior.weighted : prior.gpa;
+  const priorCredits = priorGpa != null && prior.credits != null ? prior.credits : 0;
+  const current = listGpa(level, rows, weighted);
+  const credits = priorCredits + (current?.creditHundredths ?? 0);
+  if (credits <= 0 || targetH == null || addCredits == null) return { weighted, ceiling, needed: null };
+  const points = currentPoints(level, rows, weighted) + (priorGpa ?? 0) * priorCredits;
+  const needed = (targetH * (credits + addCredits) - points) / addCredits / 100;
+  return { weighted, ceiling, needed: Number.isFinite(needed) ? needed : null };
+}
+
 export function formatCredits(creditHundredths: number): string {
   const n = creditHundredths / 100;
   return Number.isInteger(n) ? String(n) : n.toFixed(1);

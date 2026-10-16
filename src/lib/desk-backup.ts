@@ -161,9 +161,8 @@ function parseSchedule(value: unknown): ScheduleBlock | null {
   return { id: raw.id, day: raw.day, start, end, title, place, pinned: raw.pinned };
 }
 
-function parseStringList(value: unknown, max: number): string[] | null {
+function parseStringList(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
-  if (value.length > max) return null;
   const out: string[] = [];
   for (const item of value) {
     if (typeof item !== "string") return null;
@@ -175,9 +174,9 @@ function parseStringList(value: unknown, max: number): string[] | null {
 function parseBucket(value: unknown): Bucket | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
-  if (!Array.isArray(raw.notes) || raw.notes.length > 20) return null;
-  if (!Array.isArray(raw.grades) || raw.grades.length > 40) return null;
-  if (!Array.isArray(raw.schedule) || raw.schedule.length > 40) return null;
+  // Multiple tabs may legitimately merge past a creation limit. Backups must
+  // round-trip those items rather than rejecting or silently dropping them.
+  if (!Array.isArray(raw.notes) || !Array.isArray(raw.grades) || !Array.isArray(raw.schedule)) return null;
   const notes: Note[] = [];
   for (const item of raw.notes) {
     const note = parseNote(item);
@@ -196,11 +195,11 @@ function parseBucket(value: unknown): Bucket | null {
     if (!row) return null;
     schedule.push(row);
   }
-  const favs = parseStringList(raw.favs, 80);
+  const favs = parseStringList(raw.favs);
   for (const list of [notes, grades, schedule]) {
     if (new Set(list.map((item) => item.id)).size !== list.length) return null;
   }
-  const checks = parseStringList(raw.checks, 40);
+  const checks = parseStringList(raw.checks);
   if (!favs || !checks) return null;
   if (typeof raw.priorGpa !== "string" || typeof raw.priorWeighted !== "string") return null;
   if (typeof raw.priorCredits !== "string") return null;

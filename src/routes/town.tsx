@@ -1,12 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PlaceBrowser } from "@/components/place-browser";
-import { usePlaceQueryWriter, type PlaceSearch } from "@/lib/place-search";
+import { usePlaceQueryWriter, usePlaceCategoryWriter, validatePlaceSearch } from "@/lib/place-search";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/town")({
   // ?q= is the place search itself, not a one-shot pre-fill (see place-search.ts).
-  validateSearch: (search: Record<string, unknown>): PlaceSearch =>
-    typeof search.q === "string" && search.q.trim() ? { q: search.q.slice(0, 80) } : {},
+  validateSearch: (search: Record<string, unknown>) => validatePlaceSearch(search, "town"),
   head: () => ({
     meta: [
       { title: "Town · Eugene Desk" },
@@ -22,13 +21,16 @@ export const Route = createFileRoute("/town")({
 
 function TownPage() {
   const level = useDesk((state) => state.level);
-  const { q } = Route.useSearch();
+  const { q, cat } = Route.useSearch();
   const setQuery = usePlaceQueryWriter("/town");
+  const setCategory = usePlaceCategoryWriter("/town");
   const young = level === "elem" || level === "mid";
   return (
     <PlaceBrowser
       query={q ?? ""}
       onQueryChange={setQuery}
+      category={cat}
+      onCategoryChange={setCategory}
       page="town"
       kicker={
         young

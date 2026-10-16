@@ -14,6 +14,7 @@ import { useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
 import { eugeneClock, formatWhen, hmToMin, soonDays } from "@/lib/time";
 import { IcsButton } from "@/components/ics-button";
+import { applicableChecks } from "@/lib/starter-tasks";
 
 function isPast(item: { ymd: string; time?: string }, clock: ReturnType<typeof eugeneClock>) {
   if (item.ymd > clock.ymd) return false;
@@ -29,7 +30,7 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
   const district = useDesk((state) => state.district);
   const checks = useDesk((state) => state.buckets[state.level].checks);
   const toggleCheck = useDesk((state) => state.toggleCheck);
-  const list = k12Checks[level];
+  const list = applicableChecks(k12Checks[level], district, clock?.ymd ?? null);
   const done = list.filter((item) => checks.includes(item.id)).length;
   const source = k12CalendarSource(district);
   const dates = k12DeadlinesForDistrict(level, district);
@@ -72,9 +73,11 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
             </>
           ) : null}
         </p>
-        <p className="mt-3 max-w-2xl text-sm text-ink">
-          {tr(lang, releaseLine(level, clock?.weekday === 3))}
-        </p>
+        {source.hasMatchingData && (
+          <p className="mt-3 max-w-2xl text-sm text-ink">
+            {tr(lang, releaseLine(level, clock?.weekday === 3))}
+          </p>
+        )}
       </header>
 
       <section>

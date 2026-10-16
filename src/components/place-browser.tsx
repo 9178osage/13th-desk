@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ExternalLink, Heart, MapPinned, Search } from "lucide-react";
-import { areaName, forLevel, places, type AreaId, type Place, type PlaceCat } from "@/data/places";
+import { areaName, forLevel, places, type AreaId, type Place } from "@/data/places";
 import { Card, Chip, EmptyState, Input, SectionHeader } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { useDesk, useLang } from "@/lib/store";
@@ -8,7 +8,7 @@ import { tr, type Copy } from "@/lib/text";
 import { deskText as c } from "@/lib/desk-copy";
 import { placeHours } from "@/data/place-hours";
 
-type Filter = "all" | "saved" | PlaceCat;
+import type { PlaceFilter } from "@/lib/place-search-state";
 
 const AREA_ORDER: AreaId[] = ["campus", "west", "downtown", "whit", "river", "south", "lcc"];
 
@@ -30,21 +30,25 @@ export function PlaceBrowser({
   cats,
   query,
   onQueryChange,
+  category,
+  onCategoryChange,
 }: {
   page: "campus" | "town";
   kicker: Copy;
   title: Copy;
   lead: Copy;
-  cats: { id: Filter; label: Copy }[];
+  cats: { id: PlaceFilter; label: Copy }[];
   /** The search text lives in the route (`?q=`), so this component stays controlled. */
   query: string;
   onQueryChange: (next: string) => void;
+  category?: PlaceFilter;
+  onCategoryChange: (next: PlaceFilter) => void;
 }) {
   const lang = useLang();
   const level = useDesk((state) => state.level);
   const favs = useDesk((state) => state.buckets[state.level].favs);
   const toggleFav = useDesk((state) => state.toggleFav);
-  const [cat, setCat] = useState<Filter>("all");
+  const cat = category && cats.some((item) => item.id === category) ? category : "all";
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -119,7 +123,7 @@ export function PlaceBrowser({
             key={item.id}
             active={cat === item.id}
             pressed={cat === item.id}
-            onClick={() => setCat(item.id)}
+            onClick={() => onCategoryChange(item.id)}
           >
             {tr(lang, item.label)}
           </Chip>

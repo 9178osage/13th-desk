@@ -8,7 +8,7 @@ import {
   scheduleForDay,
   validScheduleTime,
 } from "./schedule.ts";
-import { cleanDecimal, combinedGpa, listGpa, parseGpaInput, pointsTenths } from "./gpa.ts";
+import { cleanDecimal, combinedGpa, listGpa, parseGpaInput, pointsTenths, targetGpaEstimate } from "./gpa.ts";
 import { deskText, dayName } from "./desk-copy.ts";
 import {
   backupFileName,
@@ -301,6 +301,7 @@ test("every place-hours hint has six translations and no silent English fallback
 test("save and recovery notices are available in all six languages", () => {
   for (const key of [
     "storageError",
+    "storageOverflow",
     "otherTabOpen",
     "dismissNotice",
     "importSaveFailed",
@@ -973,7 +974,64 @@ test("lock-screen wrap breaks a word wider than the card", () => {
   assert.deepEqual(wrap(ctx, "Calculus", 147, 3), ["Calculus"]);
 });
 
-import { starterTasks } from "./starter-tasks.ts";
+import { starterTasks, applicableChecks } from "./starter-tasks.ts";
+import { k12Checks } from "../data/k12.ts";
+import { placeSearchWithQuery, placeSearchWithCategory, placeSelectionSearch, validatePlaceSearch } from "./place-search-state.ts";
+
+test("weighted-only historical GPA keeps its scale when a class is added or removed", () => {
+  const prior = { gpa: null, weighted: 450, credits: 1000 };
+  const estimate = (rows: Parameters<typeof targetGpaEstimate>[1]) => targetGpaEstimate("high", rows, prior, "4.50", "0.5");
+  assert.deepEqual(estimate([]), { weighted: true, ceiling: 5, needed: 4.5 });
+  assert.deepEqual(estimate([{ grade: "A", credits: 0.5, boost: true }]), { weighted: true, ceiling: 5, needed: 4 });
+  assert.deepEqual(estimate([]), { weighted: true, ceiling: 5, needed: 4.5 });
+  assert.equal(targetGpaEstimate("high", [], prior, "5.01", "0.5").needed, null);
+});
+test("target GPA never mixes weighted history into an unweighted or university scale", () => {
+  const rows = [{ grade: "A" as const, credits: 1, boost: true }];
+  assert.deepEqual(targetGpaEstimate("high", rows, { gpa: 350, weighted: 450, credits: 1000 }, "3.50", "1"),
+    { weighted: false, ceiling: 4, needed: 3 });
+  assert.equal(targetGpaEstimate("high", rows, { gpa: 350, weighted: 450, credits: 1000 }, "4.50", "1").needed, null);
+  assert.deepEqual(targetGpaEstimate("uni", rows, { gpa: 350, weighted: null, credits: 1000 }, "3.50", "1"),
+    { weighted: false, ceiling: 4.3, needed: 3 });
+  assert.equal(targetGpaEstimate("mid", [], { gpa: null, weighted: null, credits: null }, "3.5", "1").needed, null);
+});
+test("full guide uses the same district/date applicability as starters without changing stored completion IDs", () => {
+  for (const level of ["elem", "mid", "high"] as const) {
+    const original = structuredClone(k12Checks[level]);
+    for (const district of ["4j", "bethel", "springfield", null] as const) {
+      const list = applicableChecks(k12Checks[level], district, "2026-10-15");
+      assert.deepEqual(list.slice(0, 3), starterTasks(level, district, "2026-10-15"));
+      if (district && district !== "4j") assert.ok(list.every(item => item.district !== "4j"));
+    }
+    assert.deepEqual(k12Checks[level], original);
+  }
+  const hasGrade = (date: string) => applicableChecks(k12Checks.mid, "4j", date).some(item => item.id === "grade");
+  assert.equal(hasGrade("2026-11-05"), true);
+  assert.equal(hasGrade("2026-11-06"), true);
+  assert.equal(hasGrade("2026-11-07"), false);
+  const source = readFileSync(join(import.meta.dirname, "../components/k12-guide.tsx"), "utf8");
+  assert.match(source, /applicableChecks\(k12Checks\[level\], district, clock\?\.ymd \?\? null\)/);
+  assert.match(source, /const done = list\.filter/);
+});
+test("typing keeps the category but explicit palette picks clear it, including repeated same-place picks", () => {
+  const filtered = validatePlaceSearch({ q: "old", cat: "dining" }, "campus");
+  assert.deepEqual(placeSearchWithQuery(filtered, "Knight Library"), { q: "Knight Library", cat: "dining" });
+  const selected = placeSelectionSearch("Knight Library");
+  assert.deepEqual(selected, { q: "Knight Library" });
+  assert.deepEqual(placeSelectionSearch("Knight Library"), selected);
+  assert.deepEqual(placeSearchWithCategory(selected, "dining"), { q: "Knight Library", cat: "dining" });
+  assert.equal(placeSearchWithCategory(filtered, "all").cat, undefined);
+  assert.equal(placeSearchWithQuery(filtered, "").cat, "dining");
+  assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "campus"), {});
+  assert.deepEqual(validatePlaceSearch({ cat: "study" }, "town"), {});
+  const browser = readFileSync(join(import.meta.dirname, "../components/place-browser.tsx"), "utf8");
+  assert.doesNotMatch(browser, /useState/);
+  for (const route of ["campus", "town"]) {
+    const source = readFileSync(join(import.meta.dirname, `../routes/${route}.tsx`), "utf8");
+    assert.match(source, /category=\{cat\}/);
+    assert.match(source, /onCategoryChange=\{setCategory\}/);
+  }
+});
 test("starter tasks drop past dates and 4J-only items for other districts (audit 10-15 P2)", () => {
   const ids = (level: Parameters<typeof starterTasks>[0], district: Parameters<typeof starterTasks>[1], ymd: string | null) =>
     starterTasks(level, district, ymd).map((t) => t.id);

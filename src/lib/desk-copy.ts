@@ -78,6 +78,14 @@ const copy = {
     "Eugene Desk cũng đang mở ở một tab khác. Thay đổi sẽ tự đồng bộ, nhưng nếu sửa cùng lúc ở cả hai tab, dữ liệu có thể bị ghi đè.",
     "Eugene Deskが別のタブでも開いています。変更はタブ間で同期されますが、両方で同時に編集すると上書きされることがあります。",
   ],
+  storageOverflow: [
+    "Merging tabs kept items beyond the usual limit. Nothing was removed. Export a backup, then make room before adding more.",
+    "多页面合并后，条目超过了常规上限，已有内容均已保留。建议先导出备份，整理出空间后再添加。",
+    "La combinación de pestañas conservó elementos por encima del límite habitual. No se eliminó nada. Exporta una copia y libera espacio antes de añadir más.",
+    "탭을 합치면서 항목이 기본 한도를 넘었지만 모두 보존했어요. 먼저 백업을 내보낸 뒤, 항목을 정리하고 추가해 주세요.",
+    "Khi gộp các tab, số mục vượt giới hạn thường dùng nhưng tất cả đều được giữ lại. Hãy xuất bản sao lưu và dọn bớt trước khi thêm.",
+    "タブの統合で通常の件数上限を超えましたが、すべて保持されています。まずバックアップを出力し、整理してから追加してください。",
+  ],
   dismissNotice: [
     "Dismiss notice",
     "关闭提示",

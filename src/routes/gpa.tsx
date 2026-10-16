@@ -5,7 +5,7 @@ import { Button, Card, EmptyState, Input, SectionHeader, Stat } from "@/componen
 import {
   LETTERS,
   combinedGpa,
-  currentPoints,
+  targetGpaEstimate,
   creditChoices,
   defaultCredits,
   formatCredits,
@@ -147,44 +147,9 @@ function GpaPage() {
       .sort((a, b) => Number(a.points) - Number(b.points));
   }, [grades, level]);
 
-  // High school with only a weighted prior GPA: run the estimate on the weighted scale.
-  const whatIfWeighted = !combined && !plain && !!combinedWeighted;
-  // Highest grade points a single class can earn on the scale in use.
-  const whatIfCeiling = level === "uni" ? 4.3 : whatIfWeighted ? 5 : 4;
-  const whatIfHint = useMemo(() => {
-    const targetH = parseGpaInput(target, Math.round(whatIfCeiling * 100));
-    const addCredits = parseCredits(whatIfCredits, 1000);
-    const base = combined ?? plain ?? combinedWeighted;
-    if (!base || targetH == null || addCredits == null) return null;
-    // Rough: needed average points (tenths) on the next block to hit target
-    // target = (currentPoints + needed*credits) / (currentCredits + credits)
-    const totalPoints =
-      currentPoints(level, rows, whatIfWeighted) +
-      (whatIfWeighted
-        ? priorWeightedH != null && priorCreditH != null
-          ? priorWeightedH * priorCreditH
-          : 0
-        : combined && priorGpaH != null && priorCreditH != null
-          ? priorGpaH * priorCreditH
-          : 0);
-    // needed is in gpa-hundredths (same units as priorGpaH / gpaHundredths)
-    const needed = (targetH * (base.creditHundredths + addCredits) - totalPoints) / addCredits;
-    if (!Number.isFinite(needed)) return null;
-    return needed / 100;
-  }, [
-    combined,
-    combinedWeighted,
-    plain,
-    target,
-    whatIfCredits,
-    level,
-    rows,
-    priorGpaH,
-    priorWeightedH,
-    priorCreditH,
-    whatIfWeighted,
-    whatIfCeiling,
-  ]);
+  const estimate = targetGpaEstimate(level, rows,
+    { gpa: priorGpaH, weighted: priorWeightedH, credits: priorCreditH }, target, whatIfCredits);
+  const { needed: whatIfHint, ceiling: whatIfCeiling } = estimate;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -316,6 +281,25 @@ function GpaPage() {
             kicker={tr(lang, { en: "What if", zh: "假如" })}
             title={tr(lang, { en: "Target GPA", zh: "目标绩点" })}
           />
+          {level === "high" && (
+            <p className="mb-3 text-sm text-muted">
+              {estimate.weighted ? tr(lang, {
+                en: "Estimate uses weighted GPA (0–5), including your prior weighted GPA and credits.",
+                zh: "按加权 GPA（0–5）估算，包含已填的历史加权 GPA 和学分。",
+                es: "Estimación con GPA ponderado (0–5), incluidos el GPA previo y sus créditos.",
+                ko: "이전 가중 GPA와 학점을 포함해 가중 GPA(0–5)로 계산해요.",
+                vi: "Ước tính theo GPA có hệ số (0–5), gồm GPA và tín chỉ trước đây.",
+                ja: "過去の加重GPAと単位を含め、加重GPA（0–5）で計算します。",
+              }) : tr(lang, {
+                en: "Estimate uses unweighted GPA (0–4). Prior weighted GPA is not mixed into this scale.",
+                zh: "按未加权 GPA（0–4）估算，不混用历史加权 GPA。",
+                es: "Estimación con GPA no ponderado (0–4), sin mezclar el GPA ponderado previo.",
+                ko: "비가중 GPA(0–4)로 계산하며 이전 가중 GPA를 섞지 않아요.",
+                vi: "Ước tính theo GPA không hệ số (0–4), không trộn GPA có hệ số trước đây.",
+                ja: "非加重GPA（0–4）で計算し、過去の加重GPAは混在させません。",
+              })}
+            </p>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium text-ink">
               {tr(lang, { en: "Target GPA", zh: "目标 GPA" })}

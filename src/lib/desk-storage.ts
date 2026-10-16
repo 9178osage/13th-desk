@@ -21,7 +21,8 @@ function recoveryId(): string {
  * Every tab saves. Tabs stay in step through `syncFrom`, fed by the browser's
  * `storage` event. `base` is the last disk value this tab is known to match; if
  * the disk moved on before this tab's save (its event is still queued), the save
- * is merged three ways instead of overwriting, so no tab's saved edit is lost.
+ * is merged three ways instead of blindly overwriting. This is not a cross-tab
+ * transaction; simultaneous read/write operations can still conflict.
  * Storage events are only a hint: `syncFrom` always reads the current disk value,
  * so a late, stale event can never roll a tab back. The saved format is still
  * `{ state, version: 0 }`. A corrupt saved desk is never overwritten until an

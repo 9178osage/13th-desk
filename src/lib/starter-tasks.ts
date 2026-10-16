@@ -6,6 +6,15 @@ import type { DistrictId } from "@/data/districts";
 
 type Starter = { id: string; label: Copy; until?: string; district?: "4j" };
 
+/** Shared by the homepage and the full guide; keep completed IDs in storage. */
+export function applicableChecks<T extends Pick<Starter, "until" | "district">>(
+  pool: T[], district: DistrictId | null, todayYmd: string | null,
+): T[] {
+  return pool
+    .filter((item) => !(item.until && todayYmd && todayYmd > item.until))
+    .filter((item) => !(item.district === "4j" && district !== null && district !== "4j"));
+}
+
 /** Preferred UO starters, then the rest of the checklist in order. */
 const UNI_FIRST = ["schedule", "knight", "bus"];
 
@@ -22,8 +31,5 @@ export function starterTasks(level: Level, district: DistrictId | null, todayYmd
           ...checklist.filter((item) => !UNI_FIRST.includes(item.id)),
         ]
       : k12Checks[level];
-  return pool
-    .filter((item) => !(item.until && todayYmd && todayYmd > item.until))
-    .filter((item) => !(item.district === "4j" && district !== null && district !== "4j"))
-    .slice(0, count);
+  return applicableChecks(pool, district, todayYmd).slice(0, count);
 }
