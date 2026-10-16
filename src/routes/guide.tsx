@@ -233,7 +233,7 @@ function UniGuide() {
         <ul className="mt-4 divide-y divide-line border-y border-line">
           {neighborhoods.map((item) => (
             <li key={item.name} className="grid gap-1 py-3 sm:grid-cols-[11rem_1fr] sm:gap-4">
-              <h3 className="font-medium text-ink">{lang === "zh" ? item.zh : item.name}</h3>
+              <h3 className="font-medium text-ink">{tr(lang, { en: item.name, zh: item.zh })}</h3>
               <p className="text-sm text-muted">{tr(lang, item.body)}</p>
             </li>
           ))}

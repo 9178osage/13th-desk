@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tempDir } from "./temp-dir.mjs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -120,7 +120,7 @@ test("does not duplicate twitter:card or og:title", () => {
 test("a baked site.image is treated as a custom card", () => {
   const out = injectGrokPwaHead("<html><head></head></html>", {
     host: "wild-race.grok.me",
-    cwd: mkdtempSync(join(tmpdir(), "grok-og-image-only-")),
+    cwd: tempDir("grok-og-image-only-"),
     site: { title: "Wild Race", image: "/og.jpg" },
   });
   assert.match(out, /property="og:image" content="https:\/\/wild-race\.grok\.me\/og\.jpg"/);
@@ -128,7 +128,7 @@ test("a baked site.image is treated as a custom card", () => {
 });
 
 test("baked identity does not need a workspace filesystem", () => {
-  const empty = mkdtempSync(join(tmpdir(), "grok-og-empty-"));
+  const empty = tempDir("grok-og-empty-");
   const out = injectGrokPwaHead("<html><head></head></html>", {
     host: "wild-race.grok.me",
     cwd: empty,
@@ -143,7 +143,7 @@ test("baked identity does not need a workspace filesystem", () => {
 test("a public card file wins over a baked site without card=custom", () => {
   // Deploy middleware always passes a baked `site`. If that snapshot missed
   // the file, public/og.jpg must still beat the og.grok.me placeholder.
-  const root = mkdtempSync(join(tmpdir(), "grok-og-card-"));
+  const root = tempDir("grok-og-card-");
   mkdirSync(join(root, "public"));
   writeFileSync(join(root, "public/og.jpg"), "x");
   const out = injectGrokPwaHead("<html><head></head></html>", {
@@ -156,7 +156,7 @@ test("a public card file wins over a baked site without card=custom", () => {
 });
 
 test("public/og.png wins when jpg is absent", () => {
-  const root = mkdtempSync(join(tmpdir(), "grok-og-png-"));
+  const root = tempDir("grok-og-png-");
   mkdirSync(join(root, "public"));
   writeFileSync(join(root, "public/og.png"), "x");
   const out = injectGrokPwaHead("<html><head></head></html>", {
@@ -169,14 +169,14 @@ test("public/og.png wins when jpg is absent", () => {
 });
 
 test("resolveOgCardAsset: disk file, then bake, then empty (placeholder)", () => {
-  const empty = mkdtempSync(join(tmpdir(), "grok-og-none-"));
+  const empty = tempDir("grok-og-none-");
   assert.equal(resolveOgCardAsset({}, empty), "");
   assert.equal(resolveOgCardAsset({ title: "X" }, empty), "");
 
   const baked = resolveOgCardAsset({ card: "custom", image: "/og.jpg" }, empty);
   assert.equal(baked, "/og.jpg");
 
-  const root = mkdtempSync(join(tmpdir(), "grok-og-disk-"));
+  const root = tempDir("grok-og-disk-");
   mkdirSync(join(root, "public"));
   writeFileSync(join(root, "public/og.jpg"), "x");
   assert.equal(resolveOgCardAsset({}, root), "/og.jpg");
@@ -184,7 +184,7 @@ test("resolveOgCardAsset: disk file, then bake, then empty (placeholder)", () =>
 });
 
 test("snapshotOgIdentity stamps card=custom from a public card file", () => {
-  const root = mkdtempSync(join(tmpdir(), "grok-og-snap-"));
+  const root = tempDir("grok-og-snap-");
   mkdirSync(join(root, "public"));
   writeFileSync(join(root, "public/og.jpg"), "x");
   const { site } = snapshotOgIdentity(root);
@@ -194,7 +194,7 @@ test("snapshotOgIdentity stamps card=custom from a public card file", () => {
 });
 
 test("snapshotOgIdentity stamps banner from public/x-banner.jpg", () => {
-  const root = mkdtempSync(join(tmpdir(), "grok-og-banner-"));
+  const root = tempDir("grok-og-banner-");
   mkdirSync(join(root, "public"));
   writeFileSync(join(root, "public/x-banner.jpg"), "x");
   const { site } = snapshotOgIdentity(root);

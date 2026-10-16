@@ -1,12 +1,12 @@
-import { existsSync, readdirSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { tempDir } from "./temp-dir.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const platformTest = "grok-pwa-plugin.test.mjs";
 // Default OG identity must come from an empty fixture, not the live brand.
-const fixture = mkdtempSync(join(tmpdir(), "eugene-test-identity-"));
+const fixture = tempDir("eugene-test-identity-");
 const groups = [
   {
     // Formatting comes first: it is the fastest gate and it reports every offending

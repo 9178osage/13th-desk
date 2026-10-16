@@ -30,6 +30,7 @@ import {
   clearPreImportSnapshot,
   type PersistedDeskLike,
 } from "./desk-backup.ts";
+import { parseBucket } from "./desk-records.ts";
 import {
   k12CalendarSourceMeta,
   k12HasStoredDates,
@@ -276,20 +277,89 @@ function sampleState(): PersistedDeskLike {
   };
 }
 
-test("desk backup rejects duplicate IDs in every record list and stage", () => {
+test("duplicate IDs import, because the save loader accepts them", () => {
+  // The importer used to reject these while the loader kept them, so a desk could load and
+  // export yet refuse its own backup. Duplicates are now the loader's problem (it
+  // regenerates ids for new rows) and the round trip stays lossless.
   for (const stage of ["elem", "mid", "high", "uni"] as const) {
     for (const list of ["notes", "schedule", "grades"] as const) {
       const state = sampleState();
       const row = state.buckets.uni[list][0];
       Object.assign(state.buckets[stage], { [list]: [row, { ...row }] });
-      assert.equal(
-        parseDeskBackup(JSON.stringify(serializeDeskBackup(state))).ok,
-        false,
-        `${stage}.${list}`,
-      );
+      const parsed = parseDeskBackup(JSON.stringify(serializeDeskBackup(state)));
+      assert.equal(parsed.ok, true, `${stage}.${list}`);
+      if (parsed.ok) assert.equal(parsed.backup.state.buckets[stage][list].length, 2);
     }
   }
 });
+test("anything the loader accepts survives export and import unchanged", () => {
+  // The importer and the save loader now read records through the same functions, so this
+  // is the property that keeps them honest: take a bucket shaped like a legacy or
+  // hand-corrected save, parse it the way loading does, and check the export round-trips
+  // byte-for-byte. Before the shared reader, the inverted range and the blank id below
+  // loaded fine but made the file refuse to import.
+  const legacy = {
+    favs: ["knight-library", "knight-library"],
+    notes: [
+      { id: "", text: "空白 id 的旧待办", done: false },
+      { id: "n1", text: "正常", done: true },
+      { id: "n1", text: "重复 id", done: false },
+      { id: "n2", text: "多余字段", done: "yes", extra: 1 },
+    ],
+    checks: ["c1", "c1"],
+    grades: [
+      { id: "", title: "旧成绩", credits: 4, grade: "A", boost: false },
+      { id: "g1", title: "缺 boost", credits: 0.5, grade: "B" },
+    ],
+    priorGpa: " 3.90 ", // 需要 trim：算真实内容变化
+    priorWeighted: 4.5, // 非字符串：与旧的 cleanDecimal 兜底一致，不算丢失
+    priorCredits: "10",
+    schedule: [
+      {
+        id: "s1",
+        day: "mon",
+        start: "10:00",
+        end: "09:00",
+        title: "时间倒置",
+        place: "",
+        pinned: false,
+      },
+      {
+        id: "",
+        day: "tue",
+        start: "09:00",
+        end: "10:00",
+        title: "空白 id",
+        place: "Knight",
+        pinned: true,
+      },
+      {
+        id: "s1",
+        day: "wed",
+        start: "09:00",
+        end: "10:00",
+        title: "重复 id",
+        place: "",
+        pinned: false,
+      },
+    ],
+  };
+  const { bucket, lossy } = parseBucket(legacy);
+  assert.equal(lossy, true, "trimmed prior string is reported, nothing else is dropped");
+  assert.equal(bucket.schedule.length, 3, "no record may be dropped");
+  assert.equal(bucket.notes.length, 4);
+  assert.equal(bucket.grades.length, 2);
+  assert.equal(bucket.priorGpa, "3.90");
+  assert.equal(bucket.priorWeighted, "", "a non-string prior reads as empty, as it always did");
+  assert.equal(bucket.schedule[0].start, "10:00", "the inverted range is kept");
+
+  const state = { ...sampleState() };
+  state.buckets.uni = bucket;
+  const parsed = parseDeskBackup(JSON.stringify(serializeDeskBackup(state)));
+  assert.equal(parsed.ok, true, "a loadable desk must always import");
+  if (parsed.ok) assert.deepEqual(parsed.backup.state.buckets.uni, bucket);
+});
+
 test("the same record ID in separate stages is valid", () => {
   const state = sampleState();
   state.buckets.high.notes = [...state.buckets.uni.notes];
@@ -361,9 +431,10 @@ test("desk backup rejects bad times and missing stages", () => {
     start: "10:00",
     end: "09:00",
   };
+  // An inverted range is kept and flagged in the week view; the importer must not reject a
+  // desk the loader accepted (that asymmetry is what this round trip guards).
   const badTime = parseDeskBackup(JSON.stringify(serializeDeskBackup(state)));
-  assert.equal(badTime.ok, false);
-  if (!badTime.ok) assert.equal(badTime.error, "times");
+  assert.equal(badTime.ok, true);
 
   const missing = serializeDeskBackup(sampleState());
   delete (missing.state.buckets as { mid?: unknown }).mid;
@@ -1039,6 +1110,32 @@ test("lock-screen layout never squeezes cards below a readable height (audit 10-
   assert.equal(lockLayout(3, avail, gap).more, 0);
 });
 
+test("a day that fits is never truncated against the busiest day", () => {
+  const gap = 14;
+  const avail = 10 * (MIN_CARD_H + gap) - gap; // exactly ten cards fit
+  const busiest = lockLayout(11, avail, gap); // 11 classes on one day: 9 + "+2"
+  assert.equal(busiest.fit, 10);
+  assert.equal(busiest.shown, 9);
+  // A different day with 10 classes is exactly at the limit, so it draws all ten and
+  // must not borrow the busiest day's reduced budget.
+  assert.ok(10 <= busiest.fit);
+  assert.equal(11 > busiest.fit, true);
+});
+
+test("lock-screen wrap fills the line for a mixed Latin + CJK title", () => {
+  // Roughly proportional to real text: a CJK glyph is about as wide as two Latin ones.
+  const measure = (str: string) => ({
+    width: [...str].reduce((sum, ch) => sum + (/\p{Script=Han}/u.test(ch) ? 28 : 14), 0),
+  });
+  const ctx = { measureText: measure } as unknown as CanvasRenderingContext2D;
+  // 160px fits "BIOL 211 " plus one CJK glyph. Treating the whole CJK run as one
+  // unbreakable token (the old behaviour) stopped the line at "BIOL 211" and left the
+  // rest of the card empty; the run now continues on the current line.
+  const lines = wrap(ctx, "BIOL 211 普通生物学", 160, 3);
+  assert.deepEqual(lines, ["BIOL 211 普", "通生物学"]);
+  for (const line of lines) assert.ok(measure(line).width <= 160, JSON.stringify(lines));
+});
+
 test("lock-screen wrap breaks a word wider than the card", () => {
   const ctx = {
     measureText: (s: string) => ({ width: s.length * 14 }),
@@ -1113,6 +1210,31 @@ test("target GPA never mixes weighted history into an unweighted or university s
     null,
   );
 });
+test("a lone AP course puts the target estimator on the weighted scale too", () => {
+  // The result card shows a 0-5 average for an AP course with no history entered, so the
+  // estimator has to use the same scale; capping the target at 4.0 there contradicted the
+  // card above it, so a 4.60 target reported "unreachable".
+  const rows = [{ grade: "A" as const, credits: 1, boost: true }];
+  const none = { gpa: null, weighted: null, credits: null };
+  const estimated = targetGpaEstimate("high", rows, none, "4.60", "1");
+  assert.equal(estimated.weighted, true);
+  assert.equal(estimated.ceiling, 5);
+  assert.ok(estimated.needed != null && estimated.needed > 4, `needed=${estimated.needed}`);
+
+  // An unweighted choice still wins, and a plain course keeps the 4.0 scale.
+  assert.equal(
+    targetGpaEstimate("high", rows, { gpa: 390, weighted: 450, credits: 1000 }, "3.50", "1")
+      .weighted,
+    false,
+  );
+  assert.equal(
+    targetGpaEstimate("high", [{ ...rows[0], boost: false }], none, "4.60", "1").weighted,
+    false,
+  );
+  // University stays on the 4.3 scale whatever the course is.
+  assert.equal(targetGpaEstimate("uni", rows, none, "4.00", "1").ceiling, 4.3);
+});
+
 test("full guide uses the same district/date applicability as starters without changing stored completion IDs", () => {
   for (const level of ["elem", "mid", "high"] as const) {
     const original = structuredClone(k12Checks[level]);

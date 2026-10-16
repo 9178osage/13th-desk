@@ -47,13 +47,20 @@ function roundRect(
  * that does not fit must never lose its tail silently.
  */
 export function wrap(ctx: CanvasRenderingContext2D, text: string, width: number, maxLines: number) {
-  // A single word wider than the card (IntroductionToMicroeconomics) is broken
-  // by characters, so no line can run past the card edge.
-  const tokens = (/\s/.test(text) ? text.split(/(\s+)/) : [...text]).flatMap((token) =>
-    token.length > 1 && !/^\s+$/.test(token) && ctx.measureText(token).width > width
-      ? [...token]
-      : [token],
-  );
+  // Tokenise so that a line can break wherever a reader expects on:
+  //   - CJK characters break individually, with or without spaces around them, so
+  //     "BIOL 211 普通生物学" fills the line instead of wrapping after "BIOL 211" and
+  //     leaving the rest of the card blank;
+  //   - a Latin word stays whole unless it is wider than the card, in which case it is
+  //     broken by characters (IntroductionToMicroeconomics) and never runs past the edge.
+  const tokens = (/\s/.test(text) ? text.split(/(\s+)/) : [...text]).flatMap((token) => {
+    if (!token || /^\s+$/.test(token)) return [token];
+    const runs = token.match(
+      /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|[^\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+/gu,
+    ) ?? [token];
+    if (runs.length > 1) return runs;
+    return token.length > 1 && ctx.measureText(token).width > width ? [...token] : [token];
+  });
   const lines: string[] = [];
   let line = "";
   // Track the overflow while wrapping instead of comparing character counts after
@@ -98,7 +105,10 @@ export function lockLayout(count: number, avail: number, gap: number) {
   const shown = count > fit ? fit - 1 : count;
   const more = count - shown;
   const cardH = Math.min(MAX_CARD_H, (avail - gap * (slots - 1)) / slots);
-  return { shown, more, cardH };
+  // `fit` is the per-day limit. The week's busiest day is the one that needs a "+N"
+  // row, so `shown`/`cardH` are sized from it, but a quieter day that still fits
+  // entirely must not be truncated against the busiest day's budget.
+  return { shown, more, cardH, fit };
 }
 
 export async function drawLockScreen(
@@ -135,7 +145,7 @@ export async function drawLockScreen(
   );
   const most = Math.max(1, ...byDay.map((rows) => rows.length));
   const headerH = 64;
-  const { shown, cardH } = lockLayout(most, gridBottom - gridTop - headerH, gap);
+  const { cardH, fit } = lockLayout(most, gridBottom - gridTop - headerH, gap);
 
   DAYS.forEach((day, i) => {
     const x = left + i * (colW + gap);
@@ -145,7 +155,9 @@ export async function drawLockScreen(
     ctx.fillStyle = LINE;
     ctx.fillRect(x, gridTop + headerH - 14, colW, 2);
     const rows = byDay[i];
-    const visible = rows.length > shown ? rows.slice(0, shown) : rows;
+    // Truncate per day, not against the week's busiest day: a day whose rows all fit
+    // draws every card instead of hiding one behind a phantom "+1".
+    const visible = rows.length > fit ? rows.slice(0, fit - 1) : rows;
     if (rows.length > visible.length) {
       const y = gridTop + headerH + visible.length * (cardH + gap);
       roundRect(ctx, x, y, colW, cardH, 18);

@@ -203,8 +203,20 @@ export function targetGpaEstimate(
   target: string,
   nextCredits: string,
 ): { weighted: boolean; ceiling: number; needed: number | null; met: boolean } {
+  // An explicit unweighted GPA is a choice of scale and wins; a weighted history selects the
+  // weighted one only when no unweighted value was given. The current rows are consulted for
+  // the remaining case: with no history at all, the result card can already show a weighted
+  // average above 4.0 (a lone AP course), and the estimator must not contradict it by capping
+  // the target at 4.0. The on-page hint follows this flag, so it always says which scale ran.
+  // Scale order: a filled-in unweighted GPA is an explicit choice and wins; otherwise a
+  // weighted history selects the weighted scale; otherwise a lone AP/IB course does, because
+  // the result card is already averaging it on the 0-5 scale and the estimator must not cap
+  // the target at 4.0 behind it. `prior.credits` may be null with no history, so the current
+  // rows stand in as the credit basis there.
   const weighted =
-    level === "high" && prior.gpa == null && prior.weighted != null && prior.credits != null;
+    level === "high" &&
+    prior.gpa == null &&
+    (prior.weighted != null ? prior.credits != null : rows.some((row) => row.boost));
   const ceiling = level === "uni" ? 4.3 : weighted ? 5 : 4;
   const targetH = parseGpaInput(target, Math.round(ceiling * 100));
   const addCredits = parseCredits(nextCredits, 1000);

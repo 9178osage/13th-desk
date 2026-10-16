@@ -2,12 +2,6 @@ import { tr, type Lang } from "@/lib/text";
 import { VI_SHORT_WEEKDAYS } from "@/lib/desk-copy";
 import { LOCALE } from "@/lib/locale";
 
-export const TERM_START = "2026-09-28";
-export const TERM_END = "2026-12-11";
-export const K12_EARLY = "2026-09-08";
-export const K12_START = "2026-09-09";
-export const K12_END = "2027-06-16";
-
 export type EugeneClock = {
   ymd: string;
   weekday: number;
@@ -52,30 +46,6 @@ export function eugeneClock(now = new Date()): EugeneClock {
 // Pure day math lives in days.ts so the node test runner can import it.
 import { daysBetween } from "./days.ts";
 export { daysBetween, soonDays } from "./days.ts";
-
-export type TermPhase =
-  | { kind: "before"; daysUntil: number }
-  | { kind: "during"; day: number; week: number }
-  | { kind: "after" };
-
-function mondayOrdinal(ymd: string): number {
-  const ms = Date.parse(`${ymd}T12:00:00-07:00`);
-  const dow = new Date(ms).getUTCDay();
-  const sinceMonday = dow === 0 ? 6 : dow - 1;
-  return Math.round(ms / 86_400_000) - sinceMonday;
-}
-
-export function spanPhase(ymd: string, start: string, end: string): TermPhase {
-  if (ymd < start) return { kind: "before", daysUntil: daysBetween(ymd, start) };
-  if (ymd > end) return { kind: "after" };
-  const day = daysBetween(start, ymd) + 1;
-  const week = Math.round((mondayOrdinal(ymd) - mondayOrdinal(start)) / 7) + 1;
-  return { kind: "during", day, week: Math.max(1, week) };
-}
-
-export function termPhase(ymd: string): TermPhase {
-  return spanPhase(ymd, TERM_START, TERM_END);
-}
 
 const WEEKDAY_INDEX: Record<string, number> = {
   Sun: 0,

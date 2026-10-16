@@ -1,16 +1,9 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tempDir } from "./temp-dir.mjs";
 import { test } from "node:test";
 import { handOver, parseWriteAtomicArgs, stagingError } from "./write-atomic.mjs";
 
@@ -18,7 +11,7 @@ const TEMPLATE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = join(TEMPLATE_ROOT, "scripts/write-atomic.mjs");
 
 function makeWorkspace() {
-  const root = mkdtempSync(join(tmpdir(), "write-atomic-"));
+  const root = tempDir("write-atomic-");
   mkdirSync(join(root, "public"), { recursive: true });
   mkdirSync(join(root, ".grok"), { recursive: true });
   return root;

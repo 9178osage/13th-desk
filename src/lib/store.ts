@@ -6,7 +6,7 @@ import { DESK_LIMITS, canRestore } from "@/lib/desk-limits";
 import { createTabPresence } from "@/lib/tab-presence";
 import { isLevel, type Level } from "@/lib/levels";
 import { isDistrict, type DistrictId } from "@/data/districts";
-import { asStoredCredits, cleanDecimal, isLetter, type Letter } from "@/lib/gpa";
+import { asStoredCredits, cleanDecimal, isLetter } from "@/lib/gpa";
 import {
   isLang,
   isLangReady,
@@ -16,6 +16,7 @@ import {
   type Lang,
 } from "@/lib/text";
 import { validScheduleTime, type ScheduleDraft } from "@/lib/schedule";
+import { asHm, emptyBucket, isWeekDay, parseBucket } from "./desk-records.ts";
 import type { PersistedDeskLike } from "@/lib/desk-backup";
 import {
   EMPTY_PREFS,
@@ -39,42 +40,9 @@ export const DeskHintContext = createContext<PrefsHint>(EMPTY_PREFS);
 
 const bootHint: PrefsHint =
   typeof document === "undefined" ? EMPTY_PREFS : readPrefsCookie(document.cookie);
-export type Note = {
-  id: string;
-  text: string;
-  done: boolean;
-};
+import type { Bucket, GradeRow, Note, ScheduleBlock, WeekDay } from "./desk-records.ts";
 
-export type GradeRow = {
-  id: string;
-  title: string;
-  credits: number;
-  grade: Letter;
-  boost: boolean;
-};
-
-export type WeekDay = "mon" | "tue" | "wed" | "thu" | "fri";
-
-export type ScheduleBlock = {
-  id: string;
-  day: WeekDay;
-  start: string;
-  end: string;
-  title: string;
-  place: string;
-  pinned: boolean;
-};
-
-export type Bucket = {
-  favs: string[];
-  notes: Note[];
-  checks: string[];
-  grades: GradeRow[];
-  priorGpa: string;
-  priorWeighted: string;
-  priorCredits: string;
-  schedule: ScheduleBlock[];
-};
+export type { Bucket, GradeRow, Note, ScheduleBlock, WeekDay };
 
 type DeskState = {
   lang: Lang;
@@ -121,79 +89,10 @@ export function weekdayToScheduleDay(weekday: number): WeekDay | null {
   return map[weekday] ?? null;
 }
 
-function blankBucket(): Bucket {
-  return {
-    favs: [],
-    notes: [],
-    checks: [],
-    grades: [],
-    priorGpa: "",
-    priorWeighted: "",
-    priorCredits: "",
-    schedule: [],
-  };
-}
+const blankBucket = emptyBucket;
 
 function blankBuckets(): Record<Level, Bucket> {
   return { elem: blankBucket(), mid: blankBucket(), high: blankBucket(), uni: blankBucket() };
-}
-
-function asText(value: unknown, max: number): string {
-  return typeof value === "string" ? value.trim().slice(0, max) : "";
-}
-
-function asNote(value: unknown): Note | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  const text = asText(raw.text, 140);
-  if (typeof raw.id !== "string" || !text) return null;
-  return { id: raw.id, text, done: Boolean(raw.done) };
-}
-
-function asGrade(value: unknown): GradeRow | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  const credits = asStoredCredits(raw.credits);
-  if (typeof raw.id !== "string" || !isLetter(raw.grade) || credits == null) return null;
-  return {
-    id: raw.id,
-    title: asText(raw.title, 80),
-    credits,
-    grade: raw.grade,
-    boost: raw.boost === true,
-  };
-}
-
-function isWeekDay(value: unknown): value is WeekDay {
-  return (
-    value === "mon" || value === "tue" || value === "wed" || value === "thu" || value === "fri"
-  );
-}
-
-function asHm(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  if (!/^\d{1,2}:\d{2}$/.test(value)) return null;
-  const [h, m] = value.split(":").map(Number);
-  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-function asSchedule(value: unknown): ScheduleBlock | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  const title = asText(raw.title, 60);
-  const start = asHm(raw.start);
-  const end = asHm(raw.end);
-  if (typeof raw.id !== "string" || !isWeekDay(raw.day) || !title || !start || !end) return null;
-  return {
-    id: raw.id,
-    day: raw.day,
-    start,
-    end,
-    title,
-    place: asText(raw.place, 60),
-    pinned: raw.pinned === true,
-  };
 }
 
 /**
@@ -204,30 +103,7 @@ function asSchedule(value: unknown): ScheduleBlock | null {
  * by a silently filtered copy. Always returns the full key set, never a partial bucket.
  */
 function asBucket(value: unknown): Bucket | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  let lossy = false;
-  const list = <T>(field: unknown, parse: (item: unknown) => T | null): T[] => {
-    if (field === undefined) return [];
-    if (!Array.isArray(field)) {
-      lossy = true;
-      return [];
-    }
-    const out = field.map(parse).filter((item): item is T => item !== null);
-    if (out.length !== field.length) lossy = true;
-    return out;
-  };
-  const asString = (item: unknown) => (typeof item === "string" ? item : null);
-  const bucket: Bucket = {
-    favs: list(raw.favs, asString),
-    notes: list(raw.notes, asNote),
-    checks: list(raw.checks, asString),
-    grades: list(raw.grades, asGrade),
-    priorGpa: cleanDecimal(raw.priorGpa, 4),
-    priorWeighted: cleanDecimal(raw.priorWeighted, 4),
-    priorCredits: cleanDecimal(raw.priorCredits, 6),
-    schedule: list(raw.schedule, asSchedule),
-  };
+  const { bucket, lossy } = parseBucket(value);
   return lossy ? null : bucket;
 }
 

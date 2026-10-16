@@ -21,15 +21,24 @@ import { join, resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const argv = process.argv.slice(2);
 const flag = (name) => argv.includes(name);
-const option = (name, fallback) => {
+// A silently coerced bad number used to empty the concurrency pool, so the run checked
+// nothing and still reported success. Refuse the value instead of guessing.
+const option = (name, fallback, { min = 1, max = 60000 } = {}) => {
   const index = argv.indexOf(name);
-  return index === -1 ? fallback : Number(argv[index + 1]);
+  if (index === -1) return fallback;
+  const raw = argv[index + 1];
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < min || value > max) {
+    console.error(`${name} needs an integer between ${min} and ${max}, got ${JSON.stringify(raw)}`);
+    process.exit(2);
+  }
+  return value;
 };
 
 const JSON_OUT = flag("--json");
 const VERBOSE = flag("--verbose");
-const TIMEOUT_MS = option("--timeout-ms", 20000);
-const CONCURRENCY = option("--concurrency", 8);
+const TIMEOUT_MS = option("--timeout-ms", 20000, { min: 1000, max: 120000 });
+const CONCURRENCY = option("--concurrency", 8, { min: 1, max: 32 });
 const MAX_WARNINGS = 3;
 const MAX_TIMEOUTS = 3;
 
@@ -171,5 +180,10 @@ if (JSON_OUT) {
     `\n  ${results.length} external links: ${passes} ok, ${redirected.length} redirected, ${warned.length} warned, ` +
       `${timedOut.length} timed out, ${failed.length} failed  (tolerate ${MAX_TIMEOUTS} timeouts, ${MAX_WARNINGS} warnings)`,
   );
+}
+// Belt and braces: whatever happens above, "checked nothing" must never look like a pass.
+if (results.length === 0) {
+  console.error("no link was actually probed — refusing to report success");
+  process.exit(2);
 }
 process.exit(breached ? 1 : 0);

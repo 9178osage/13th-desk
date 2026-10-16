@@ -263,7 +263,7 @@ function ScheduleEditor() {
               <Input
                 type="time"
                 required
-                aria-invalid={invalid}
+                aria-invalid={invalid || overlap}
                 aria-describedby={invalid ? "class-time-error" : undefined}
                 value={draft.end}
                 onChange={(e) => patchDraft({ ...draft, end: e.target.value })}

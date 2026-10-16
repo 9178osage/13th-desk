@@ -18,7 +18,9 @@ type DistrictId = (typeof DISTRICT_IDS)[number];
 function isDistrict(value: unknown): value is DistrictId {
   return typeof value === "string" && (DISTRICT_IDS as readonly string[]).includes(value);
 }
-import { asStoredCredits, cleanDecimal, isLetter, type Letter } from "./gpa.ts";
+import { asStoredCredits, isLetter } from "./gpa.ts";
+import type { Bucket } from "./desk-records.ts";
+import { parseBucket as parseBucketShared } from "./desk-records.ts";
 import { isLevel, type Level } from "./levels.ts";
 import { validScheduleTime } from "./schedule.ts";
 export type Lang = "en" | "zh" | "es" | "ko" | "vi" | "ja";
@@ -38,36 +40,6 @@ export const DESK_PRE_IMPORT_KEY = "13th-desk-v1:pre-import" as const;
 export const DESK_PRE_IMPORT_EVENT = "eugene-desk-pre-import" as const;
 export const DESK_BACKUP_APP = "Eugene Desk" as const;
 export const DESK_BACKUP_FORMAT = 1 as const;
-
-type WeekDay = "mon" | "tue" | "wed" | "thu" | "fri";
-
-type Note = { id: string; text: string; done: boolean };
-type GradeRow = {
-  id: string;
-  title: string;
-  credits: number;
-  grade: Letter;
-  boost: boolean;
-};
-type ScheduleBlock = {
-  id: string;
-  day: WeekDay;
-  start: string;
-  end: string;
-  title: string;
-  place: string;
-  pinned: boolean;
-};
-type Bucket = {
-  favs: string[];
-  notes: Note[];
-  checks: string[];
-  grades: GradeRow[];
-  priorGpa: string;
-  priorWeighted: string;
-  priorCredits: string;
-  schedule: ScheduleBlock[];
-};
 
 export type PersistedDeskLike = {
   lang: Lang;
@@ -111,112 +83,23 @@ export type BackupParseResult =
 
 const LEVELS: Level[] = ["elem", "mid", "high", "uni"];
 
-function asText(value: unknown, max: number): string | null {
-  if (typeof value !== "string") return null;
-  return value.trim().slice(0, max);
-}
-
-function isWeekDay(value: unknown): value is WeekDay {
-  return (
-    value === "mon" || value === "tue" || value === "wed" || value === "thu" || value === "fri"
-  );
-}
-
+/** Used only to name the failing part of a rejected file; reading itself is shared. */
 function asHmStrict(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
-  return value;
+  return typeof value === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : null;
 }
 
-function parseNote(value: unknown): Note | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  const text = asText(raw.text, 140);
-  if (typeof raw.id !== "string" || !raw.id || !text) return null;
-  if (typeof raw.done !== "boolean") return null;
-  return { id: raw.id, text, done: raw.done };
-}
-
-function parseGrade(value: unknown): GradeRow | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  const credits = asStoredCredits(raw.credits);
-  if (typeof raw.id !== "string" || !raw.id || !isLetter(raw.grade) || credits == null) return null;
-  if (typeof raw.boost !== "boolean") return null;
-  const title = asText(raw.title, 80);
-  if (title == null) return null;
-  return { id: raw.id, title, credits, grade: raw.grade, boost: raw.boost };
-}
-
-function parseSchedule(value: unknown): ScheduleBlock | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  const title = asText(raw.title, 60);
-  const start = asHmStrict(raw.start);
-  const end = asHmStrict(raw.end);
-  if (typeof raw.id !== "string" || !raw.id || !isWeekDay(raw.day) || !title || !start || !end) {
-    return null;
-  }
-  if (!validScheduleTime(start, end)) return null;
-  if (typeof raw.pinned !== "boolean") return null;
-  const place = asText(raw.place, 60);
-  if (place == null) return null;
-  return { id: raw.id, day: raw.day, start, end, title, place, pinned: raw.pinned };
-}
-
-function parseStringList(value: unknown): string[] | null {
-  if (!Array.isArray(value)) return null;
-  const out: string[] = [];
-  for (const item of value) {
-    if (typeof item !== "string") return null;
-    out.push(item);
-  }
-  return out;
-}
-
+/**
+ * One bucket from a backup file. Import accepts exactly what the save loader accepts, so a
+ * desk that loads can always be restored from its own export; the record rules live in
+ * `desk-records.ts` and are shared with `store.ts` rather than duplicated here.
+ *
+ * Stricter than the loader in one place on purpose: a field that is present but not an
+ * array, or a record that would be dropped, fails the import so the visitor is told which
+ * part is unusable instead of silently restoring less than the file holds.
+ */
 function parseBucket(value: unknown): Bucket | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  // Multiple tabs may legitimately merge past a creation limit. Backups must
-  // round-trip those items rather than rejecting or silently dropping them.
-  if (!Array.isArray(raw.notes) || !Array.isArray(raw.grades) || !Array.isArray(raw.schedule))
-    return null;
-  const notes: Note[] = [];
-  for (const item of raw.notes) {
-    const note = parseNote(item);
-    if (!note) return null;
-    notes.push(note);
-  }
-  const grades: GradeRow[] = [];
-  for (const item of raw.grades) {
-    const grade = parseGrade(item);
-    if (!grade) return null;
-    grades.push(grade);
-  }
-  const schedule: ScheduleBlock[] = [];
-  for (const item of raw.schedule) {
-    const row = parseSchedule(item);
-    if (!row) return null;
-    schedule.push(row);
-  }
-  const favs = parseStringList(raw.favs);
-  for (const list of [notes, grades, schedule]) {
-    if (new Set(list.map((item) => item.id)).size !== list.length) return null;
-  }
-  const checks = parseStringList(raw.checks);
-  if (!favs || !checks) return null;
-  if (typeof raw.priorGpa !== "string" || typeof raw.priorWeighted !== "string") return null;
-  if (typeof raw.priorCredits !== "string") return null;
-  return {
-    favs,
-    notes,
-    checks,
-    grades,
-    priorGpa: cleanDecimal(raw.priorGpa, 4),
-    priorWeighted: cleanDecimal(raw.priorWeighted, 4),
-    priorCredits: cleanDecimal(raw.priorCredits, 6),
-    schedule,
-  };
+  const { bucket, lossy } = parseBucketShared(value);
+  return lossy ? null : bucket;
 }
 
 function parseState(value: unknown): PersistedDeskLike | null {
@@ -393,8 +276,12 @@ export function downloadDeskBackupFile(state: PersistedDeskLike, filename: strin
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  // Match ics.ts / lock-screen.ts: the link has to be in the document for every browser to
+  // start the download, and the blob URL must outlive the click.
+  document.body.append(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function notifyPreImportListeners() {
