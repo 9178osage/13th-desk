@@ -202,7 +202,7 @@ export function targetGpaEstimate(
   prior: { gpa: number | null; weighted: number | null; credits: number | null },
   target: string,
   nextCredits: string,
-): { weighted: boolean; ceiling: number; needed: number | null } {
+): { weighted: boolean; ceiling: number; needed: number | null; met: boolean } {
   const weighted = level === "high" && prior.gpa == null && prior.weighted != null && prior.credits != null;
   const ceiling = level === "uni" ? 4.3 : weighted ? 5 : 4;
   const targetH = parseGpaInput(target, Math.round(ceiling * 100));
@@ -211,10 +211,12 @@ export function targetGpaEstimate(
   const priorCredits = priorGpa != null && prior.credits != null ? prior.credits : 0;
   const current = listGpa(level, rows, weighted);
   const credits = priorCredits + (current?.creditHundredths ?? 0);
-  if (credits <= 0 || targetH == null || addCredits == null) return { weighted, ceiling, needed: null };
+  if (credits <= 0 || targetH == null || addCredits == null) return { weighted, ceiling, needed: null, met: false };
   const points = currentPoints(level, rows, weighted) + (priorGpa ?? 0) * priorCredits;
+  // Already at or above the target now, whatever the next credits bring.
+  const met = targetH != null && credits > 0 && points >= targetH * credits;
   const needed = (targetH * (credits + addCredits) - points) / addCredits / 100;
-  return { weighted, ceiling, needed: Number.isFinite(needed) ? needed : null };
+  return { weighted, ceiling, needed: Number.isFinite(needed) ? needed : null, met };
 }
 
 export function formatCredits(creditHundredths: number): string {

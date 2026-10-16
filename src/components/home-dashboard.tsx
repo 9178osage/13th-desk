@@ -173,7 +173,7 @@ function TaskList() {
               if (restore(deleted, level)) {
                 setDeleted(null);
                 setMessage("restored");
-              } else setMessage("taskLimit");
+              } else setMessage("undoFailed");
             }}
           >
             {c(lang, "undo")}

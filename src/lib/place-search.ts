@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { placeSearchWithQuery, placeSearchWithCategory, type PlaceFilter } from "./place-search-state";
-export { validatePlaceSearch } from "./place-search-state";
+import { placeSearchWithQuery, placeSearchWithCategory, validatePlaceSearch, type PlaceFilter } from "./place-search-state";
+import { useDesk } from "./store";
+export { validatePlaceSearch, placeCategories } from "./place-search-state";
 export type { PlaceSearch } from "./place-search-state";
 
 /**
@@ -26,14 +27,30 @@ export type { PlaceSearch } from "./place-search-state";
  */
 export function usePlaceQueryWriter(to: "/town" | "/campus"): (next: string) => void {
   const navigate = useNavigate();
+  const level = useDesk((state) => state.level);
+  const page = to === "/town" ? "town" : "campus";
   return (next: string) => {
-    void navigate({ to, search: (current) => placeSearchWithQuery(current, next), replace: true, resetScroll: false });
+    // Re-check the category against the level now: the route may have parsed `?cat=`
+    // before the saved level loaded, and typing must not carry a hidden category.
+    void navigate({
+      to,
+      search: (current) => placeSearchWithQuery(validatePlaceSearch(current, page, level), next),
+      replace: true,
+      resetScroll: false,
+    });
   };
 }
 
 export function usePlaceCategoryWriter(to: "/town" | "/campus"): (next: PlaceFilter) => void {
   const navigate = useNavigate();
+  const level = useDesk((state) => state.level);
+  const page = to === "/town" ? "town" : "campus";
   return (next) => {
-    void navigate({ to, search: (current) => placeSearchWithCategory(current, next), replace: true, resetScroll: false });
+    void navigate({
+      to,
+      search: (current) => placeSearchWithCategory(validatePlaceSearch(current, page, level), next),
+      replace: true,
+      resetScroll: false,
+    });
   };
 }

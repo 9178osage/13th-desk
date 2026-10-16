@@ -771,6 +771,7 @@ test("upgrade copy keys exist in all six languages", () => {
     "lockImage",
     "lockImageFailed",
     "lockImageSaved",
+    "undoFailed",
     "weekTitle",
   ] as const;
   for (const key of keys) {
@@ -981,18 +982,32 @@ import { placeSearchWithQuery, placeSearchWithCategory, placeSelectionSearch, va
 test("weighted-only historical GPA keeps its scale when a class is added or removed", () => {
   const prior = { gpa: null, weighted: 450, credits: 1000 };
   const estimate = (rows: Parameters<typeof targetGpaEstimate>[1]) => targetGpaEstimate("high", rows, prior, "4.50", "0.5");
-  assert.deepEqual(estimate([]), { weighted: true, ceiling: 5, needed: 4.5 });
-  assert.deepEqual(estimate([{ grade: "A", credits: 0.5, boost: true }]), { weighted: true, ceiling: 5, needed: 4 });
-  assert.deepEqual(estimate([]), { weighted: true, ceiling: 5, needed: 4.5 });
+  assert.deepEqual(estimate([]), { weighted: true, ceiling: 5, needed: 4.5, met: true });
+  assert.deepEqual(estimate([{ grade: "A", credits: 0.5, boost: true }]), { weighted: true, ceiling: 5, needed: 4, met: true });
+  assert.deepEqual(estimate([]), { weighted: true, ceiling: 5, needed: 4.5, met: true });
   assert.equal(targetGpaEstimate("high", [], prior, "5.01", "0.5").needed, null);
+});
+test("an already-met target reports met, not a smaller required average", () => {
+  const rows = [{ grade: "B" as const, credits: 4, boost: false }];
+  const prior = { gpa: 380, weighted: null, credits: 1000 };
+  const met = targetGpaEstimate("uni", rows, prior, "3.50", "1");
+  assert.equal(met.met, true);
+  assert.equal(met.needed, 2.5);
+  const unmet = targetGpaEstimate("uni", rows, prior, "4.20", "1");
+  assert.equal(unmet.met, false);
+  assert.equal(unmet.needed, 13);
+  assert.ok((unmet.needed ?? 0) > unmet.ceiling);
+  const empty = targetGpaEstimate("uni", [], { gpa: null, weighted: null, credits: null }, "3.5", "1");
+  assert.equal(empty.met, false);
+  assert.equal(empty.needed, null);
 });
 test("target GPA never mixes weighted history into an unweighted or university scale", () => {
   const rows = [{ grade: "A" as const, credits: 1, boost: true }];
   assert.deepEqual(targetGpaEstimate("high", rows, { gpa: 350, weighted: 450, credits: 1000 }, "3.50", "1"),
-    { weighted: false, ceiling: 4, needed: 3 });
+    { weighted: false, ceiling: 4, needed: 3, met: true });
   assert.equal(targetGpaEstimate("high", rows, { gpa: 350, weighted: 450, credits: 1000 }, "4.50", "1").needed, null);
   assert.deepEqual(targetGpaEstimate("uni", rows, { gpa: 350, weighted: null, credits: 1000 }, "3.50", "1"),
-    { weighted: false, ceiling: 4.3, needed: 3 });
+    { weighted: false, ceiling: 4.3, needed: 3, met: true });
   assert.equal(targetGpaEstimate("mid", [], { gpa: null, weighted: null, credits: null }, "3.5", "1").needed, null);
 });
 test("full guide uses the same district/date applicability as starters without changing stored completion IDs", () => {
@@ -1013,17 +1028,23 @@ test("full guide uses the same district/date applicability as starters without c
   assert.match(source, /applicableChecks\(k12Checks\[level\], district, clock\?\.ymd \?\? null\)/);
   assert.match(source, /const done = list\.filter/);
 });
-test("typing keeps the category but explicit palette picks clear it, including repeated same-place picks", () => {
-  const filtered = validatePlaceSearch({ q: "old", cat: "dining" }, "campus");
+test("typing keeps the category but an explicit palette pick clears it", () => {
+  const filtered = validatePlaceSearch({ q: "old", cat: "dining" }, "campus", "uni");
   assert.deepEqual(placeSearchWithQuery(filtered, "Knight Library"), { q: "Knight Library", cat: "dining" });
   const selected = placeSelectionSearch("Knight Library");
   assert.deepEqual(selected, { q: "Knight Library" });
-  assert.deepEqual(placeSelectionSearch("Knight Library"), selected);
   assert.deepEqual(placeSearchWithCategory(selected, "dining"), { q: "Knight Library", cat: "dining" });
   assert.equal(placeSearchWithCategory(filtered, "all").cat, undefined);
   assert.equal(placeSearchWithQuery(filtered, "").cat, "dining");
-  assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "campus"), {});
-  assert.deepEqual(validatePlaceSearch({ cat: "study" }, "town"), {});
+  assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "campus", "uni"), {});
+  assert.deepEqual(validatePlaceSearch({ cat: "study" }, "town", "uni"), {});
+  // ?cat= only accepts chips the page shows for that level (town has no coffee chip for K-8).
+  assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "town", "mid"), {});
+  assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "town", "elem"), {});
+  assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "town", "uni"), { cat: "coffee" });
+  assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "town", "high"), { cat: "coffee" });
+  assert.deepEqual(validatePlaceSearch({ cat: "study" }, "town", "mid"), {});
+  assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "campus", "high"), {});
   const browser = readFileSync(join(import.meta.dirname, "../components/place-browser.tsx"), "utf8");
   assert.doesNotMatch(browser, /useState/);
   for (const route of ["campus", "town"]) {
@@ -1083,4 +1104,21 @@ test("the place search lives in the route, so ?q= can pre-fill twice", () => {
   const browser = readFileSync(join(src, "components/place-browser.tsx"), "utf8");
   assert.match(browser, /onQueryChange: \(next: string\) => void/);
   assert.doesNotMatch(browser, /useState\(initialQuery\)/, "the box is controlled by the route");
+});
+
+import { canRestore, DESK_LIMITS as LIMITS } from "./desk-limits.ts";
+test("undo still restores when the list is back at its limit; only over-limit or duplicates refuse", () => {
+  const list = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `n${i}` }));
+  assert.equal(canRestore(list(LIMITS.notes), "gone", "notes"), true);
+  assert.equal(canRestore(list(LIMITS.notes - 1), "gone", "notes"), true);
+  assert.equal(canRestore(list(LIMITS.notes + 1), "gone", "notes"), false);
+  assert.equal(canRestore(list(3), "n1", "notes"), false);
+  assert.equal(canRestore(list(LIMITS.schedule), "gone", "schedule"), true);
+  assert.equal(canRestore(list(LIMITS.schedule + 1), "gone", "schedule"), false);
+  const store = readFileSync(join(import.meta.dirname, "store.ts"), "utf8");
+  assert.match(store, /canRestore\(bucket\.notes, note\.id, "notes"\)/);
+  assert.match(store, /canRestore\(bucket\.schedule, row\.id, "schedule"\)/);
+  // Adding keeps the >= check.
+  assert.match(store, /bucket\.notes\.length >= DESK_LIMITS\.notes/);
+  assert.match(store, /bucket\.schedule\.length >= DESK_LIMITS\.schedule/);
 });

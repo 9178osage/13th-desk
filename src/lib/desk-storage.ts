@@ -10,6 +10,11 @@ export type DeskStorageEnvironment = {
    * the in-memory desk can take the merged result. Optional for older callers.
    */
   merged?: (value: StorageValue<unknown>) => void;
+  /**
+   * Optional: false for a parsed save that cannot be loaded without dropping records.
+   * Such a save is held exactly like unreadable JSON (no writes, failed status).
+   */
+  validate?: (value: unknown) => boolean;
 };
 
 function recoveryId(): string {
@@ -70,6 +75,12 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       const current = env.storage.getItem(name);
       const disk = current !== base && current !== raw ? parse(current) : null;
       let merged = false;
+      if (disk && env.validate && !env.validate(disk)) {
+        // Another tab left a save this tab cannot load without losing data: hold it.
+        readFailed = true;
+        env.status("failed");
+        return;
+      }
       if (disk && disk.version === next.version) {
         // Another tab saved after our last sync and its event has not arrived yet.
         next = mergeOnto(disk, next);
@@ -98,6 +109,7 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
         const raw = env.storage.getItem(name);
         initialized = true;
         const value = raw ? JSON.parse(raw) as StorageValue<T> : null;
+        if (value && env.validate && !env.validate(value)) throw new Error("unusable save");
         base = raw;
         return value;
       } catch {
@@ -140,6 +152,7 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       if (latest == null || latest === base) return false;
       let value = parse(latest);
       if (!value) return false;
+      if (env.validate && !env.validate(value)) return false;
       if (pending && pending.version === value.version) {
         // A failed save is still waiting: keep it on top of the newer desk.
         value = mergeOnto(value, pending);

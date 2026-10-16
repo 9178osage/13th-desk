@@ -2,7 +2,7 @@ import { createContext, useContext, useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist, type StorageValue } from "zustand/middleware";
 import { createDeskStorage, type SaveStatus } from "@/lib/desk-storage";
-import { DESK_LIMITS } from "@/lib/desk-limits";
+import { DESK_LIMITS, canRestore } from "@/lib/desk-limits";
 import { createTabPresence } from "@/lib/tab-presence";
 import { isLevel, type Level } from "@/lib/levels";
 import { isDistrict, type DistrictId } from "@/data/districts";
@@ -196,40 +196,59 @@ function asSchedule(value: unknown): ScheduleBlock | null {
   };
 }
 
+/**
+ * A stored bucket, or null when it cannot be loaded without losing data: a field that
+ * is present but not an array, or any record that would be dropped (e.g. a grade with
+ * 1.25 credits). Missing fields are fine (older saves). Callers turn null into the
+ * corrupt-save hold (see `storedDeskIsUsable`), so the original is never overwritten
+ * by a silently filtered copy. Always returns the full key set, never a partial bucket.
+ */
 function asBucket(value: unknown): Bucket | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
-  const notes = Array.isArray(raw.notes)
-    ? raw.notes
-        .map(asNote)
-        .filter((item): item is Note => item !== null)
-    : [];
-  const favs = Array.isArray(raw.favs)
-    ? raw.favs.filter((item): item is string => typeof item === "string")
-    : [];
-  const checks = Array.isArray(raw.checks)
-    ? raw.checks.filter((item): item is string => typeof item === "string")
-    : [];
-  const grades = Array.isArray(raw.grades)
-    ? raw.grades
-        .map(asGrade)
-        .filter((item): item is GradeRow => item !== null)
-    : [];
-  const schedule = Array.isArray(raw.schedule)
-    ? raw.schedule
-        .map(asSchedule)
-        .filter((item): item is ScheduleBlock => item !== null)
-    : [];
-  return {
-    favs,
-    notes,
-    checks,
-    grades,
+  let lossy = false;
+  const list = <T,>(field: unknown, parse: (item: unknown) => T | null): T[] => {
+    if (field === undefined) return [];
+    if (!Array.isArray(field)) {
+      lossy = true;
+      return [];
+    }
+    const out = field.map(parse).filter((item): item is T => item !== null);
+    if (out.length !== field.length) lossy = true;
+    return out;
+  };
+  const asString = (item: unknown) => (typeof item === "string" ? item : null);
+  const bucket: Bucket = {
+    favs: list(raw.favs, asString),
+    notes: list(raw.notes, asNote),
+    checks: list(raw.checks, asString),
+    grades: list(raw.grades, asGrade),
     priorGpa: cleanDecimal(raw.priorGpa, 4),
     priorWeighted: cleanDecimal(raw.priorWeighted, 4),
     priorCredits: cleanDecimal(raw.priorCredits, 6),
-    schedule,
+    schedule: list(raw.schedule, asSchedule),
   };
+  return lossy ? null : bucket;
+}
+
+/**
+ * Whether a parsed `{ state, version }` save can be loaded without dropping anything.
+ * Valid JSON whose records would be filtered out is treated like a corrupt save:
+ * desk-storage holds it (no writes, error notice) until an explicit restore archives it.
+ */
+export function storedDeskIsUsable(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const state = (value as { state?: unknown }).state;
+  if (!state || typeof state !== "object") return false;
+  const raw = state as Record<string, unknown>;
+  const stored = raw.buckets;
+  if (stored === undefined) return asBucket(raw) !== null; // legacy single-bucket save
+  if (!stored || typeof stored !== "object") return false;
+  for (const id of ["elem", "mid", "high", "uni"] as const) {
+    const item = (stored as Record<string, unknown>)[id];
+    if (item !== undefined && asBucket(item) === null) return false;
+  }
+  return true;
 }
 
 type PersistedDesk = {
@@ -253,6 +272,7 @@ const deskStorage = typeof window === "undefined" ? null : createDeskStorage<Per
     removeItem: (key) => localStorage.removeItem(key),
   },
   status: (reason) => useStorageStatus.setState({ failed: reason !== "ready", reason }),
+  validate: storedDeskIsUsable,
   // A save was merged with a newer save from another tab: show the merged desk.
   merged: (value) => applyStoredDesk(value as StorageValue<PersistedDesk>),
 });
@@ -331,7 +351,7 @@ const deskStore = create<DeskState>()(
       restoreNote: (note, level) => {
         const { buckets } = get();
         const bucket = buckets[level];
-        if (bucket.notes.length >= DESK_LIMITS.notes || bucket.notes.some((item) => item.id === note.id))
+        if (!canRestore(bucket.notes, note.id, "notes"))
           return false;
         set({ buckets: { ...buckets, [level]: { ...bucket, notes: [note, ...bucket.notes] } } });
         return true;
@@ -473,7 +493,7 @@ const deskStore = create<DeskState>()(
       restoreScheduleBlock: (row, level) => {
         const { buckets } = get();
         const bucket = buckets[level];
-        if (bucket.schedule.length >= DESK_LIMITS.schedule || bucket.schedule.some((item) => item.id === row.id))
+        if (!canRestore(bucket.schedule, row.id, "schedule"))
           return false;
         set({
           buckets: { ...buckets, [level]: { ...bucket, schedule: [...bucket.schedule, row] } },

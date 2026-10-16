@@ -10,3 +10,13 @@ export function hasDeskOverflow(
     ),
   );
 }
+
+/**
+ * Undo of a delete puts back an item that was just there, so a list that is back at
+ * its limit (another item was added after the delete) still accepts it. Only a list
+ * already over the limit, or an id that is already present, refuses. Adding uses
+ * `>=`; restoring uses `>`.
+ */
+export function canRestore(list: { id: string }[], id: string, key: "notes" | "schedule"): boolean {
+  return list.length <= DESK_LIMITS[key] && !list.some((item) => item.id === id);
+}

@@ -149,7 +149,7 @@ function GpaPage() {
 
   const estimate = targetGpaEstimate(level, rows,
     { gpa: priorGpaH, weighted: priorWeightedH, credits: priorCreditH }, target, whatIfCredits);
-  const { needed: whatIfHint, ceiling: whatIfCeiling } = estimate;
+  const { needed: whatIfHint, ceiling: whatIfCeiling, met: whatIfMet } = estimate;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -326,7 +326,7 @@ function GpaPage() {
               </select>
             </label>
           </div>
-          {whatIfHint != null && whatIfHint <= 0 ? (
+          {whatIfMet ? (
             <p className="mt-3 text-sm text-ink" role="status">
               {tr(lang, {
                 en: "Your current GPA already meets or beats that target.",

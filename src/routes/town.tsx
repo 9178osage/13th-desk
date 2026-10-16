@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PlaceBrowser } from "@/components/place-browser";
-import { usePlaceQueryWriter, usePlaceCategoryWriter, validatePlaceSearch } from "@/lib/place-search";
+import { usePlaceQueryWriter, usePlaceCategoryWriter, validatePlaceSearch, placeCategories } from "@/lib/place-search";
+import type { Copy } from "@/lib/text";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/town")({
   // ?q= is the place search itself, not a one-shot pre-fill (see place-search.ts).
-  validateSearch: (search: Record<string, unknown>) => validatePlaceSearch(search, "town"),
+  // The level comes from the store (the saved desk in the browser; the default on the
+  // server). The writers re-check it, and PlaceBrowser falls back to "all" for any chip
+  // the current level does not show.
+  validateSearch: (search: Record<string, unknown>) => validatePlaceSearch(search, "town", useDesk.getState().level),
   head: () => ({
     meta: [
       { title: "Town · Eugene Desk" },
@@ -18,6 +22,16 @@ export const Route = createFileRoute("/town")({
   }),
   component: TownPage,
 });
+
+const TOWN_LABELS: Record<ReturnType<typeof placeCategories>[number], Copy> = {
+  coffee: { en: "Coffee", zh: "咖啡" },
+  eat: { en: "Eat", zh: "吃" },
+  out: { en: "Outside", zh: "出门" },
+  errand: { en: "Errands", zh: "办事" },
+  saved: { en: "Pinned", zh: "收藏" },
+  study: { en: "Study", zh: "自习" },
+  dining: { en: "Dining", zh: "餐饮" },
+};
 
 function TownPage() {
   const level = useDesk((state) => state.level);
@@ -53,24 +67,10 @@ function TownPage() {
         vi: "Tìm nơi ăn trưa, đi dạo hoặc làm việc thường ngày. Lưu các địa điểm yêu thích để ghé sau.",
         ja: "ランチ、散歩、毎日の用事に。気になる場所は保存して、また今度。",
       }}
-      cats={
-        young
-          ? [
-              { id: "all", label: { en: "All", zh: "全部" } },
-              { id: "eat", label: { en: "Eat", zh: "吃" } },
-              { id: "out", label: { en: "Outside", zh: "出门" } },
-              { id: "errand", label: { en: "Errands", zh: "办事" } },
-              { id: "saved", label: { en: "Pinned", zh: "收藏" } },
-            ]
-          : [
-              { id: "all", label: { en: "All", zh: "全部" } },
-              { id: "coffee", label: { en: "Coffee", zh: "咖啡" } },
-              { id: "eat", label: { en: "Eat", zh: "吃" } },
-              { id: "out", label: { en: "Outside", zh: "出门" } },
-              { id: "errand", label: { en: "Errands", zh: "办事" } },
-              { id: "saved", label: { en: "Pinned", zh: "收藏" } },
-            ]
-      }
+      cats={[
+        { id: "all" as const, label: { en: "All", zh: "全部" } },
+        ...placeCategories("town", level).map((id) => ({ id, label: TOWN_LABELS[id] })),
+      ]}
     />
   );
 }

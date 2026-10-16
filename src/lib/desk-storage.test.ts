@@ -211,3 +211,23 @@ test("old saves without any new field still load and save unchanged", async () =
   assert.deepEqual(Object.keys(JSON.parse(env.data.get(KEY)!)).sort(), ["state", "version"]);
   assert.equal(JSON.parse(env.data.get(KEY)!).version, 0);
 });
+
+test("a parsed save that would lose records is held, not overwritten (defect 3)", async () => {
+  const data = new Map<string, string>();
+  const bad = JSON.stringify({ state: { notes: ["keep", 7] }, version: 0 });
+  data.set(KEY, bad);
+  let status: SaveStatus = "ready";
+  const adapter = createDeskStorage<Desk>({
+    storage: { getItem: (k) => data.get(k) ?? null, setItem: (k, v) => { data.set(k, v); }, removeItem: (k) => { data.delete(k); } },
+    status: (s) => { status = s; },
+    validate: (v) => (v as { state: Desk }).state.notes.every((n) => typeof n === "string"),
+  });
+  assert.equal(await adapter.storage.getItem(KEY), null);
+  assert.equal(status, "failed");
+  adapter.storage.setItem(KEY, { state: { notes: [] }, version: 0 });
+  assert.equal(data.get(KEY), bad); // original untouched
+  assert.equal(await adapter.replace({ state: { notes: ["restored"] }, version: 0 }), true);
+  const archived = [...data.keys()].filter((k) => k.startsWith(`${KEY}:recovery:`));
+  assert.equal(archived.length, 1);
+  assert.equal(data.get(archived[0]), bad);
+});

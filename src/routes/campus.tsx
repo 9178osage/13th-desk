@@ -6,7 +6,10 @@ import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/campus")({
   // ?q= is the place search itself, not a one-shot pre-fill (see place-search.ts).
-  validateSearch: (search: Record<string, unknown>) => validatePlaceSearch(search, "campus"),
+  // The level comes from the store (the saved desk in the browser; the default on the
+  // server). The writers re-check it, and PlaceBrowser falls back to "all" for any chip
+  // the current level does not show.
+  validateSearch: (search: Record<string, unknown>) => validatePlaceSearch(search, "campus", useDesk.getState().level),
   head: () => ({
     meta: [
       { title: "Campus · Eugene Desk" },

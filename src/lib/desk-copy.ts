@@ -188,6 +188,14 @@ const copy = {
     "Chưa có mục nào ở đây.",
     "ここにはまだ項目がありません。",
   ],
+  undoFailed: [
+    "Couldn't undo: it is already back, or the list is over its limit.",
+    "无法撤销：这一项已经恢复，或列表已超出上限。",
+    "No se pudo deshacer: ya está de vuelta o la lista supera su límite.",
+    "되돌릴 수 없어요. 이미 복원됐거나 목록이 한도를 넘었어요.",
+    "Không thể hoàn tác: mục này đã được khôi phục hoặc danh sách đã vượt giới hạn.",
+    "元に戻せません。すでに戻っているか、リストが上限を超えています。",
+  ],
   taskLimit: [
     "You can keep 20 tasks. Remove an old one to add another.",
     "最多保留 20 条待办，删除不需要的条目后可以继续添加。",

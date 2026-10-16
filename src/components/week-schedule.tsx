@@ -400,7 +400,7 @@ function ScheduleEditor() {
               if (restore(deleted, level)) {
                 setDeleted(null);
                 setMessage("restored");
-              } else setMessage("classLimit");
+              } else setMessage("undoFailed");
             }}
           >
             {c(lang, "undo")}
