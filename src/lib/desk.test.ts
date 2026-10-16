@@ -977,7 +977,7 @@ test("lock-screen wrap breaks a word wider than the card", () => {
 
 import { starterTasks, applicableChecks } from "./starter-tasks.ts";
 import { k12Checks } from "../data/k12.ts";
-import { placeSearchWithQuery, placeSearchWithCategory, placeSelectionSearch, validatePlaceSearch } from "./place-search-state.ts";
+import { placeSearchWithQuery, placeSearchWithCategory, placeSelectionSearch, validatePlaceSearch, parsePlaceSearch, effectivePlaceCategory } from "./place-search-state.ts";
 
 test("weighted-only historical GPA keeps its scale when a class is added or removed", () => {
   const prior = { gpa: null, weighted: 450, credits: 1000 };
@@ -1045,12 +1045,26 @@ test("typing keeps the category but an explicit palette pick clears it", () => {
   assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "town", "high"), { cat: "coffee" });
   assert.deepEqual(validatePlaceSearch({ cat: "study" }, "town", "mid"), {});
   assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "campus", "high"), {});
+  // The route parse is level-independent (SSR has no saved level); the page narrows it.
+  assert.deepEqual(parsePlaceSearch({ cat: "coffee", q: "x" }, "town"), { q: "x", cat: "coffee" });
+  assert.deepEqual(parsePlaceSearch({ cat: "bogus" }, "town"), {});
+  assert.deepEqual(parsePlaceSearch({ cat: "coffee" }, "campus"), {});
+  assert.equal(effectivePlaceCategory("coffee", "town", "mid"), undefined);
+  assert.equal(effectivePlaceCategory("coffee", "town", "elem"), undefined);
+  assert.equal(effectivePlaceCategory("coffee", "town", "uni"), "coffee");
+  assert.equal(effectivePlaceCategory("eat", "town", "mid"), "eat");
+  assert.equal(effectivePlaceCategory("all", "town", "uni"), undefined);
+  assert.equal(effectivePlaceCategory(undefined, "campus", "uni"), undefined);
   const browser = readFileSync(join(import.meta.dirname, "../components/place-browser.tsx"), "utf8");
   assert.doesNotMatch(browser, /useState/);
   for (const route of ["campus", "town"]) {
     const source = readFileSync(join(import.meta.dirname, `../routes/${route}.tsx`), "utf8");
     assert.match(source, /category=\{cat\}/);
     assert.match(source, /onCategoryChange=\{setCategory\}/);
+    assert.match(source, /parsePlaceSearch\(search, "/);
+    assert.doesNotMatch(source, /getState\(\)\.level/);
+    assert.match(source, /usePlaceCategoryGuard\("\//);
+    assert.match(source, /effectivePlaceCategory\(rawCat/);
   }
 });
 test("starter tasks drop past dates and 4J-only items for other districts (audit 10-15 P2)", () => {

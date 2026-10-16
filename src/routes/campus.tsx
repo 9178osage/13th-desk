@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { K12Campus } from "@/components/k12-campus";
 import { PlaceBrowser } from "@/components/place-browser";
-import { usePlaceQueryWriter, usePlaceCategoryWriter, validatePlaceSearch } from "@/lib/place-search";
+import { usePlaceQueryWriter, usePlaceCategoryWriter, usePlaceCategoryGuard, parsePlaceSearch, effectivePlaceCategory } from "@/lib/place-search";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/campus")({
   // ?q= is the place search itself, not a one-shot pre-fill (see place-search.ts).
-  // The level comes from the store (the saved desk in the browser; the default on the
-  // server). The writers re-check it, and PlaceBrowser falls back to "all" for any chip
-  // the current level does not show.
-  validateSearch: (search: Record<string, unknown>) => validatePlaceSearch(search, "campus", useDesk.getState().level),
+  // Only a static whitelist here: the route parses before the saved level is known.
+  // The page applies `effectivePlaceCategory` and drops a ?cat= the level hides.
+  validateSearch: (search: Record<string, unknown>) => parsePlaceSearch(search, "campus"),
   head: () => ({
     meta: [
       { title: "Campus · Eugene Desk" },
@@ -25,7 +24,9 @@ export const Route = createFileRoute("/campus")({
 
 function CampusPage() {
   const level = useDesk((state) => state.level);
-  const { q, cat } = Route.useSearch();
+  const { q, cat: rawCat } = Route.useSearch();
+  usePlaceCategoryGuard("/campus", rawCat);
+  const cat = effectivePlaceCategory(rawCat, "campus", level);
   const setQuery = usePlaceQueryWriter("/campus");
   const setCategory = usePlaceCategoryWriter("/campus");
   if (level !== "uni") return <K12Campus level={level} />;

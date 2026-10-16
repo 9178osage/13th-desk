@@ -31,6 +31,35 @@ export function validatePlaceSearch(
   };
 }
 
+/** Every category a page can show for any level (level-independent). */
+export function knownPlaceCategories(page: "campus" | "town"): Exclude<PlaceFilter, "all">[] {
+  return placeCategories(page, "uni");
+}
+
+/**
+ * Route-level parse: a static whitelist only. The route parses `?cat=` before the saved
+ * level is known (on the server the store is shared and holds the default level), so the
+ * level-specific check happens in the page via `effectivePlaceCategory` and
+ * `usePlaceCategoryGuard`.
+ */
+export function parsePlaceSearch(search: Record<string, unknown>, page: "campus" | "town"): PlaceSearch {
+  const known: string[] = knownPlaceCategories(page);
+  return {
+    ...(typeof search.q === "string" && search.q.trim() ? { q: search.q.slice(0, 80) } : {}),
+    ...(typeof search.cat === "string" && known.includes(search.cat) ? { cat: search.cat as PlaceFilter } : {}),
+  };
+}
+
+/** The category actually applied: never one the current level does not show. */
+export function effectivePlaceCategory(
+  cat: PlaceFilter | undefined,
+  page: "campus" | "town",
+  level: Level,
+): PlaceFilter | undefined {
+  if (!cat || cat === "all") return undefined;
+  return (placeCategories(page, level) as PlaceFilter[]).includes(cat) ? cat : undefined;
+}
+
 export function placeSearchWithQuery(current: PlaceSearch, query: string): PlaceSearch {
   return { ...current, q: query || undefined };
 }

@@ -1,7 +1,8 @@
+import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { placeSearchWithQuery, placeSearchWithCategory, validatePlaceSearch, type PlaceFilter } from "./place-search-state";
+import { placeSearchWithQuery, placeSearchWithCategory, validatePlaceSearch, effectivePlaceCategory, type PlaceFilter } from "./place-search-state";
 import { useDesk } from "./store";
-export { validatePlaceSearch, placeCategories } from "./place-search-state";
+export { validatePlaceSearch, placeCategories, parsePlaceSearch, effectivePlaceCategory } from "./place-search-state";
 export type { PlaceSearch } from "./place-search-state";
 
 /**
@@ -53,4 +54,25 @@ export function usePlaceCategoryWriter(to: "/town" | "/campus"): (next: PlaceFil
       resetScroll: false,
     });
   };
+}
+
+/**
+ * Once the saved desk has loaded, drop a `?cat=` the visitor's level does not show, so
+ * the URL says what the page shows (e.g. /town?cat=coffee for a middle schooler).
+ */
+export function usePlaceCategoryGuard(to: "/town" | "/campus", cat: PlaceFilter | undefined): void {
+  const navigate = useNavigate();
+  const level = useDesk((state) => state.level);
+  const hydrated = useDesk((state) => state.hydrated);
+  const page = to === "/town" ? "town" : "campus";
+  const stale = hydrated && cat !== undefined && effectivePlaceCategory(cat, page, level) === undefined;
+  useEffect(() => {
+    if (!stale) return;
+    void navigate({
+      to,
+      search: (current) => ({ ...current, cat: undefined }),
+      replace: true,
+      resetScroll: false,
+    });
+  }, [stale, navigate, to]);
 }

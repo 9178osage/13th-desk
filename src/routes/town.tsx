@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PlaceBrowser } from "@/components/place-browser";
-import { usePlaceQueryWriter, usePlaceCategoryWriter, validatePlaceSearch, placeCategories } from "@/lib/place-search";
+import { usePlaceQueryWriter, usePlaceCategoryWriter, usePlaceCategoryGuard, parsePlaceSearch, effectivePlaceCategory, placeCategories } from "@/lib/place-search";
 import type { Copy } from "@/lib/text";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/town")({
   // ?q= is the place search itself, not a one-shot pre-fill (see place-search.ts).
-  // The level comes from the store (the saved desk in the browser; the default on the
-  // server). The writers re-check it, and PlaceBrowser falls back to "all" for any chip
-  // the current level does not show.
-  validateSearch: (search: Record<string, unknown>) => validatePlaceSearch(search, "town", useDesk.getState().level),
+  // Only a static whitelist here: the route parses before the saved level is known.
+  // The page applies `effectivePlaceCategory` and drops a ?cat= the level hides.
+  validateSearch: (search: Record<string, unknown>) => parsePlaceSearch(search, "town"),
   head: () => ({
     meta: [
       { title: "Town · Eugene Desk" },
@@ -35,7 +34,9 @@ const TOWN_LABELS: Record<ReturnType<typeof placeCategories>[number], Copy> = {
 
 function TownPage() {
   const level = useDesk((state) => state.level);
-  const { q, cat } = Route.useSearch();
+  const { q, cat: rawCat } = Route.useSearch();
+  usePlaceCategoryGuard("/town", rawCat);
+  const cat = effectivePlaceCategory(rawCat, "town", level);
   const setQuery = usePlaceQueryWriter("/town");
   const setCategory = usePlaceCategoryWriter("/town");
   const young = level === "elem" || level === "mid";
