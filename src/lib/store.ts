@@ -26,7 +26,6 @@ import {
   type PrefsHint,
 } from "@/lib/prefs-cookie";
 
-
 /** Chinese-first portal: the language used until a visitor picks one. */
 export const DEFAULT_LANG: Lang = "zh";
 export const DEFAULT_LEVEL: Level = "uni";
@@ -208,7 +207,7 @@ function asBucket(value: unknown): Bucket | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
   let lossy = false;
-  const list = <T,>(field: unknown, parse: (item: unknown) => T | null): T[] => {
+  const list = <T>(field: unknown, parse: (item: unknown) => T | null): T[] => {
     if (field === undefined) return [];
     if (!Array.isArray(field)) {
       lossy = true;
@@ -262,21 +261,28 @@ type PersistedDesk = {
   buckets: Record<Level, Bucket>;
 };
 
-export const useStorageStatus = create<{ failed: boolean; reason: SaveStatus; otherTabs: boolean }>(() => ({
-  failed: false, reason: "ready", otherTabs: false,
-}));
-const deskStorage = typeof window === "undefined" ? null : createDeskStorage<PersistedDesk>({
-  // Access localStorage inside these methods: the getter itself may throw.
-  storage: {
-    getItem: (key) => localStorage.getItem(key),
-    setItem: (key, value) => localStorage.setItem(key, value),
-    removeItem: (key) => localStorage.removeItem(key),
-  },
-  status: (reason) => useStorageStatus.setState({ failed: reason !== "ready", reason }),
-  validate: storedDeskIsUsable,
-  // A save was merged with a newer save from another tab: show the merged desk.
-  merged: (value) => applyStoredDesk(value as StorageValue<PersistedDesk>),
-});
+export const useStorageStatus = create<{ failed: boolean; reason: SaveStatus; otherTabs: boolean }>(
+  () => ({
+    failed: false,
+    reason: "ready",
+    otherTabs: false,
+  }),
+);
+const deskStorage =
+  typeof window === "undefined"
+    ? null
+    : createDeskStorage<PersistedDesk>({
+        // Access localStorage inside these methods: the getter itself may throw.
+        storage: {
+          getItem: (key) => localStorage.getItem(key),
+          setItem: (key, value) => localStorage.setItem(key, value),
+          removeItem: (key) => localStorage.removeItem(key),
+        },
+        status: (reason) => useStorageStatus.setState({ failed: reason !== "ready", reason }),
+        validate: storedDeskIsUsable,
+        // A save was merged with a newer save from another tab: show the merged desk.
+        merged: (value) => applyStoredDesk(value as StorageValue<PersistedDesk>),
+      });
 
 const deskStore = create<DeskState>()(
   persist(
@@ -352,8 +358,7 @@ const deskStore = create<DeskState>()(
       restoreNote: (note, level) => {
         const { buckets } = get();
         const bucket = buckets[level];
-        if (!canRestore(bucket.notes, note.id, "notes"))
-          return false;
+        if (!canRestore(bucket.notes, note.id, "notes")) return false;
         set({ buckets: { ...buckets, [level]: { ...bucket, notes: [note, ...bucket.notes] } } });
         return true;
       },
@@ -494,8 +499,7 @@ const deskStore = create<DeskState>()(
       restoreScheduleBlock: (row, level) => {
         const { buckets } = get();
         const bucket = buckets[level];
-        if (!canRestore(bucket.schedule, row.id, "schedule"))
-          return false;
+        if (!canRestore(bucket.schedule, row.id, "schedule")) return false;
         set({
           buckets: { ...buckets, [level]: { ...bucket, schedule: [...bucket.schedule, row] } },
         });
@@ -530,7 +534,11 @@ const deskStore = create<DeskState>()(
     {
       name: "13th-desk-v1",
       skipHydration: true,
-      storage: deskStorage?.storage ?? { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+      storage: deskStorage?.storage ?? {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      },
       partialize: (state) => ({
         lang: state.lang,
         langSet: state.langSet,
@@ -697,9 +705,17 @@ if (typeof window !== "undefined") {
   let presence: ReturnType<typeof createTabPresence> | null = null;
   try {
     presence = createTabPresence({
-      id: globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`,
-      channel: typeof BroadcastChannel === "function" ? new BroadcastChannel("13th-desk-v1:tabs") : null,
-      locks: typeof navigator !== "undefined" && navigator.locks && typeof navigator.locks.query === "function" ? navigator.locks : null,
+      id:
+        globalThis.crypto?.randomUUID?.() ??
+        `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`,
+      channel:
+        typeof BroadcastChannel === "function" ? new BroadcastChannel("13th-desk-v1:tabs") : null,
+      locks:
+        typeof navigator !== "undefined" &&
+        navigator.locks &&
+        typeof navigator.locks.query === "function"
+          ? navigator.locks
+          : null,
       setInterval: (fn, ms) => window.setInterval(fn, ms),
       clearInterval: (handle) => window.clearInterval(handle as number),
       onChange: (otherTabs) => useStorageStatus.setState({ otherTabs }),
@@ -708,8 +724,12 @@ if (typeof window !== "undefined") {
     presence = null;
   }
   const onPageHide = () => presence?.leave();
-  const onPageShow = (event: PageTransitionEvent) => { if (event.persisted) presence?.wake(); };
-  const onVisible = () => { if (document.visibilityState === "visible") presence?.wake(); };
+  const onPageShow = (event: PageTransitionEvent) => {
+    if (event.persisted) presence?.wake();
+  };
+  const onVisible = () => {
+    if (document.visibilityState === "visible") presence?.wake();
+  };
   window.addEventListener("pagehide", onPageHide);
   window.addEventListener("pageshow", onPageShow);
   document.addEventListener("visibilitychange", onVisible);
@@ -728,7 +748,9 @@ if (typeof window !== "undefined") {
 function storedLang(): Lang | null {
   try {
     const raw = localStorage.getItem("13th-desk-v1");
-    const state = raw ? (JSON.parse(raw) as { state?: { lang?: unknown; langSet?: unknown } }).state : null;
+    const state = raw
+      ? (JSON.parse(raw) as { state?: { lang?: unknown; langSet?: unknown } }).state
+      : null;
     return state && state.langSet === true && isLang(state.lang) ? state.lang : null;
   } catch {
     return null;
@@ -763,14 +785,13 @@ export async function replacePersistedDeskState(next: PersistedDeskLike): Promis
     district: next.district,
     buckets: structuredClone(next.buckets),
   };
-  if (!deskStorage || !await deskStorage.replace({ state: payload, version: 0 })) return false;
+  if (!deskStorage || !(await deskStorage.replace({ state: payload, version: 0 }))) return false;
   useDesk.setState({
     ...payload,
     hydrated: true,
   });
   return true;
 }
-
 
 let hydratePromise: Promise<void> | null = null;
 

@@ -268,7 +268,10 @@ export const helpLinks: { href: string; label: Bilingual; note: Bilingual }[] = 
   {
     href: "https://duckweb.uoregon.edu/",
     label: { en: "DuckWeb", zh: "DuckWeb" },
-    note: { en: "The records portal students still call by this name.", zh: "学生现在还叫它 DuckWeb。" },
+    note: {
+      en: "The records portal students still call by this name.",
+      zh: "学生现在还叫它 DuckWeb。",
+    },
   },
   {
     href: "https://catalog.uoregon.edu/calendar/",
@@ -278,12 +281,18 @@ export const helpLinks: { href: string; label: Bilingual; note: Bilingual }[] = 
   {
     href: "https://map.uoregon.edu/",
     label: { en: "Campus map", zh: "校园地图" },
-    note: { en: "Building names are not intuitive. PLC is a real place.", zh: "楼的名字不好猜。PLC 是一栋真的教学楼。" },
+    note: {
+      en: "Building names are not intuitive. PLC is a real place.",
+      zh: "楼的名字不好猜。PLC 是一栋真的教学楼。",
+    },
   },
   {
     href: "https://library.uoregon.edu/knight/knight-library-hours",
     label: { en: "Library hours", zh: "图书馆时间" },
-    note: { en: "Today, not a rumor from fall of last year.", zh: "看今天的开放时间，别用去年秋天的说法。" },
+    note: {
+      en: "Today, not a rumor from fall of last year.",
+      zh: "看今天的开放时间，别用去年秋天的说法。",
+    },
   },
   {
     href: "https://www.ltd.org/",
@@ -298,7 +307,10 @@ export const helpLinks: { href: string; label: Bilingual; note: Bilingual }[] = 
   {
     href: "https://financialaid.uoregon.edu/",
     label: { en: "Financial aid", zh: "助学金办公室" },
-    note: { en: "Bills and aid, not a group-chat answer.", zh: "学费和助学金以这里为准，别信群聊。" },
+    note: {
+      en: "Bills and aid, not a group-chat answer.",
+      zh: "学费和助学金以这里为准，别信群聊。",
+    },
   },
   {
     href: "https://health.uoregon.edu/",

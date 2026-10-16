@@ -144,10 +144,7 @@ test("__root.tsx og:type no longer satisfies the canvas gate", () => {
     narrowFile: "x-banner.jpg",
   });
   mkdirSync(join(root, "src/routes"), { recursive: true });
-  writeFileSync(
-    join(root, "src/routes/__root.tsx"),
-    '{ property: "og:type", content: "x:game" }',
-  );
+  writeFileSync(join(root, "src/routes/__root.tsx"), '{ property: "og:type", content: "x:game" }');
   const warnings = computeBrandWarnings({ hasCanvas: true, workspaceRoot: root });
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /x:game/);
@@ -340,7 +337,9 @@ function prohibitionSection({ rel, label, from, until }) {
   const rest = doc.slice(start + from.length);
   const end = rest.search(until);
   // Markdown emphasis and prose wrapping both sit between the two words.
-  return (from + (end === -1 ? rest : rest.slice(0, end))).replace(/[`*]/g, "").replace(/\s+/g, " ");
+  return (from + (end === -1 ? rest : rest.slice(0, end)))
+    .replace(/[`*]/g, "")
+    .replace(/\s+/g, " ");
 }
 
 test("the sections that own the brand-task prohibition never affirm a wait", () => {

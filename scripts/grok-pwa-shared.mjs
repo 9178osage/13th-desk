@@ -113,9 +113,7 @@ export function publicAppHost(hostHeader) {
  * app — Envoy rewrites it to `*.vercel.app`.
  */
 export function resolvePublicHost(hostHeader) {
-  return (
-    publicAppHost(process.env?.VITE_PUBLIC_HOSTNAME) || publicAppHost(hostHeader)
-  );
+  return publicAppHost(process.env?.VITE_PUBLIC_HOSTNAME) || publicAppHost(hostHeader);
 }
 
 export function isInstallQuery(url) {
@@ -332,7 +330,10 @@ export function siteHasCustomCard(site = {}) {
  * Otherwise empty — caller emits the og.grok.me placeholder.
  */
 export function resolveOgCardAsset(site = {}, cwd = process.cwd()) {
-  return ogCardPublicPath(cwd) || (detectCustomOgCard(cwd, site) ? String(site.image ?? "").trim() || "/og.jpg" : "");
+  return (
+    ogCardPublicPath(cwd) ||
+    (detectCustomOgCard(cwd, site) ? String(site.image ?? "").trim() || "/og.jpg" : "")
+  );
 }
 
 /** Stamp `card=custom` when public/og.jpg or public/og.png is on disk. */
@@ -443,12 +444,7 @@ export function injectGrokPwaHead(html, ctx = {}) {
   if (typeof html !== "string") return html;
   const { site, projectId, creator, creatorId, host, cwd } = normalizeHeadContext(ctx);
   const documentTitle = titleFromDocument(html);
-  const appName = resolveOgTitle(
-    site,
-    ctx.appName ?? DEFAULT_APP_NAME,
-    host,
-    documentTitle,
-  );
+  const appName = resolveOgTitle(site, ctx.appName ?? DEFAULT_APP_NAME, host, documentTitle);
   let next = stripShareMetaTags(html);
   if (!readGrokExtensionsEnabled()) next = stripGrokExtensionsScript(next);
 

@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PlaceBrowser } from "@/components/place-browser";
-import { usePlaceQueryWriter, usePlaceCategoryWriter, usePlaceCategoryGuard, parsePlaceSearch, effectivePlaceCategory, placeCategories } from "@/lib/place-search";
+import {
+  usePlaceQueryWriter,
+  usePlaceCategoryWriter,
+  usePlaceCategoryGuard,
+  parsePlaceSearch,
+  effectivePlaceCategory,
+  placeCategories,
+} from "@/lib/place-search";
 import type { Copy } from "@/lib/text";
 import { useDesk } from "@/lib/store";
 

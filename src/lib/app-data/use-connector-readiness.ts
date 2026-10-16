@@ -8,11 +8,7 @@ import {
 } from "./readiness-schedule.ts";
 import { CONNECTOR_TOKEN_READY_EVENT } from "./types.ts";
 
-export type ConnectorWaitStatus =
-  | "idle"
-  | "waiting"
-  | "timed_out"
-  | "not_embedded";
+export type ConnectorWaitStatus = "idle" | "waiting" | "timed_out" | "not_embedded";
 
 export const READINESS_PROBE_TIMEOUT_MS = 10_000;
 
@@ -28,10 +24,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
 }
 
 async function isConnectorReady(): Promise<boolean> {
-  const result = await withTimeout(
-    getConnectorReadiness(),
-    READINESS_PROBE_TIMEOUT_MS,
-  );
+  const result = await withTimeout(getConnectorReadiness(), READINESS_PROBE_TIMEOUT_MS);
   return result?.ready === true;
 }
 

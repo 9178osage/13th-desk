@@ -143,7 +143,17 @@ function authPopupPlugin(): Plugin {
 }
 
 function securityHeadersPlugin(): Plugin {
-  const apply = (server: { middlewares: { use: (fn: (req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => void) => void } }) => {
+  const apply = (server: {
+    middlewares: {
+      use: (
+        fn: (
+          req: unknown,
+          res: { setHeader: (k: string, v: string) => void },
+          next: () => void,
+        ) => void,
+      ) => void;
+    };
+  }) => {
     server.middlewares.use((_req, res, next) => {
       for (const [key, value] of Object.entries(securityHeaders)) res.setHeader(key, value);
       next();

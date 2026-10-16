@@ -8,7 +8,14 @@ import {
   scheduleForDay,
   validScheduleTime,
 } from "./schedule.ts";
-import { cleanDecimal, combinedGpa, listGpa, parseGpaInput, pointsTenths, targetGpaEstimate } from "./gpa.ts";
+import {
+  cleanDecimal,
+  combinedGpa,
+  listGpa,
+  parseGpaInput,
+  pointsTenths,
+  targetGpaEstimate,
+} from "./gpa.ts";
 import { deskText, dayName } from "./desk-copy.ts";
 import {
   backupFileName,
@@ -196,10 +203,7 @@ test("overlap detection lists conflicting classes and ignores adjacent times", (
     }).length,
     0,
   );
-  assert.equal(
-    overlappingClasses(schedule, schedule[1], "early").length,
-    0,
-  );
+  assert.equal(overlappingClasses(schedule, schedule[1], "early").length, 0);
 });
 test("existing overlapping courses are marked as conflicts", () => {
   const crowded: ScheduleBlock[] = [
@@ -260,9 +264,7 @@ function sampleState(): PersistedDeskLike {
       pinned: false,
     },
   ];
-  buckets.uni.grades = [
-    { id: "g1", title: "Chem", credits: 4, grade: "A", boost: false },
-  ];
+  buckets.uni.grades = [{ id: "g1", title: "Chem", credits: 4, grade: "A", boost: false }];
   return {
     lang: "zh",
     langSet: true,
@@ -280,7 +282,11 @@ test("desk backup rejects duplicate IDs in every record list and stage", () => {
       const state = sampleState();
       const row = state.buckets.uni[list][0];
       Object.assign(state.buckets[stage], { [list]: [row, { ...row }] });
-      assert.equal(parseDeskBackup(JSON.stringify(serializeDeskBackup(state))).ok, false, `${stage}.${list}`);
+      assert.equal(
+        parseDeskBackup(JSON.stringify(serializeDeskBackup(state))).ok,
+        false,
+        `${stage}.${list}`,
+      );
     }
   }
 });
@@ -310,7 +316,8 @@ test("save and recovery notices are available in all six languages", () => {
     "classLimit",
     "classGone",
   ] as const) {
-    for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) assert.ok(deskText(lang, key));
+    for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const)
+      assert.ok(deskText(lang, key));
   }
 });
 test("desk backup serializes and parses a round trip", () => {
@@ -319,7 +326,10 @@ test("desk backup serializes and parses a round trip", () => {
   assert.equal(file.app, "Eugene Desk");
   assert.equal(file.formatVersion, 1);
   assert.equal(file.storageKey, "13th-desk-v1");
-  assert.match(backupFileName(new Date("2026-10-05T12:00:00Z")), /eugene-desk-backup-2026-10-05\.json/);
+  assert.match(
+    backupFileName(new Date("2026-10-05T12:00:00Z")),
+    /eugene-desk-backup-2026-10-05\.json/,
+  );
   const parsed = parseDeskBackup(JSON.stringify(file));
   assert.equal(parsed.ok, true);
   if (!parsed.ok) return;
@@ -432,7 +442,6 @@ test("pre-import snapshot round-trips under a separate storage key", () => {
   assert.equal(readPreImportSnapshot(), null);
 });
 
-
 test("content Copy strings have es/ko/vi/ja via pack or inline", () => {
   const packs: Record<"es" | "ko" | "vi" | "ja", Record<string, string>> = {
     es: esPack as Record<string, string>,
@@ -450,9 +459,7 @@ test("content Copy strings have es/ko/vi/ja via pack or inline", () => {
     found.set(copy.en, {
       ...prev,
       ...Object.fromEntries(
-        (["zh", ...langs] as const)
-          .filter((k) => copy[k] && !prev[k])
-          .map((k) => [k, copy[k]]),
+        (["zh", ...langs] as const).filter((k) => copy[k] && !prev[k]).map((k) => [k, copy[k]]),
       ),
       zh: copy.zh ?? prev.zh,
     });
@@ -464,7 +471,11 @@ test("content Copy strings have es/ko/vi/ja via pack or inline", () => {
       if (statSync(p).isDirectory()) {
         if (name === "node_modules" || name === "i18n") continue;
         walkFiles(p, acc);
-      } else if (/\.(tsx|ts)$/.test(name) && !name.includes(".test.") && !p.endsWith("desk-copy.ts")) {
+      } else if (
+        /\.(tsx|ts)$/.test(name) &&
+        !name.includes(".test.") &&
+        !p.endsWith("desk-copy.ts")
+      ) {
         acc.push(p);
       }
     }
@@ -583,10 +594,19 @@ test("boot script trims Apple/Windows font names only on Android, Linux and Chro
   const android =
     "Mozilla/5.0 (Linux; Android 11; moto g power (2022)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36";
   assert.equal(lean(android), "lean");
-  assert.equal(lean("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36"), "lean");
-  assert.equal(lean("Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/129.0"), "lean");
+  assert.equal(
+    lean("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/129.0 Safari/537.36"),
+    "lean",
+  );
+  assert.equal(
+    lean("Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/129.0"),
+    "lean",
+  );
   // Saved desks and the setup flag still work alongside it.
-  assert.equal(lean(android, JSON.stringify({ state: { lang: "es", langSet: true, level: "high" } })), "lean");
+  assert.equal(
+    lean(android, JSON.stringify({ state: { lang: "es", langSet: true, level: "high" } })),
+    "lean",
+  );
   assert.equal(lastBootAttrs["data-desk-setup"], "done");
   for (const ua of [
     "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
@@ -602,7 +622,10 @@ test("boot script trims Apple/Windows font names only on Android, Linux and Chro
   assert.ok(block, "lean font override missing");
   assert.match(block[1], /--font-sans:\s*"Outfit",\s*system-ui,\s*sans-serif;/);
   assert.match(block[1], /--font-display:\s*"Fraunces",\s*serif;/);
-  assert.match(css, /--font-sans:\s*"Outfit",\s*"PingFang SC",\s*"Hiragino Sans",\s*"Malgun Gothic",\s*system-ui,\s*sans-serif;/);
+  assert.match(
+    css,
+    /--font-sans:\s*"Outfit",\s*"PingFang SC",\s*"Hiragino Sans",\s*"Malgun Gothic",\s*system-ui,\s*sans-serif;/,
+  );
 });
 
 test("Vietnamese weekdays are pinned so server HTML matches the browser", () => {
@@ -617,7 +640,12 @@ test("Vietnamese weekdays are pinned so server HTML matches the browser", () => 
 
 test("first-screen font faces are preloaded", () => {
   const root = readFileSync(join(import.meta.dirname, "..", "routes/__root.tsx"), "utf8");
-  for (const face of ["outfit-latin-400", "outfit-latin-500", "fraunces-latin-500", "fraunces-latin-600"]) {
+  for (const face of [
+    "outfit-latin-400",
+    "outfit-latin-500",
+    "fraunces-latin-500",
+    "fraunces-latin-600",
+  ]) {
     assert.ok(root.includes(`${face}-normal.woff2?url`), `${face} not preloaded`);
   }
   assert.match(root, /\.\.\.FONT_PRELOADS/);
@@ -638,16 +666,27 @@ test("Today section kickers exist in all six languages", () => {
 test("bundle guards: language packs and Recharts stay code-split", () => {
   const src = join(import.meta.dirname, "..");
   const text = readFileSync(join(src, "lib/text.ts"), "utf8");
-  assert.doesNotMatch(text, /^import\s+\w+\s+from\s+["'][^"']*i18n\//m, "text.ts must not statically import packs");
+  assert.doesNotMatch(
+    text,
+    /^import\s+\w+\s+from\s+["'][^"']*i18n\//m,
+    "text.ts must not statically import packs",
+  );
   for (const lang of ["es", "ko", "vi", "ja"]) {
-    assert.match(text, new RegExp(`import\\(["']\\./i18n/${lang}\\.json["']\\)`), `${lang} pack is lazy`);
+    assert.match(
+      text,
+      new RegExp(`import\\(["']\\./i18n/${lang}\\.json["']\\)`),
+      `${lang} pack is lazy`,
+    );
   }
   const rechartsUsers: string[] = [];
   const walk = (dir: string) => {
     for (const name of readdirSync(dir)) {
       const p = join(dir, name);
       if (statSync(p).isDirectory()) walk(p);
-      else if (/\.(tsx|ts)$/.test(name) && /from\s+["']recharts["']/.test(readFileSync(p, "utf8"))) {
+      else if (
+        /\.(tsx|ts)$/.test(name) &&
+        /from\s+["']recharts["']/.test(readFileSync(p, "utf8"))
+      ) {
         rechartsUsers.push(p.slice(src.length + 1));
       }
     }
@@ -670,12 +709,27 @@ test("a never-chosen language falls back to the Chinese-first default, not Engli
 
 test("prefs cookie mirrors only explicit language/level choices", () => {
   assert.equal(PREFS_COOKIE, "eugene-desk-prefs");
-  assert.equal(formatPrefsValue({ lang: "es", langSet: true, level: "high", levelSet: true }), "es.high");
-  assert.equal(formatPrefsValue({ lang: "ja", langSet: true, level: "uni", levelSet: false }), "ja.-");
-  assert.equal(formatPrefsValue({ lang: "zh", langSet: false, level: "mid", levelSet: true }), "-.mid");
+  assert.equal(
+    formatPrefsValue({ lang: "es", langSet: true, level: "high", levelSet: true }),
+    "es.high",
+  );
+  assert.equal(
+    formatPrefsValue({ lang: "ja", langSet: true, level: "uni", levelSet: false }),
+    "ja.-",
+  );
+  assert.equal(
+    formatPrefsValue({ lang: "zh", langSet: false, level: "mid", levelSet: true }),
+    "-.mid",
+  );
   // Nothing chosen (or junk): clear the cookie rather than store defaults.
-  assert.equal(formatPrefsValue({ lang: "zh", langSet: false, level: "uni", levelSet: false }), null);
-  assert.equal(formatPrefsValue({ lang: "xx", langSet: true, level: "nope", levelSet: true }), null);
+  assert.equal(
+    formatPrefsValue({ lang: "zh", langSet: false, level: "uni", levelSet: false }),
+    null,
+  );
+  assert.equal(
+    formatPrefsValue({ lang: "xx", langSet: true, level: "nope", levelSet: true }),
+    null,
+  );
 });
 
 test("prefs cookie parsing never trusts unexpected values", () => {
@@ -683,12 +737,22 @@ test("prefs cookie parsing never trusts unexpected values", () => {
   assert.deepEqual(parsePrefsValue("ko.-"), { lang: "ko", level: null });
   assert.deepEqual(parsePrefsValue("-.elem"), { lang: null, level: "elem" });
   assert.deepEqual(parsePrefsValue("xx.uni"), { lang: null, level: "uni" });
-  for (const bad of ["", "garbage", "es.high.x", "<script>.uni", "es%2Ehigh%2Eextra", "x".repeat(40)]) {
+  for (const bad of [
+    "",
+    "garbage",
+    "es.high.x",
+    "<script>.uni",
+    "es%2Ehigh%2Eextra",
+    "x".repeat(40),
+  ]) {
     assert.deepEqual(parsePrefsValue(bad), { lang: null, level: null }, bad);
   }
   // Malformed percent-encoding must not throw a URIError.
   assert.deepEqual(parsePrefsValue("%E0%A4%A"), { lang: null, level: null });
-  assert.deepEqual(readPrefsCookie("a=1; eugene-desk-prefs=vi.mid; b=2"), { lang: "vi", level: "mid" });
+  assert.deepEqual(readPrefsCookie("a=1; eugene-desk-prefs=vi.mid; b=2"), {
+    lang: "vi",
+    level: "mid",
+  });
   assert.deepEqual(readPrefsCookie("other-eugene-desk-prefs=vi.mid"), { lang: null, level: null });
   assert.deepEqual(readPrefsCookie(undefined), { lang: null, level: null });
   assert.deepEqual(readPrefsCookie("eugene-desk-prefs=%E0%A4%A"), { lang: null, level: null });
@@ -719,7 +783,9 @@ test("cookie-aware HTML is private, varies on Cookie, and the server store is ne
 
 test("SSR function runs in a single region near Eugene (Hobby allows one)", () => {
   const repo = join(import.meta.dirname, "../..");
-  const vercel = JSON.parse(readFileSync(join(repo, "vercel.json"), "utf8")) as { regions?: string[] };
+  const vercel = JSON.parse(readFileSync(join(repo, "vercel.json"), "utf8")) as {
+    regions?: string[];
+  };
   assert.deepEqual(vercel.regions, ["pdx1"]);
   const vite = readFileSync(join(repo, "vite.config.ts"), "utf8");
   assert.match(vite, /vercel: \{ functions: \{ regions: \["pdx1"\] \} \}/);
@@ -933,12 +999,17 @@ test(".ics skips days that do not exist on the calendar", () => {
 
 test("lock-screen wrap never drops a title tail without an ellipsis", () => {
   // Real text metrics are not available under node, so each glyph is one unit wide.
-  const ctx = { measureText: (s: string) => ({ width: [...s].length }) } as unknown as CanvasRenderingContext2D;
+  const ctx = {
+    measureText: (s: string) => ({ width: [...s].length }),
+  } as unknown as CanvasRenderingContext2D;
   const width = 6;
   const maxLines = 2;
 
   // 11 glyphs fit in two six-wide lines: nothing may be dropped or marked.
-  assert.deepEqual(wrap(ctx, "微观经济学原理研讨课程", width, maxLines), ["微观经济学原", "理研讨课程"]);
+  assert.deepEqual(wrap(ctx, "微观经济学原理研讨课程", width, maxLines), [
+    "微观经济学原",
+    "理研讨课程",
+  ]);
   // 14 glyphs: the tail must be marked, never silently dropped.
   const cjk = wrap(ctx, "微观经济学原理研讨课程安排表", width, maxLines);
   assert.deepEqual(cjk, ["微观经济学原", "理研讨课程…"]);
@@ -969,7 +1040,9 @@ test("lock-screen layout never squeezes cards below a readable height (audit 10-
 });
 
 test("lock-screen wrap breaks a word wider than the card", () => {
-  const ctx = { measureText: (s: string) => ({ width: s.length * 14 }) } as unknown as CanvasRenderingContext2D;
+  const ctx = {
+    measureText: (s: string) => ({ width: s.length * 14 }),
+  } as unknown as CanvasRenderingContext2D;
   const lines = wrap(ctx, "IntroductionToMicroeconomics Seminar", 147, 3);
   for (const line of lines) assert.ok(line.length * 14 <= 147, JSON.stringify(lines));
   assert.ok(lines.at(-1)!.endsWith("…"));
@@ -978,13 +1051,26 @@ test("lock-screen wrap breaks a word wider than the card", () => {
 
 import { starterTasks, applicableChecks } from "./starter-tasks.ts";
 import { k12Checks } from "../data/k12.ts";
-import { placeSearchWithQuery, placeSearchWithCategory, placeSelectionSearch, validatePlaceSearch, parsePlaceSearch, effectivePlaceCategory } from "./place-search-state.ts";
+import {
+  placeSearchWithQuery,
+  placeSearchWithCategory,
+  placeSelectionSearch,
+  validatePlaceSearch,
+  parsePlaceSearch,
+  effectivePlaceCategory,
+} from "./place-search-state.ts";
 
 test("weighted-only historical GPA keeps its scale when a class is added or removed", () => {
   const prior = { gpa: null, weighted: 450, credits: 1000 };
-  const estimate = (rows: Parameters<typeof targetGpaEstimate>[1]) => targetGpaEstimate("high", rows, prior, "4.50", "0.5");
+  const estimate = (rows: Parameters<typeof targetGpaEstimate>[1]) =>
+    targetGpaEstimate("high", rows, prior, "4.50", "0.5");
   assert.deepEqual(estimate([]), { weighted: true, ceiling: 5, needed: 4.5, met: true });
-  assert.deepEqual(estimate([{ grade: "A", credits: 0.5, boost: true }]), { weighted: true, ceiling: 5, needed: 4, met: true });
+  assert.deepEqual(estimate([{ grade: "A", credits: 0.5, boost: true }]), {
+    weighted: true,
+    ceiling: 5,
+    needed: 4,
+    met: true,
+  });
   assert.deepEqual(estimate([]), { weighted: true, ceiling: 5, needed: 4.5, met: true });
   assert.equal(targetGpaEstimate("high", [], prior, "5.01", "0.5").needed, null);
 });
@@ -998,18 +1084,34 @@ test("an already-met target reports met, not a smaller required average", () => 
   assert.equal(unmet.met, false);
   assert.equal(unmet.needed, 13);
   assert.ok((unmet.needed ?? 0) > unmet.ceiling);
-  const empty = targetGpaEstimate("uni", [], { gpa: null, weighted: null, credits: null }, "3.5", "1");
+  const empty = targetGpaEstimate(
+    "uni",
+    [],
+    { gpa: null, weighted: null, credits: null },
+    "3.5",
+    "1",
+  );
   assert.equal(empty.met, false);
   assert.equal(empty.needed, null);
 });
 test("target GPA never mixes weighted history into an unweighted or university scale", () => {
   const rows = [{ grade: "A" as const, credits: 1, boost: true }];
-  assert.deepEqual(targetGpaEstimate("high", rows, { gpa: 350, weighted: 450, credits: 1000 }, "3.50", "1"),
-    { weighted: false, ceiling: 4, needed: 3, met: true });
-  assert.equal(targetGpaEstimate("high", rows, { gpa: 350, weighted: 450, credits: 1000 }, "4.50", "1").needed, null);
-  assert.deepEqual(targetGpaEstimate("uni", rows, { gpa: 350, weighted: null, credits: 1000 }, "3.50", "1"),
-    { weighted: false, ceiling: 4.3, needed: 3, met: true });
-  assert.equal(targetGpaEstimate("mid", [], { gpa: null, weighted: null, credits: null }, "3.5", "1").needed, null);
+  assert.deepEqual(
+    targetGpaEstimate("high", rows, { gpa: 350, weighted: 450, credits: 1000 }, "3.50", "1"),
+    { weighted: false, ceiling: 4, needed: 3, met: true },
+  );
+  assert.equal(
+    targetGpaEstimate("high", rows, { gpa: 350, weighted: 450, credits: 1000 }, "4.50", "1").needed,
+    null,
+  );
+  assert.deepEqual(
+    targetGpaEstimate("uni", rows, { gpa: 350, weighted: null, credits: 1000 }, "3.50", "1"),
+    { weighted: false, ceiling: 4.3, needed: 3, met: true },
+  );
+  assert.equal(
+    targetGpaEstimate("mid", [], { gpa: null, weighted: null, credits: null }, "3.5", "1").needed,
+    null,
+  );
 });
 test("full guide uses the same district/date applicability as starters without changing stored completion IDs", () => {
   for (const level of ["elem", "mid", "high"] as const) {
@@ -1017,11 +1119,12 @@ test("full guide uses the same district/date applicability as starters without c
     for (const district of ["4j", "bethel", "springfield", null] as const) {
       const list = applicableChecks(k12Checks[level], district, "2026-10-15");
       assert.deepEqual(list.slice(0, 3), starterTasks(level, district, "2026-10-15"));
-      if (district && district !== "4j") assert.ok(list.every(item => item.district !== "4j"));
+      if (district && district !== "4j") assert.ok(list.every((item) => item.district !== "4j"));
     }
     assert.deepEqual(k12Checks[level], original);
   }
-  const hasGrade = (date: string) => applicableChecks(k12Checks.mid, "4j", date).some(item => item.id === "grade");
+  const hasGrade = (date: string) =>
+    applicableChecks(k12Checks.mid, "4j", date).some((item) => item.id === "grade");
   assert.equal(hasGrade("2026-11-05"), true);
   assert.equal(hasGrade("2026-11-06"), true);
   assert.equal(hasGrade("2026-11-07"), false);
@@ -1031,10 +1134,16 @@ test("full guide uses the same district/date applicability as starters without c
 });
 test("typing keeps the category but an explicit palette pick clears it", () => {
   const filtered = validatePlaceSearch({ q: "old", cat: "dining" }, "campus", "uni");
-  assert.deepEqual(placeSearchWithQuery(filtered, "Knight Library"), { q: "Knight Library", cat: "dining" });
+  assert.deepEqual(placeSearchWithQuery(filtered, "Knight Library"), {
+    q: "Knight Library",
+    cat: "dining",
+  });
   const selected = placeSelectionSearch("Knight Library");
   assert.deepEqual(selected, { q: "Knight Library" });
-  assert.deepEqual(placeSearchWithCategory(selected, "dining"), { q: "Knight Library", cat: "dining" });
+  assert.deepEqual(placeSearchWithCategory(selected, "dining"), {
+    q: "Knight Library",
+    cat: "dining",
+  });
   assert.equal(placeSearchWithCategory(filtered, "all").cat, undefined);
   assert.equal(placeSearchWithQuery(filtered, "").cat, "dining");
   assert.deepEqual(validatePlaceSearch({ cat: "coffee" }, "campus", "uni"), {});
@@ -1056,7 +1165,10 @@ test("typing keeps the category but an explicit palette pick clears it", () => {
   assert.equal(effectivePlaceCategory("eat", "town", "mid"), "eat");
   assert.equal(effectivePlaceCategory("all", "town", "uni"), undefined);
   assert.equal(effectivePlaceCategory(undefined, "campus", "uni"), undefined);
-  const browser = readFileSync(join(import.meta.dirname, "../components/place-browser.tsx"), "utf8");
+  const browser = readFileSync(
+    join(import.meta.dirname, "../components/place-browser.tsx"),
+    "utf8",
+  );
   assert.doesNotMatch(browser, /useState/);
   for (const route of ["campus", "town"]) {
     const source = readFileSync(join(import.meta.dirname, `../routes/${route}.tsx`), "utf8");
@@ -1069,8 +1181,11 @@ test("typing keeps the category but an explicit palette pick clears it", () => {
   }
 });
 test("starter tasks drop past dates and 4J-only items for other districts (audit 10-15 P2)", () => {
-  const ids = (level: Parameters<typeof starterTasks>[0], district: Parameters<typeof starterTasks>[1], ymd: string | null) =>
-    starterTasks(level, district, ymd).map((t) => t.id);
+  const ids = (
+    level: Parameters<typeof starterTasks>[0],
+    district: Parameters<typeof starterTasks>[1],
+    ymd: string | null,
+  ) => starterTasks(level, district, ymd).map((t) => t.id);
   assert.deepEqual(ids("uni", null, "2026-10-02"), ["schedule", "knight", "bus"]);
   assert.deepEqual(ids("uni", null, "2026-10-03"), ["schedule", "knight", "bus"]); // still the day itself
   assert.ok(!ids("uni", null, "2026-10-15").includes("schedule"));
@@ -1078,7 +1193,10 @@ test("starter tasks drop past dates and 4J-only items for other districts (audit
   for (const level of ["elem", "mid", "high"] as const) {
     for (const district of ["bethel", "springfield"] as const) {
       const picked = starterTasks(level, district, "2026-10-15");
-      assert.ok(picked.every((t) => t.district !== "4j"), `${level}/${district}`);
+      assert.ok(
+        picked.every((t) => t.district !== "4j"),
+        `${level}/${district}`,
+      );
       assert.equal(picked.length, 3);
     }
   }
@@ -1111,7 +1229,11 @@ test("the place search lives in the route, so ?q= can pre-fill twice", () => {
   ] as const) {
     const text = readFileSync(join(src, "routes", path), "utf8");
     assert.match(text, new RegExp(`usePlaceQueryWriter\\("${to}"\\)`), `${route} writes ?q=`);
-    assert.match(text, /<PlaceBrowser[\s\S]*?query=\{q \?\? ""\}/, `${route} drives the box from ?q=`);
+    assert.match(
+      text,
+      /<PlaceBrowser[\s\S]*?query=\{q \?\? ""\}/,
+      `${route} drives the box from ?q=`,
+    );
     // The key is what made a same-URL pick a no-op: the box stayed empty because the
     // component never remounted and the parameter had already been consumed.
     assert.doesNotMatch(text, /key=\{(?:`\$\{level\}:)?q/, `${route} must not key on ?q=`);
@@ -1140,11 +1262,30 @@ test("undo still restores when the list is back at its limit; only over-limit or
 
 test("hydration level: explicit save wins, else a valid cookie level, else the default", () => {
   const unsaved = { level: "uni", levelSet: false };
-  assert.deepEqual(resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=-.mid"), "uni"), { level: "mid", levelSet: true });
-  assert.deepEqual(resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=zh.high"), "uni"), { level: "high", levelSet: true });
-  assert.deepEqual(resolveHydratedLevel({ level: "uni", levelSet: true }, readPrefsCookie("eugene-desk-prefs=-.mid"), "uni"), { level: "uni", levelSet: true });
-  assert.deepEqual(resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=zh.-"), "uni"), { level: "uni", levelSet: false });
-  assert.deepEqual(resolveHydratedLevel(unsaved, { lang: null, level: "phd" as never }, "uni"), { level: "uni", levelSet: false });
+  assert.deepEqual(
+    resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=-.mid"), "uni"),
+    { level: "mid", levelSet: true },
+  );
+  assert.deepEqual(
+    resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=zh.high"), "uni"),
+    { level: "high", levelSet: true },
+  );
+  assert.deepEqual(
+    resolveHydratedLevel(
+      { level: "uni", levelSet: true },
+      readPrefsCookie("eugene-desk-prefs=-.mid"),
+      "uni",
+    ),
+    { level: "uni", levelSet: true },
+  );
+  assert.deepEqual(
+    resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=zh.-"), "uni"),
+    { level: "uni", levelSet: false },
+  );
+  assert.deepEqual(resolveHydratedLevel(unsaved, { lang: null, level: "phd" as never }, "uni"), {
+    level: "uni",
+    levelSet: false,
+  });
   // The adopted level round-trips into the same cookie value, so it is not cleared.
   const kept = resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=-.mid"), "uni");
   assert.equal(formatPrefsValue({ lang: "en", langSet: false, ...kept }), "-.mid");

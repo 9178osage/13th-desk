@@ -11,13 +11,13 @@
 
 ## 功能
 
-| 页面 | 说明 |
-|------|------|
-| **今日** `/` | 今日待办、本周任务、公告、快捷入口、天气、今日节奏 |
+| 页面               | 说明                                                   |
+| ------------------ | ------------------------------------------------------ |
+| **今日** `/`       | 今日待办、本周任务、公告、快捷入口、天气、今日节奏     |
 | **校园** `/campus` | 大学：图书馆 / 食堂等场所与开放时间；K12：学区校园卡片 |
-| **城里** `/town` | 放学后 / 校外场所（按学段调整文案与分类） |
-| **指南** `/guide` | 大学：到校清单、截止日期、帮助链接；K12：对应学段指南 |
-| **绩点** `/gpa` | 学分绩点估算与图表（非正式成绩单） |
+| **城里** `/town`   | 放学后 / 校外场所（按学段调整文案与分类）              |
+| **指南** `/guide`  | 大学：到校清单、截止日期、帮助链接；K12：对应学段指南  |
+| **绩点** `/gpa`    | 学分绩点估算与图表（非正式成绩单）                     |
 
 其它：
 
@@ -111,13 +111,13 @@ The desk does **not require an account or a database**. Language, school level, 
 
 ### Features
 
-| Page | What it includes |
-|------|------------------|
-| **Today** `/` | Today's to-dos, weekly tasks, announcements, quick links, weather, and the day's rhythm |
+| Page                 | What it includes                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------- |
+| **Today** `/`        | Today's to-dos, weekly tasks, announcements, quick links, weather, and the day's rhythm           |
 | **Campus** `/campus` | University locations such as libraries and dining halls with hours; K–12 campus cards by district |
-| **Town** `/town` | After-school and off-campus places, with copy and categories adjusted by school level |
-| **Guide** `/guide` | University arrival checklist, deadlines, and help links; level-appropriate guides for K–12 |
-| **GPA** `/gpa` | A credit-weighted GPA estimator with charts (not an official transcript) |
+| **Town** `/town`     | After-school and off-campus places, with copy and categories adjusted by school level             |
+| **Guide** `/guide`   | University arrival checklist, deadlines, and help links; level-appropriate guides for K–12        |
+| **GPA** `/gpa`       | A credit-weighted GPA estimator with charts (not an official transcript)                          |
 
 Other details:
 
@@ -195,13 +195,13 @@ El escritorio **no requiere cuenta ni base de datos**. Idioma, nivel escolar, ho
 
 ### Funciones
 
-| Página | Qué incluye |
-|--------|-------------|
-| **Hoy** `/` | Pendientes de hoy, tareas de la semana, avisos, accesos rápidos, clima y el ritmo del día |
-| **Campus** `/campus` | Universidad: bibliotecas, comedores y horarios; K–12: tarjetas de campus por distrito |
-| **Ciudad** `/town` | Lugares después de clases y fuera del campus, con textos y categorías según el nivel |
-| **Guía** `/guide` | Universidad: lista de llegada, fechas límite y enlaces de ayuda; guías según el nivel en K–12 |
-| **GPA** `/gpa` | Estimador de GPA ponderado por créditos con gráficos (no es un expediente oficial) |
+| Página               | Qué incluye                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------- |
+| **Hoy** `/`          | Pendientes de hoy, tareas de la semana, avisos, accesos rápidos, clima y el ritmo del día     |
+| **Campus** `/campus` | Universidad: bibliotecas, comedores y horarios; K–12: tarjetas de campus por distrito         |
+| **Ciudad** `/town`   | Lugares después de clases y fuera del campus, con textos y categorías según el nivel          |
+| **Guía** `/guide`    | Universidad: lista de llegada, fechas límite y enlaces de ayuda; guías según el nivel en K–12 |
+| **GPA** `/gpa`       | Estimador de GPA ponderado por créditos con gráficos (no es un expediente oficial)            |
 
 Otros detalles:
 
@@ -279,13 +279,13 @@ Debes estar autenticado y vinculado al mismo proyecto de Vercel.
 
 ### 기능
 
-| 페이지 | 내용 |
-|--------|------|
-| **오늘** `/` | 오늘 할 일, 이번 주 과제, 공지, 바로가기, 날씨, 오늘의 리듬 |
-| **캠퍼스** `/campus` | 대학: 도서관·식당 등 장소와 운영 시간; K–12: 학군별 캠퍼스 카드 |
-| **시내** `/town` | 방과 후·교외 장소 (학령에 따라 문구와 분류 조정) |
-| **가이드** `/guide` | 대학: 도착 체크리스트, 마감, 도움 링크; K–12: 학령에 맞는 가이드 |
-| **GPA** `/gpa` | 학점 가중 GPA 추정과 차트 (공식 성적표 아님) |
+| 페이지               | 내용                                                             |
+| -------------------- | ---------------------------------------------------------------- |
+| **오늘** `/`         | 오늘 할 일, 이번 주 과제, 공지, 바로가기, 날씨, 오늘의 리듬      |
+| **캠퍼스** `/campus` | 대학: 도서관·식당 등 장소와 운영 시간; K–12: 학군별 캠퍼스 카드  |
+| **시내** `/town`     | 방과 후·교외 장소 (학령에 따라 문구와 분류 조정)                 |
+| **가이드** `/guide`  | 대학: 도착 체크리스트, 마감, 도움 링크; K–12: 학령에 맞는 가이드 |
+| **GPA** `/gpa`       | 학점 가중 GPA 추정과 차트 (공식 성적표 아님)                     |
 
 기타:
 
@@ -363,13 +363,13 @@ Chức năng bàn học **không cần đăng nhập hay cơ sở dữ liệu**.
 
 ### Tính năng
 
-| Trang | Nội dung |
-|-------|----------|
-| **Hôm nay** `/` | Việc hôm nay, nhiệm vụ tuần, thông báo, lối tắt, thời tiết, nhịp trong ngày |
-| **Campus** `/campus` | Đại học: thư viện, căn tin và giờ mở cửa; K–12: thẻ campus theo học khu |
-| **Phố** `/town` | Địa điểm sau giờ học / ngoài khuôn viên (chữ và danh mục đổi theo cấp) |
+| Trang                  | Nội dung                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| **Hôm nay** `/`        | Việc hôm nay, nhiệm vụ tuần, thông báo, lối tắt, thời tiết, nhịp trong ngày          |
+| **Campus** `/campus`   | Đại học: thư viện, căn tin và giờ mở cửa; K–12: thẻ campus theo học khu              |
+| **Phố** `/town`        | Địa điểm sau giờ học / ngoài khuôn viên (chữ và danh mục đổi theo cấp)               |
 | **Hướng dẫn** `/guide` | Đại học: checklist đến trường, hạn chót, liên kết trợ giúp; K–12: hướng dẫn theo cấp |
-| **GPA** `/gpa` | Ước lượng GPA theo tín chỉ kèm biểu đồ (không phải bảng điểm chính thức) |
+| **GPA** `/gpa`         | Ước lượng GPA theo tín chỉ kèm biểu đồ (không phải bảng điểm chính thức)             |
 
 Chi tiết khác:
 
@@ -447,13 +447,13 @@ Bạn cần đã đăng nhập và liên kết cùng một dự án Vercel.
 
 ### 機能
 
-| ページ | 内容 |
-|--------|------|
-| **今日** `/` | 今日のやること、今週の課題、お知らせ、ショートカット、天気、今日のリズム |
+| ページ                   | 内容                                                                     |
+| ------------------------ | ------------------------------------------------------------------------ |
+| **今日** `/`             | 今日のやること、今週の課題、お知らせ、ショートカット、天気、今日のリズム |
 | **キャンパス** `/campus` | 大学：図書館・食堂などの場所と開館時間；K–12：学区ごとのキャンパスカード |
-| **街** `/town` | 放課後・キャンパス外の場所（学年段階に合わせて文言と分類を調整） |
-| **ガイド** `/guide` | 大学：到着チェックリスト、締切、ヘルプリンク；K–12：段階に応じたガイド |
-| **GPA** `/gpa` | 単位加重の GPA 推定とチャート（公式の成績表ではありません） |
+| **街** `/town`           | 放課後・キャンパス外の場所（学年段階に合わせて文言と分類を調整）         |
+| **ガイド** `/guide`      | 大学：到着チェックリスト、締切、ヘルプリンク；K–12：段階に応じたガイド   |
+| **GPA** `/gpa`           | 単位加重の GPA 推定とチャート（公式の成績表ではありません）              |
 
 その他：
 

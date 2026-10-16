@@ -5,9 +5,7 @@ export type SignInGateInput = {
   hasUser: boolean;
 };
 
-export function resolveSignInGateState(
-  input: SignInGateInput,
-): SignInGateState {
+export function resolveSignInGateState(input: SignInGateInput): SignInGateState {
   if (input.isPending) return "pending";
   return input.hasUser ? "signed_in" : "signed_out";
 }

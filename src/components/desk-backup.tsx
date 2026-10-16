@@ -152,7 +152,10 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
     const saved = await replacePersistedDeskState(current);
     busyRef.current = false;
     setBusy(false);
-    if (!saved) { setMessage("importSaveFailed"); return; }
+    if (!saved) {
+      setMessage("importSaveFailed");
+      return;
+    }
     clearPreImportSnapshot();
     setSnapshot(null);
     setMessage("importUndone");

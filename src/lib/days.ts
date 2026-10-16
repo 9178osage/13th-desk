@@ -10,4 +10,3 @@ export function soonDays(todayYmd: string, ymd: string): number | null {
   const days = daysBetween(todayYmd, ymd);
   return days >= 0 && days <= 7 ? days : null;
 }
-

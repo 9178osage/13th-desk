@@ -147,8 +147,13 @@ function GpaPage() {
       .sort((a, b) => Number(a.points) - Number(b.points));
   }, [grades, level]);
 
-  const estimate = targetGpaEstimate(level, rows,
-    { gpa: priorGpaH, weighted: priorWeightedH, credits: priorCreditH }, target, whatIfCredits);
+  const estimate = targetGpaEstimate(
+    level,
+    rows,
+    { gpa: priorGpaH, weighted: priorWeightedH, credits: priorCreditH },
+    target,
+    whatIfCredits,
+  );
   const { needed: whatIfHint, ceiling: whatIfCeiling, met: whatIfMet } = estimate;
 
   function submit(event: FormEvent) {
@@ -283,21 +288,23 @@ function GpaPage() {
           />
           {level === "high" && (
             <p className="mb-3 text-sm text-muted">
-              {estimate.weighted ? tr(lang, {
-                en: "Estimate uses weighted GPA (0–5), including your prior weighted GPA and credits.",
-                zh: "按加权 GPA（0–5）估算，包含已填的历史加权 GPA 和学分。",
-                es: "Estimación con GPA ponderado (0–5), incluidos el GPA previo y sus créditos.",
-                ko: "이전 가중 GPA와 학점을 포함해 가중 GPA(0–5)로 계산해요.",
-                vi: "Ước tính theo GPA có hệ số (0–5), gồm GPA và tín chỉ trước đây.",
-                ja: "過去の加重GPAと単位を含め、加重GPA（0–5）で計算します。",
-              }) : tr(lang, {
-                en: "Estimate uses unweighted GPA (0–4). Prior weighted GPA is not mixed into this scale.",
-                zh: "按未加权 GPA（0–4）估算，不混用历史加权 GPA。",
-                es: "Estimación con GPA no ponderado (0–4), sin mezclar el GPA ponderado previo.",
-                ko: "비가중 GPA(0–4)로 계산하며 이전 가중 GPA를 섞지 않아요.",
-                vi: "Ước tính theo GPA không hệ số (0–4), không trộn GPA có hệ số trước đây.",
-                ja: "非加重GPA（0–4）で計算し、過去の加重GPAは混在させません。",
-              })}
+              {estimate.weighted
+                ? tr(lang, {
+                    en: "Estimate uses weighted GPA (0–5), including your prior weighted GPA and credits.",
+                    zh: "按加权 GPA（0–5）估算，包含已填的历史加权 GPA 和学分。",
+                    es: "Estimación con GPA ponderado (0–5), incluidos el GPA previo y sus créditos.",
+                    ko: "이전 가중 GPA와 학점을 포함해 가중 GPA(0–5)로 계산해요.",
+                    vi: "Ước tính theo GPA có hệ số (0–5), gồm GPA và tín chỉ trước đây.",
+                    ja: "過去の加重GPAと単位を含め、加重GPA（0–5）で計算します。",
+                  })
+                : tr(lang, {
+                    en: "Estimate uses unweighted GPA (0–4). Prior weighted GPA is not mixed into this scale.",
+                    zh: "按未加权 GPA（0–4）估算，不混用历史加权 GPA。",
+                    es: "Estimación con GPA no ponderado (0–4), sin mezclar el GPA ponderado previo.",
+                    ko: "비가중 GPA(0–4)로 계산하며 이전 가중 GPA를 섞지 않아요.",
+                    vi: "Ước tính theo GPA không hệ số (0–4), không trộn GPA có hệ số trước đây.",
+                    ja: "非加重GPA（0–4）で計算し、過去の加重GPAは混在させません。",
+                  })}
             </p>
           )}
           <div className="grid gap-3 sm:grid-cols-2">

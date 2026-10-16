@@ -13,7 +13,9 @@ test("app touch icon is preserved without injecting a competing icon", () => {
     '<link rel="apple-touch-icon" sizes="180x180" href="/brand/apple-touch-icon.png?v=2"/>',
     "<link href='/brand/apple-touch-icon.png?v=2' rel='apple-touch-icon'>",
   ]) {
-    const out = injectGrokPwaHead(`<html><head>${link}</head></html>`, {host: "eugene-desk.vercel.app"});
+    const out = injectGrokPwaHead(`<html><head>${link}</head></html>`, {
+      host: "eugene-desk.vercel.app",
+    });
     assert.equal((out.match(/rel=["']apple-touch-icon["']/g) || []).length, 1);
     assert.doesNotMatch(out, /href="\/__grok\/icon-180.png"/);
     assert.match(out, /grok-app-builder\/extensions\.js/);
@@ -21,7 +23,7 @@ test("app touch icon is preserved without injecting a competing icon", () => {
 });
 
 test("Eugene emits accessible absolute share images", () => {
-  const out = injectGrokPwaHead("<html><head></head></html>", {host: "eugene-desk.vercel.app"});
+  const out = injectGrokPwaHead("<html><head></head></html>", { host: "eugene-desk.vercel.app" });
   assert.match(out, /property="og:image" content="https:\/\/eugene-desk.vercel.app\/og.jpg"/);
   assert.match(out, /name="twitter:image" content="https:\/\/eugene-desk.vercel.app\/og.jpg"/);
 });

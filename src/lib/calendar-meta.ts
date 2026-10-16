@@ -71,7 +71,7 @@ export function k12CalendarSourceMeta(district: string | null): CalendarSourceMe
       hasMatchingData: true,
     };
   }
-  const href = district ? DISTRICT_SITE_HREF[district] ?? null : null;
+  const href = district ? (DISTRICT_SITE_HREF[district] ?? null) : null;
   return {
     name: { ...referenceCalendarLabel },
     href,

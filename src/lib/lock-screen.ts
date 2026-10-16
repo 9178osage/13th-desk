@@ -50,7 +50,9 @@ export function wrap(ctx: CanvasRenderingContext2D, text: string, width: number,
   // A single word wider than the card (IntroductionToMicroeconomics) is broken
   // by characters, so no line can run past the card edge.
   const tokens = (/\s/.test(text) ? text.split(/(\s+)/) : [...text]).flatMap((token) =>
-    token.length > 1 && !/^\s+$/.test(token) && ctx.measureText(token).width > width ? [...token] : [token],
+    token.length > 1 && !/^\s+$/.test(token) && ctx.measureText(token).width > width
+      ? [...token]
+      : [token],
   );
   const lines: string[] = [];
   let line = "";

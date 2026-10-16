@@ -23,7 +23,14 @@ import { isLevel, type Level } from "./levels.ts";
 import { validScheduleTime } from "./schedule.ts";
 export type Lang = "en" | "zh" | "es" | "ko" | "vi" | "ja";
 function isLang(value: unknown): value is Lang {
-  return value === "en" || value === "zh" || value === "es" || value === "ko" || value === "vi" || value === "ja";
+  return (
+    value === "en" ||
+    value === "zh" ||
+    value === "es" ||
+    value === "ko" ||
+    value === "vi" ||
+    value === "ja"
+  );
 }
 
 export const DESK_STORAGE_KEY = "13th-desk-v1" as const;
@@ -96,13 +103,7 @@ export type BackupSummary = {
   totalGrades: number;
 };
 
-export type BackupParseError =
-  | "json"
-  | "shape"
-  | "version"
-  | "stages"
-  | "times"
-  | "grades";
+export type BackupParseError = "json" | "shape" | "version" | "stages" | "times" | "grades";
 
 export type BackupParseResult =
   | { ok: true; backup: DeskBackupFile; summary: BackupSummary }
@@ -116,7 +117,9 @@ function asText(value: unknown, max: number): string | null {
 }
 
 function isWeekDay(value: unknown): value is WeekDay {
-  return value === "mon" || value === "tue" || value === "wed" || value === "thu" || value === "fri";
+  return (
+    value === "mon" || value === "tue" || value === "wed" || value === "thu" || value === "fri"
+  );
 }
 
 function asHmStrict(value: unknown): string | null {
@@ -176,7 +179,8 @@ function parseBucket(value: unknown): Bucket | null {
   const raw = value as Record<string, unknown>;
   // Multiple tabs may legitimately merge past a creation limit. Backups must
   // round-trip those items rather than rejecting or silently dropping them.
-  if (!Array.isArray(raw.notes) || !Array.isArray(raw.grades) || !Array.isArray(raw.schedule)) return null;
+  if (!Array.isArray(raw.notes) || !Array.isArray(raw.grades) || !Array.isArray(raw.schedule))
+    return null;
   const notes: Note[] = [];
   for (const item of raw.notes) {
     const note = parseNote(item);

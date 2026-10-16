@@ -15,10 +15,7 @@ import type { Level } from "./levels.ts";
 import type { Copy } from "./text.ts";
 import { eugeneClock, hmToMin, type EugeneClock } from "./time.ts";
 
-export function deadlinePassed(
-  item: { ymd: string; time?: string },
-  clock: EugeneClock,
-) {
+export function deadlinePassed(item: { ymd: string; time?: string }, clock: EugeneClock) {
   if (item.ymd > clock.ymd) return false;
   if (item.ymd < clock.ymd) return true;
   if (!item.time) return false;
@@ -57,11 +54,7 @@ export function uoTermIsExpired(clock: EugeneClock, term = uoAcademicTerm): bool
   return uniDeadlines.every((item) => deadlinePassed(item, clock));
 }
 
-export function upcomingDeadlines(
-  items: Deadline[],
-  clock: EugeneClock,
-  limit = 3,
-): Deadline[] {
+export function upcomingDeadlines(items: Deadline[], clock: EugeneClock, limit = 3): Deadline[] {
   return items
     .filter((date) => !deadlinePassed(date, clock))
     .sort((a, b) => a.ymd.localeCompare(b.ymd) || (a.time ?? "").localeCompare(b.time ?? ""))

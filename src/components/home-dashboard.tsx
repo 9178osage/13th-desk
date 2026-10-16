@@ -281,11 +281,7 @@ export function HomeDashboard() {
       <div className="today-layout">
         <div className="today-primary">
           {level !== "uni" && (district === null || district === "4j") && clock?.weekday === 3 && (
-            <aside
-              className="release-banner"
-              role="note"
-              aria-label={c(lang, "wednesdayRelease")}
-            >
+            <aside className="release-banner" role="note" aria-label={c(lang, "wednesdayRelease")}>
               <Megaphone size={20} aria-hidden="true" />
               {/* releaseLine(…, true) already opens with "Today is the early release." */}
               <p>{tr(lang, releaseLine(level, true))}</p>

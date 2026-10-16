@@ -1,8 +1,19 @@
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { placeSearchWithQuery, placeSearchWithCategory, validatePlaceSearch, effectivePlaceCategory, type PlaceFilter } from "./place-search-state";
+import {
+  placeSearchWithQuery,
+  placeSearchWithCategory,
+  validatePlaceSearch,
+  effectivePlaceCategory,
+  type PlaceFilter,
+} from "./place-search-state";
 import { useDesk } from "./store";
-export { validatePlaceSearch, placeCategories, parsePlaceSearch, effectivePlaceCategory } from "./place-search-state";
+export {
+  validatePlaceSearch,
+  placeCategories,
+  parsePlaceSearch,
+  effectivePlaceCategory,
+} from "./place-search-state";
 export type { PlaceSearch } from "./place-search-state";
 
 /**
@@ -65,7 +76,8 @@ export function usePlaceCategoryGuard(to: "/town" | "/campus", cat: PlaceFilter 
   const level = useDesk((state) => state.level);
   const hydrated = useDesk((state) => state.hydrated);
   const page = to === "/town" ? "town" : "campus";
-  const stale = hydrated && cat !== undefined && effectivePlaceCategory(cat, page, level) === undefined;
+  const stale =
+    hydrated && cat !== undefined && effectivePlaceCategory(cat, page, level) === undefined;
   useEffect(() => {
     if (!stale) return;
     void navigate({

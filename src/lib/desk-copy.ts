@@ -702,7 +702,14 @@ const copy = {
     "LỊCH SẮP TỚI",
     "予定カレンダー",
   ],
-  quickLinks: ["Quick links", "常用入口", "Accesos rápidos", "바로가기", "Lối tắt", "よく使うリンク"],
+  quickLinks: [
+    "Quick links",
+    "常用入口",
+    "Accesos rápidos",
+    "바로가기",
+    "Lối tắt",
+    "よく使うリンク",
+  ],
   opensNewTab: [
     "opens in a new tab",
     "在新标签页打开",
@@ -732,7 +739,14 @@ const copy = {
   palettePlaces: ["Places", "地点", "Lugares", "장소", "Địa điểm", "場所"],
   paletteDates: ["Dates", "日期", "Fechas", "날짜", "Ngày", "日付"],
   paletteSettings: ["Settings", "设置", "Ajustes", "설정", "Cài đặt", "設定"],
-  paletteLinks: ["Official sites", "官方网站", "Sitios oficiales", "공식 사이트", "Trang chính thức", "公式サイト"],
+  paletteLinks: [
+    "Official sites",
+    "官方网站",
+    "Sitios oficiales",
+    "공식 사이트",
+    "Trang chính thức",
+    "公式サイト",
+  ],
   wednesdayRelease: [
     "Early release today",
     "今天提前放学",
@@ -758,7 +772,14 @@ const copy = {
     "Lớp mẫu, có thể đổi tên hoặc xóa.",
     "名前の変更や削除ができるサンプル授業です。",
   ],
-  sampleClass: ["Sample class {n}", "示例课程 {n}", "Clase de ejemplo {n}", "예시 수업 {n}", "Lớp mẫu {n}", "サンプル授業 {n}"],
+  sampleClass: [
+    "Sample class {n}",
+    "示例课程 {n}",
+    "Clase de ejemplo {n}",
+    "예시 수업 {n}",
+    "Lớp mẫu {n}",
+    "サンプル授業 {n}",
+  ],
   exportIcs: [
     "Export to calendar (.ics)",
     "导出到日历 (.ics)",

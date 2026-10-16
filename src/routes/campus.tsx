@@ -1,7 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { K12Campus } from "@/components/k12-campus";
 import { PlaceBrowser } from "@/components/place-browser";
-import { usePlaceQueryWriter, usePlaceCategoryWriter, usePlaceCategoryGuard, parsePlaceSearch, effectivePlaceCategory } from "@/lib/place-search";
+import {
+  usePlaceQueryWriter,
+  usePlaceCategoryWriter,
+  usePlaceCategoryGuard,
+  parsePlaceSearch,
+  effectivePlaceCategory,
+} from "@/lib/place-search";
 import { useDesk } from "@/lib/store";
 
 export const Route = createFileRoute("/campus")({

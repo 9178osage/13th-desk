@@ -49,13 +49,7 @@ export function RedirectToSignIn({ to = SIGN_IN_PATH }: { to?: string }) {
   return <Navigate to={to} />;
 }
 
-export function SignInGate({
-  children,
-  fallback,
-}: {
-  children: ReactNode;
-  fallback?: ReactNode;
-}) {
+export function SignInGate({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   const { user, isPending } = useCurrentUserState();
   const state = resolveSignInGateState({ isPending, hasUser: user !== null });
   if (state === "pending") return null;
@@ -102,11 +96,7 @@ export function UserButton() {
   return (
     <div className="flex items-center gap-2">
       {user.profileImageUrl ? (
-        <img
-          src={user.profileImageUrl}
-          alt=""
-          className="h-8 w-8 rounded-full object-cover"
-        />
+        <img src={user.profileImageUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
       ) : (
         <span className="grid h-8 w-8 place-items-center rounded-full bg-black/10 text-sm font-medium dark:bg-white/20">
           {label.charAt(0).toUpperCase()}

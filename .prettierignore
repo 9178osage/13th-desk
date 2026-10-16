@@ -1,0 +1,17 @@
+# Generated and platform-owned files: deliberately not formatted here.
+#
+# `src/routeTree.gen.ts` is rewritten by the TanStack Router plugin on every build,
+# and everything under `public/__grok/` plus `.grok/skills/` is platform chrome that
+# ships from the harness template. Reformatting any of them would either be undone by
+# the next build or drift from the copy the platform distributes, so `prettier --check`
+# skips them and only the app's own source and config have to stay formatted.
+src/routeTree.gen.ts
+public/__grok/
+.grok/skills/
+
+# Prose that is deliberately left byte-stable: AGENTS.md is the agent instruction
+# contract (reflow rewrites emphasis markers and nested lists) and the dated review
+# reports are historical records, so neither is reformatted. README.md is formatted.
+AGENTS.md
+docs/CODE-REVIEW-2026-10-07.md
+docs/CODE-REVIEW-2026-10-15.md

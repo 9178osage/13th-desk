@@ -19,6 +19,7 @@
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "test": "node scripts/test-all.mjs",
     "lint": "eslint .",
+    "check:format": "prettier --check .",
     "format": "prettier --write ."
   },
   "dependencies": {

@@ -103,7 +103,13 @@ export default function CommandPalette({
                 areaName[place.area].en,
               ]}
               onSelect={() =>
-                run(() => void navigate({ to: `/${place.page}`, search: placeSelectionSearch(place.name) }))
+                run(
+                  () =>
+                    void navigate({
+                      to: `/${place.page}`,
+                      search: placeSelectionSearch(place.name),
+                    }),
+                )
               }
             >
               <MapPin size={16} aria-hidden="true" />

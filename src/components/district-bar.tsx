@@ -96,114 +96,114 @@ export function DistrictBar() {
       });
 
   return (
-      <div className="min-w-0 sm:max-w-[16rem] sm:shrink-0">
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className={cn(
-            "flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-card px-2.5 text-left text-xs text-ink shadow-sm md:min-h-10",
-            open && "border-moss",
-          )}
-        >
-          <span className="truncate font-medium">{summary}</span>
-          <span className="shrink-0 text-muted">{open ? "▴" : "▾"}</span>
-        </button>
-        {open ? (
-          <div className="mt-1.5 space-y-1.5 rounded-md border border-line bg-card p-2 shadow-paper">
-            <label className="block">
-              <span className="sr-only">
-                {tr(lang, {
-                  en: "District",
-                  zh: "学区",
-                  es: "Distrito",
-                  ko: "학구",
-                  vi: "Học khu",
-                  ja: "学区",
-                })}
-              </span>
-              <select
-                value={district ?? ""}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  setDistrict(isDistrict(next) ? next : null);
-                  setNote("");
-                }}
-                className="min-h-10 w-full rounded-md border border-line bg-paper px-2 text-sm text-ink"
-              >
-                <option value="">
-                  {tr(lang, {
-                    en: "Not set",
-                    zh: "还没选",
-                    es: "Sin elegir",
-                    ko: "아직 안 골랐어요",
-                    vi: "Chưa chọn",
-                    ja: "未選択",
-                  })}
-                </option>
-                {DISTRICTS.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {tr(lang, districtCopy(item.id))}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={locate}
-              disabled={busy}
-              className="min-h-10 w-full rounded-md border border-line bg-paper px-2 text-sm text-ink disabled:opacity-50"
+    <div className="min-w-0 sm:max-w-[16rem] sm:shrink-0">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className={cn(
+          "flex min-h-9 w-full items-center justify-between gap-2 rounded-md border border-line bg-card px-2.5 text-left text-xs text-ink shadow-sm md:min-h-10",
+          open && "border-moss",
+        )}
+      >
+        <span className="truncate font-medium">{summary}</span>
+        <span className="shrink-0 text-muted">{open ? "▴" : "▾"}</span>
+      </button>
+      {open ? (
+        <div className="mt-1.5 space-y-1.5 rounded-md border border-line bg-card p-2 shadow-paper">
+          <label className="block">
+            <span className="sr-only">
+              {tr(lang, {
+                en: "District",
+                zh: "学区",
+                es: "Distrito",
+                ko: "학구",
+                vi: "Học khu",
+                ja: "学区",
+              })}
+            </span>
+            <select
+              value={district ?? ""}
+              onChange={(event) => {
+                const next = event.target.value;
+                setDistrict(isDistrict(next) ? next : null);
+                setNote("");
+              }}
+              className="min-h-10 w-full rounded-md border border-line bg-paper px-2 text-sm text-ink"
             >
-              {busy
-                ? tr(lang, {
-                    en: "Locating…",
-                    zh: "正在定位…",
-                    es: "Buscando…",
-                    ko: "위치 찾는 중…",
-                    vi: "Đang định vị…",
-                    ja: "位置を確認中…",
-                  })
-                : tr(lang, {
-                    en: "Use my location",
-                    zh: "根据位置查找",
-                    es: "Usar ubicación",
-                    ko: "위치로 찾기",
-                    vi: "Dùng vị trí",
-                    ja: "位置で見る",
-                  })}
-            </button>
-            {note ? <p className="text-xs text-muted">{note}</p> : null}
-            {mismatch && picked ? (
-              <p className="text-xs text-muted">
+              <option value="">
                 {tr(lang, {
-                  en: `No ${picked.en} dates are stored here. Use the district site for the official calendar.`,
-                  zh: `这里没有收录 ${picked.zh} 的校历日期，请到学区官网查看。`,
-                  es: `Aquí no hay fechas de ${picked.en}. Usa el sitio del distrito para el calendario oficial.`,
-                  ko: `여기에는 ${picked.en} 학사일정이 없어요. 학군 공식 사이트를 확인하세요.`,
-                  vi: `Không có lịch của ${picked.en} tại đây. Hãy xem trang chính thức của học khu.`,
-                  ja: `${picked.en} の日程はここにありません。学区の公式サイトをご確認ください。`,
-                })}{" "}
-                {picked.href ? (
-                  <a
-                    href={picked.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-moss underline"
-                  >
-                    {tr(lang, {
-                      en: "District site",
-                      zh: "学区网站",
-                      es: "Sitio del distrito",
-                      ko: "그 학구 사이트",
-                      vi: "Trang học khu",
-                      ja: "その学区のサイト",
-                    })}
-                  </a>
-                ) : null}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+                  en: "Not set",
+                  zh: "还没选",
+                  es: "Sin elegir",
+                  ko: "아직 안 골랐어요",
+                  vi: "Chưa chọn",
+                  ja: "未選択",
+                })}
+              </option>
+              {DISTRICTS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {tr(lang, districtCopy(item.id))}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={locate}
+            disabled={busy}
+            className="min-h-10 w-full rounded-md border border-line bg-paper px-2 text-sm text-ink disabled:opacity-50"
+          >
+            {busy
+              ? tr(lang, {
+                  en: "Locating…",
+                  zh: "正在定位…",
+                  es: "Buscando…",
+                  ko: "위치 찾는 중…",
+                  vi: "Đang định vị…",
+                  ja: "位置を確認中…",
+                })
+              : tr(lang, {
+                  en: "Use my location",
+                  zh: "根据位置查找",
+                  es: "Usar ubicación",
+                  ko: "위치로 찾기",
+                  vi: "Dùng vị trí",
+                  ja: "位置で見る",
+                })}
+          </button>
+          {note ? <p className="text-xs text-muted">{note}</p> : null}
+          {mismatch && picked ? (
+            <p className="text-xs text-muted">
+              {tr(lang, {
+                en: `No ${picked.en} dates are stored here. Use the district site for the official calendar.`,
+                zh: `这里没有收录 ${picked.zh} 的校历日期，请到学区官网查看。`,
+                es: `Aquí no hay fechas de ${picked.en}. Usa el sitio del distrito para el calendario oficial.`,
+                ko: `여기에는 ${picked.en} 학사일정이 없어요. 학군 공식 사이트를 확인하세요.`,
+                vi: `Không có lịch của ${picked.en} tại đây. Hãy xem trang chính thức của học khu.`,
+                ja: `${picked.en} の日程はここにありません。学区の公式サイトをご確認ください。`,
+              })}{" "}
+              {picked.href ? (
+                <a
+                  href={picked.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-moss underline"
+                >
+                  {tr(lang, {
+                    en: "District site",
+                    zh: "学区网站",
+                    es: "Sitio del distrito",
+                    ko: "그 학구 사이트",
+                    vi: "Trang học khu",
+                    ja: "その学区のサイト",
+                  })}
+                </a>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }

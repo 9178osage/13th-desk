@@ -23,8 +23,9 @@ export function merge3(base: unknown, ours: unknown, theirs: unknown): unknown {
       const inOurs = key in ours;
       const inTheirs = key in theirs;
       if (inOurs && inTheirs) out[key] = merge3(b[key], ours[key], theirs[key]);
-      else if (inOurs) { if (!(key in b) || !same(b[key], ours[key])) out[key] = ours[key]; }
-      else if (!(key in b) || !same(b[key], theirs[key])) out[key] = theirs[key];
+      else if (inOurs) {
+        if (!(key in b) || !same(b[key], ours[key])) out[key] = ours[key];
+      } else if (!(key in b) || !same(b[key], theirs[key])) out[key] = theirs[key];
     }
     return out;
   }

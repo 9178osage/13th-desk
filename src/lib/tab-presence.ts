@@ -57,7 +57,11 @@ export function createTabPresence(env: TabPresenceEnvironment) {
   };
 
   const post = (type: "hello" | "here" | "bye") => {
-    try { env.channel?.postMessage({ type, id: env.id }); } catch { /* channel closed */ }
+    try {
+      env.channel?.postMessage({ type, id: env.id });
+    } catch {
+      /* channel closed */
+    }
   };
 
   // Lock requests/releases travel separately from channel messages, so each one
@@ -89,18 +93,33 @@ export function createTabPresence(env: TabPresenceEnvironment) {
   });
 
   if (canQuery) {
-    env.locks!.request(own, () => new Promise<void>((resolve) => { release = resolve; }))
+    env
+      .locks!.request(
+        own,
+        () =>
+          new Promise<void>((resolve) => {
+            release = resolve;
+          }),
+      )
       .catch(() => {});
   }
   post("hello");
   refresh();
-  const timer = env.setInterval?.(() => { post("here"); refresh(); }, PRESENCE_HEARTBEAT_MS);
+  const timer = env.setInterval?.(() => {
+    post("here");
+    refresh();
+  }, PRESENCE_HEARTBEAT_MS);
 
   return {
     /** Page shown again (tab focus, back/forward cache). */
-    wake() { post("hello"); refresh(); },
+    wake() {
+      post("hello");
+      refresh();
+    },
     /** Page going away: tell the others now rather than waiting for expiry. */
-    leave() { post("bye"); },
+    leave() {
+      post("bye");
+    },
     refresh,
     dispose() {
       if (disposed) return;
@@ -110,7 +129,11 @@ export function createTabPresence(env: TabPresenceEnvironment) {
       timers.clear();
       if (timer !== undefined) env.clearInterval?.(timer);
       release?.();
-      try { env.channel?.close(); } catch { /* ignore */ }
+      try {
+        env.channel?.close();
+      } catch {
+        /* ignore */
+      }
     },
   };
 }

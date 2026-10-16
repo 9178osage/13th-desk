@@ -107,8 +107,10 @@ test("real store preserves merged overflow through edits, reload, export and res
       assert.equal(getPersistedDeskState().buckets.uni[kind].length, DESK_LIMITS[kind] + 1);
       // New additions remain blocked, but existing overflow stays editable/removable.
       if (kind === "notes") assert.equal(useDesk.getState().addNote("blocked"), false);
-      if (kind === "grades") useDesk.getState().addGrade({ title: "blocked", grade: "A", credits: 1, boost: false });
-      if (kind === "schedule") assert.equal(useDesk.getState().addScheduleBlock(make(kind, "blocked")), false);
+      if (kind === "grades")
+        useDesk.getState().addGrade({ title: "blocked", grade: "A", credits: 1, boost: false });
+      if (kind === "schedule")
+        assert.equal(useDesk.getState().addScheduleBlock(make(kind, "blocked")), false);
       if (kind === "favs") useDesk.getState().toggleFav("blocked");
       if (kind === "checks") useDesk.getState().toggleCheck("blocked");
       if (kind === "notes")

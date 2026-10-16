@@ -108,7 +108,7 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       try {
         const raw = env.storage.getItem(name);
         initialized = true;
-        const value = raw ? JSON.parse(raw) as StorageValue<T> : null;
+        const value = raw ? (JSON.parse(raw) as StorageValue<T>) : null;
         if (value && env.validate && !env.validate(value)) throw new Error("unusable save");
         base = raw;
         return value;

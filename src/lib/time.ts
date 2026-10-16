@@ -37,9 +37,7 @@ export function eugeneClock(now = new Date()): EugeneClock {
     minute: "2-digit",
     hourCycle: "h23",
   });
-  const parts = Object.fromEntries(
-    fmt.formatToParts(now).map((part) => [part.type, part.value]),
-  );
+  const parts = Object.fromEntries(fmt.formatToParts(now).map((part) => [part.type, part.value]));
   let hour = Number(parts.hour);
   if (hour === 24) hour = 0;
   return {
@@ -79,7 +77,15 @@ export function termPhase(ymd: string): TermPhase {
   return spanPhase(ymd, TERM_START, TERM_END);
 }
 
-const WEEKDAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
 
 function localeDate(lang: Lang, options: Intl.DateTimeFormatOptions, date: Date): string {
   const fmt = new Intl.DateTimeFormat(LOCALE[lang], options);

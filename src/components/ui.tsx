@@ -1,9 +1,4 @@
-import type {
-  ButtonHTMLAttributes,
-  InputHTMLAttributes,
-  ReactNode,
-  Ref,
-} from "react";
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, Ref } from "react";
 import { cn } from "@/lib/cn";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -17,12 +12,7 @@ const buttonStyles = {
   ghost: "text-moss hover:bg-moss-soft",
 } as const;
 
-export function Button({
-  variant = "primary",
-  className,
-  type = "button",
-  ...props
-}: ButtonProps) {
+export function Button({ variant = "primary", className, type = "button", ...props }: ButtonProps) {
   return (
     <button
       type={type}
@@ -78,7 +68,12 @@ export function Chip({ children, className, active, onClick, pressed }: ChipProp
   );
   if (onClick) {
     return (
-      <button type="button" aria-pressed={pressed ?? active} onClick={onClick} className={classNames}>
+      <button
+        type="button"
+        aria-pressed={pressed ?? active}
+        onClick={onClick}
+        className={classNames}
+      >
         {children}
       </button>
     );

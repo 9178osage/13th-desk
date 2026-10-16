@@ -10,7 +10,10 @@ export type PlaceSearch = { q?: string; cat?: PlaceFilter };
  * source for both the chips and the `?cat=` whitelist, so the URL can never hold a
  * category the visitor cannot see.
  */
-export function placeCategories(page: "campus" | "town", level: Level): Exclude<PlaceFilter, "all">[] {
+export function placeCategories(
+  page: "campus" | "town",
+  level: Level,
+): Exclude<PlaceFilter, "all">[] {
   if (page === "campus") return ["study", "dining", "saved"];
   return level === "elem" || level === "mid"
     ? ["eat", "out", "errand", "saved"]
@@ -42,11 +45,16 @@ export function knownPlaceCategories(page: "campus" | "town"): Exclude<PlaceFilt
  * level-specific check happens in the page via `effectivePlaceCategory` and
  * `usePlaceCategoryGuard`.
  */
-export function parsePlaceSearch(search: Record<string, unknown>, page: "campus" | "town"): PlaceSearch {
+export function parsePlaceSearch(
+  search: Record<string, unknown>,
+  page: "campus" | "town",
+): PlaceSearch {
   const known: string[] = knownPlaceCategories(page);
   return {
     ...(typeof search.q === "string" && search.q.trim() ? { q: search.q.slice(0, 80) } : {}),
-    ...(typeof search.cat === "string" && known.includes(search.cat) ? { cat: search.cat as PlaceFilter } : {}),
+    ...(typeof search.cat === "string" && known.includes(search.cat)
+      ? { cat: search.cat as PlaceFilter }
+      : {}),
   };
 }
 
