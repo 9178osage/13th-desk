@@ -21,6 +21,7 @@ import {
   EMPTY_PREFS,
   formatPrefsValue,
   prefsCookieString,
+  resolveHydratedLevel,
   readPrefsCookie,
   type PrefsHint,
 } from "@/lib/prefs-cookie";
@@ -788,13 +789,19 @@ export function ensureDeskHydrated(): Promise<void> {
       } catch {
         /* broken storage should not blank the desk */
       }
-      // localStorage is the source of truth: a stale cookie hint for a choice
-      // that was never saved falls back to the defaults.
+      // localStorage is the source of truth; an unsaved language falls back to
+      // the default, but an unsaved level adopts a valid cookie level (the same
+      // one the server rendered) instead of jumping to the default.
       const loaded = useDesk.getState();
+      const level = resolveHydratedLevel(
+        loaded,
+        typeof document === "undefined" ? EMPTY_PREFS : readPrefsCookie(document.cookie),
+        DEFAULT_LEVEL,
+      );
       useDesk.setState({
         hydrated: true,
         ...(loaded.langSet ? {} : { lang: DEFAULT_LANG }),
-        ...(loaded.levelSet ? {} : { level: DEFAULT_LEVEL }),
+        ...(loaded.levelSet ? {} : (level as Pick<DeskState, "level" | "levelSet">)),
       });
     })();
   }

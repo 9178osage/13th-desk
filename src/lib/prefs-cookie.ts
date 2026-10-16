@@ -40,6 +40,23 @@ export function formatPrefsValue(state: {
   return `${lang ?? "-"}.${level ?? "-"}`;
 }
 
+/**
+ * Level after loading localStorage. An explicit saved level always wins; with
+ * no saved choice, a valid cookie level (written from an explicit choice on
+ * this browser) is adopted as the choice, so the page keeps what the server
+ * rendered and the cookie is kept. Otherwise the default, still unchosen.
+ */
+export function resolveHydratedLevel<L extends string>(
+  saved: { level: L; levelSet: boolean },
+  hint: PrefsHint,
+  fallback: L,
+): { level: L | PrefsLevel; levelSet: boolean } {
+  if (saved.levelSet) return { level: saved.level, levelSet: true };
+  const cookieLevel = asLevel(hint.level);
+  if (cookieLevel) return { level: cookieLevel, levelSet: true };
+  return { level: fallback, levelSet: false };
+}
+
 /** Parse a cookie value; anything unexpected becomes "not chosen". */
 export function parsePrefsValue(value: string | null | undefined): PrefsHint {
   if (!value || value.length > 16) return EMPTY_PREFS;

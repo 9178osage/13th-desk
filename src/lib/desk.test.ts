@@ -37,6 +37,7 @@ import {
   parsePrefsValue,
   prefsCookieString,
   readPrefsCookie,
+  resolveHydratedLevel,
 } from "./prefs-cookie.ts";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -1135,4 +1136,16 @@ test("undo still restores when the list is back at its limit; only over-limit or
   // Adding keeps the >= check.
   assert.match(store, /bucket\.notes\.length >= DESK_LIMITS\.notes/);
   assert.match(store, /bucket\.schedule\.length >= DESK_LIMITS\.schedule/);
+});
+
+test("hydration level: explicit save wins, else a valid cookie level, else the default", () => {
+  const unsaved = { level: "uni", levelSet: false };
+  assert.deepEqual(resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=-.mid"), "uni"), { level: "mid", levelSet: true });
+  assert.deepEqual(resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=zh.high"), "uni"), { level: "high", levelSet: true });
+  assert.deepEqual(resolveHydratedLevel({ level: "uni", levelSet: true }, readPrefsCookie("eugene-desk-prefs=-.mid"), "uni"), { level: "uni", levelSet: true });
+  assert.deepEqual(resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=zh.-"), "uni"), { level: "uni", levelSet: false });
+  assert.deepEqual(resolveHydratedLevel(unsaved, { lang: null, level: "phd" as never }, "uni"), { level: "uni", levelSet: false });
+  // The adopted level round-trips into the same cookie value, so it is not cleared.
+  const kept = resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=-.mid"), "uni");
+  assert.equal(formatPrefsValue({ lang: "en", langSet: false, ...kept }), "-.mid");
 });
