@@ -1,0 +1,36 @@
+name: Link check
+
+# External links rot on their own schedule, so this runs on a clock rather than on
+# every push. It also runs when the files that hold the links change, and on demand.
+on:
+  schedule:
+    - cron: "17 13 * * *" # 13:17 UTC = 06:17 in Eugene (PDT)
+  push:
+    paths:
+      - "src/data/**"
+      - "src/lib/**"
+      - "scripts/check-links.mjs"
+      - ".github/workflows/link-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    name: Every external link answers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      # The probe uses Node's built-in fetch, so no install step is needed.
+      - name: Probe shipped external links
+        run: node scripts/check-links.mjs --verbose

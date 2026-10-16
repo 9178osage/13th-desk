@@ -17,9 +17,10 @@
     "typecheck": "tsc --noEmit",
     "test:desk": "node --experimental-strip-types --test src/lib/desk.test.ts src/lib/desk-storage.test.ts src/lib/merge3.test.ts src/lib/tab-presence.test.ts src/lib/channels.test.ts",
     "check:auth": "node scripts/check-auth-invariant.mjs",
+    "check:format": "prettier --check .",
+    "check:links": "node scripts/check-links.mjs",
     "test": "node scripts/test-all.mjs",
     "lint": "eslint .",
-    "check:format": "prettier --check .",
     "format": "prettier --write ."
   },
   "dependencies": {
