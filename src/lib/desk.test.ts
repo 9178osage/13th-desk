@@ -481,6 +481,19 @@ test("desk backup rejects bad times and missing stages", () => {
   if (!badStages.ok) assert.equal(badStages.error, "stages");
 });
 
+test("desk backup reports unknown stage keys without changing existing data", () => {
+  const state = sampleState();
+  const before = structuredClone(state);
+  for (const key of ["future", "__proto__", "constructor"]) {
+    const file = serializeDeskBackup({
+      ...state,
+      buckets: { ...state.buckets, [key]: blankBucket() },
+    });
+    assert.deepEqual(parseDeskBackup(JSON.stringify(file)), { ok: false, error: "stages" }, key);
+    assert.deepEqual(state, before, "rejected files leave the original desk unchanged");
+  }
+});
+
 test("import undo stays offered after other status messages", () => {
   assert.equal(importUndoOffered(true), true);
   assert.equal(importUndoOffered(false), false);

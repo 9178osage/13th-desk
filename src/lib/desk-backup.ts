@@ -203,6 +203,7 @@ export function parseDeskBackup(raw: string): BackupParseResult {
     if (!file.state || typeof file.state !== "object") return { ok: false, error: "shape" };
     const buckets = (file.state as Record<string, unknown>).buckets;
     if (!buckets || typeof buckets !== "object") return { ok: false, error: "stages" };
+    if (Object.keys(buckets).some((key) => !isLevel(key))) return { ok: false, error: "stages" };
     for (const id of LEVELS) {
       if (!(id in (buckets as object))) return { ok: false, error: "stages" };
     }
