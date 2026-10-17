@@ -45,10 +45,26 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
     if (raw == null) return null;
     try {
       const value = JSON.parse(raw) as StorageValue<T>;
-      return value && typeof value === "object" ? value : null;
+      if (
+        !value ||
+        typeof value !== "object" ||
+        Array.isArray(value) ||
+        !value.state ||
+        typeof value.state !== "object" ||
+        Array.isArray(value.state) ||
+        (value.version !== undefined && value.version !== 0) ||
+        (env.validate && !env.validate(value))
+      )
+        return null;
+      // Versionless legacy desks use the current schema, including during cross-tab merges.
+      return { ...value, version: 0 };
     } catch {
       return null;
     }
+  };
+  const hold = () => {
+    readFailed = true;
+    env.status("failed");
   };
   /** Merge this tab's unsaved snapshot onto a newer disk value it has not seen yet. */
   const mergeOnto = (disk: StorageValue<T>, mine: StorageValue<T>): StorageValue<T> => ({
@@ -73,12 +89,12 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       let next = pending;
       let raw = JSON.stringify(next);
       const current = env.storage.getItem(name);
-      const disk = current !== base && current !== raw ? parse(current) : null;
+      const changed = current !== base && current !== raw;
+      const disk = changed ? parse(current) : null;
       let merged = false;
-      if (disk && env.validate && !env.validate(disk)) {
-        // Another tab left a save this tab cannot load without losing data: hold it.
-        readFailed = true;
-        env.status("failed");
+      if (changed && current !== null && !disk) {
+        // A newer unreadable/unsupported save must survive, even before its event arrives.
+        hold();
         return;
       }
       if (disk && disk.version === next.version) {
@@ -108,14 +124,13 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       try {
         const raw = env.storage.getItem(name);
         initialized = true;
-        const value = raw ? (JSON.parse(raw) as StorageValue<T>) : null;
-        if (value && env.validate && !env.validate(value)) throw new Error("unusable save");
+        const value = parse(raw);
+        if (raw !== null && !value) throw new Error("unusable save");
         base = raw;
         return value;
       } catch {
         initialized = true;
-        readFailed = true;
-        env.status("failed");
+        hold();
         return null;
       }
     },
@@ -139,7 +154,7 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
      * (events queue behind this tab's own saves), so read the disk now and apply
      * that. Nothing to do when the disk is what this tab last saved or applied.
      * Ignored before hydration, during a corrupt-save hold, while already
-     * applying, and for removed or unreadable values.
+     * applying, and for removed values. Unreadable/unsupported saves enter a recovery hold.
      */
     syncFrom(raw: string | null, apply: (value: StorageValue<T>) => void): boolean {
       if (!initialized || readFailed || applying || raw == null) return false;
@@ -147,12 +162,16 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       try {
         latest = env.storage.getItem(name);
       } catch {
-        latest = raw;
+        // The event may be stale. Without a fresh disk read, never roll memory backwards.
+        env.status("failed");
+        return false;
       }
       if (latest == null || latest === base) return false;
       let value = parse(latest);
-      if (!value) return false;
-      if (env.validate && !env.validate(value)) return false;
+      if (!value) {
+        hold();
+        return false;
+      }
       if (pending && pending.version === value.version) {
         // A failed save is still waiting: keep it on top of the newer desk.
         value = mergeOnto(value, pending);
@@ -171,7 +190,7 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
     async replace(value: StorageValue<T>): Promise<boolean> {
       try {
         const previous = env.storage.getItem(name);
-        if (readFailed && previous !== null) {
+        if (previous !== null && (readFailed || !parse(previous))) {
           // If archiving fails (e.g. quota), leave the original untouched.
           env.storage.setItem(`${name}:recovery:${recoveryId()}`, previous);
         }

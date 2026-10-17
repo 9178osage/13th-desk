@@ -17,3 +17,26 @@ test("merge3: conflicting scalar goes to ours, unchanged side yields the other",
   assert.equal(merge3("a", "a", "c"), "c");
   assert.deepEqual(merge3(undefined, { x: 1 }, { y: 2 }), { y: 2, x: 1 });
 });
+
+test("merge3 treats special JSON keys as own data, never as prototypes", () => {
+  const ours = JSON.parse('{"__proto__":{"injected":true},"constructor":{"ours":1}}');
+  const theirs = JSON.parse('{"constructor":{"theirs":2},"other":true}');
+  const result = merge3({}, ours, theirs) as Record<string, unknown>;
+  assert.equal(Object.getPrototypeOf(result), Object.prototype);
+  assert.equal(Object.hasOwn(result, "__proto__"), true);
+  assert.equal(result.injected, undefined);
+  assert.deepEqual(JSON.parse(JSON.stringify(result)), {
+    ...JSON.parse('{"__proto__":{"injected":true}}'),
+    constructor: { theirs: 2, ours: 1 },
+    other: true,
+  });
+});
+
+test("merge3 ignores inherited fields when deciding whether a JSON field was removed", () => {
+  const ours = Object.create({ keep: "inherited" }) as Record<string, unknown>;
+  ours.add = "mine";
+  assert.deepEqual(merge3({ keep: "old" }, ours, { keep: "old", other: "theirs" }), {
+    other: "theirs",
+    add: "mine",
+  });
+});

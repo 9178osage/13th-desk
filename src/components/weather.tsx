@@ -5,19 +5,9 @@ import type { Level } from "@/lib/levels";
 import { tr, type Copy, type Lang } from "@/lib/text";
 import { formatWhen } from "@/lib/time";
 import { Button } from "@/components/ui";
+import { asForecast, type Forecast } from "@/lib/forecast";
 
 import { skyAdvice, type Kind } from "@/lib/sky-advice";
-
-type Forecast = {
-  current: { temperature_2m: number; weather_code: number };
-  daily: {
-    time: string[];
-    weather_code: number[];
-    temperature_2m_max: number[];
-    temperature_2m_min: number[];
-    precipitation_probability_max: (number | null)[];
-  };
-};
 
 function kindOf(code: number): Kind {
   if (!Number.isFinite(code)) return "cloud";
@@ -53,26 +43,6 @@ function skyLabel(kind: Kind, lang: Lang): string {
 
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
-}
-
-function asForecast(value: unknown): Forecast | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Forecast;
-  if (!finite(raw.current?.temperature_2m) || !finite(raw.current?.weather_code)) return null;
-  if (!Array.isArray(raw.daily?.time) || raw.daily.time.length === 0) return null;
-  if (
-    !raw.daily.time.every((item) => typeof item === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item))
-  ) {
-    return null;
-  }
-  if (!Array.isArray(raw.daily.weather_code)) return null;
-  if (
-    !Array.isArray(raw.daily.temperature_2m_max) ||
-    !Array.isArray(raw.daily.temperature_2m_min)
-  ) {
-    return null;
-  }
-  return raw;
 }
 
 export function WeatherCard() {

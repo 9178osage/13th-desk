@@ -58,8 +58,9 @@ export function wrap(ctx: CanvasRenderingContext2D, text: string, width: number,
     const runs = token.match(
       /\p{Script=Han}|\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Hangul}|[^\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+/gu,
     ) ?? [token];
-    if (runs.length > 1) return runs;
-    return token.length > 1 && ctx.measureText(token).width > width ? [...token] : [token];
+    return runs.flatMap((run) =>
+      run.length > 1 && ctx.measureText(run).width > width ? [...run] : [run],
+    );
   });
   const lines: string[] = [];
   let line = "";

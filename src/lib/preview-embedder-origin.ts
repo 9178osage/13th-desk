@@ -40,10 +40,8 @@ export function resolveParentEmbedderOrigin(
       const url = new URL(candidate.includes("://") ? candidate : `https://${candidate}`);
       if (url.protocol !== "https:" && url.protocol !== "http:") continue;
       if (isGrokEmbedderOrigin(url.origin)) return url.origin;
-      if (
-        isSandboxPreviewGuestHost(guestHostname) ||
-        isRemintPreviewPair(guestHostname, url.hostname)
-      ) {
+      // A sandbox guest hostname does not establish trust in its parent.
+      if (isRemintPreviewPair(guestHostname, url.hostname)) {
         return url.origin;
       }
     } catch {

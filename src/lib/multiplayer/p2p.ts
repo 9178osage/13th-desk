@@ -321,7 +321,10 @@ export class P2PRoom {
     channel.onmessage = (e) => {
       let msg: { t: string; d?: unknown };
       try {
-        msg = JSON.parse(e.data as string) as { t: string; d?: unknown };
+        const parsed: unknown = JSON.parse(e.data as string);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return;
+        msg = parsed as { t: string; d?: unknown };
+        if (msg.t !== "ping" && msg.t !== "pong" && msg.t !== "d") return;
       } catch {
         return;
       }

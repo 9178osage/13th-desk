@@ -136,8 +136,9 @@ export function asStringList(value: unknown): string[] | null {
  * the loss to the visitor. Missing fields are not lossy — older saves simply lack them.
  */
 export function parseBucket(value: unknown): { bucket: Bucket; lossy: boolean } {
-  const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
-  let lossy = value === undefined;
+  const isRecord = value !== null && typeof value === "object" && !Array.isArray(value);
+  const raw = (isRecord ? value : {}) as Record<string, unknown>;
+  let lossy = !isRecord;
   const list = <T>(field: unknown, parse: (item: unknown) => T | null): T[] => {
     if (field === undefined) return [];
     if (!Array.isArray(field)) {

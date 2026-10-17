@@ -94,7 +94,7 @@ function GpaPage() {
   const [credits, setCredits] = useState(defaultCredits(level));
   const [grade, setGrade] = useState<(typeof LETTERS)[number]>("A");
   const [boost, setBoost] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<Copy | null>(null);
   const [target, setTarget] = useState("3.50");
   const [whatIfCredits, setWhatIfCredits] = useState(defaultCredits(level));
 
@@ -102,7 +102,7 @@ function GpaPage() {
     setCredits(defaultCredits(level));
     setWhatIfCredits(defaultCredits(level));
     setBoost(false);
-    setError("");
+    setError(null);
   }, [level]);
 
   const choices = creditChoices(level);
@@ -159,34 +159,30 @@ function GpaPage() {
   function submit(event: FormEvent) {
     event.preventDefault();
     if (!choices.includes(credits)) {
-      setError(
-        tr(lang, {
-          en: "Pick a credit value from the list.",
-          zh: "请从列表中选择课程学分。",
-          es: "Elige los créditos de la lista.",
-          ko: "학점은 목록에서 고르세요.",
-          vi: "Hãy chọn tín chỉ trong danh sách.",
-          ja: "単位は一覧から選んでください。",
-        }),
-      );
+      setError({
+        en: "Pick a credit value from the list.",
+        zh: "请从列表中选择课程学分。",
+        es: "Elige los créditos de la lista.",
+        ko: "학점은 목록에서 고르세요.",
+        vi: "Hãy chọn tín chỉ trong danh sách.",
+        ja: "単位は一覧から選んでください。",
+      });
       return;
     }
     if (grades.length >= 40) {
-      setError(
-        tr(lang, {
-          en: "40 classes is the limit. Put an older GPA in the box below instead.",
-          zh: "最多添加 40 门课程。之前的成绩可在下方填写历史 GPA 和对应学分。",
-          es: "El límite es 40 clases. El GPA anterior va en el recuadro de abajo.",
-          ko: "수업은 40개가 한도예요. 예전 GPA는 아래 칸에 적어요.",
-          vi: "Tối đa 40 môn. GPA cũ điền vào ô bên dưới.",
-          ja: "授業は 40 個までです。それより前の GPA は下の欄へ。",
-        }),
-      );
+      setError({
+        en: "40 classes is the limit. Put an older GPA in the box below instead.",
+        zh: "最多添加 40 门课程。之前的成绩可在下方填写历史 GPA 和对应学分。",
+        es: "El límite es 40 clases. El GPA anterior va en el recuadro de abajo.",
+        ko: "수업은 40개가 한도예요. 예전 GPA는 아래 칸에 적어요.",
+        vi: "Tối đa 40 môn. GPA cũ điền vào ô bên dưới.",
+        ja: "授業は 40 個までです。それより前の GPA は下の欄へ。",
+      });
       return;
     }
     addGrade({ title, credits: Number(credits), grade, boost: level === "high" && boost });
     setTitle("");
-    setError("");
+    setError(null);
   }
 
   return (
@@ -489,7 +485,7 @@ function GpaPage() {
         ) : null}
         {error ? (
           <p role="alert" className="mt-3 text-sm text-ink">
-            {error}
+            {tr(lang, error)}
           </p>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2">

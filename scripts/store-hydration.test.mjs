@@ -18,7 +18,7 @@ test("real hydration resolves cookie language and level together, with the pack 
         },
         load(id) {
           if (id === "virtual:desk-hydration-test") {
-            return 'export {useDesk, ensureDeskHydrated} from "@/lib/store"; export {isLangReady} from "@/lib/text";';
+            return 'export {useDesk, ensureDeskHydrated, useStorageStatus} from "@/lib/store"; export {isLangReady} from "@/lib/text";';
           }
         },
       },
@@ -61,6 +61,19 @@ test("real hydration resolves cookie language and level together, with the pack 
       level: "uni",
       chosen: false,
     },
+    ...[
+      { name: "future-version desk is held", saved: { buckets: {} }, version: 1 },
+      { name: "array buckets are held", saved: { buckets: [] } },
+      { name: "null stage is held", saved: { buckets: { uni: null } } },
+      { name: "unknown stage is held", saved: { buckets: { future: { notes: ["keep"] } } } },
+    ].map((scenario) => ({
+      ...scenario,
+      cookie: "",
+      lang: "zh",
+      level: "uni",
+      chosen: false,
+      held: true,
+    })),
   ];
   for (const scenario of cases)
     await t.test(scenario.name, async () => {
@@ -69,7 +82,9 @@ test("real hydration resolves cookie language and level together, with the pack 
         names.map((name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)]),
       );
       const data = new Map();
-      if (scenario.saved) data.set(key, JSON.stringify({ state: scenario.saved, version: 0 }));
+      if (scenario.saved)
+        data.set(key, JSON.stringify({ state: scenario.saved, version: scenario.version ?? 0 }));
+      const original = data.get(key);
       let cookie = scenario.cookie;
       let cookieReads = 0;
       try {
@@ -111,7 +126,7 @@ test("real hydration resolves cookie language and level together, with the pack 
           module,
           module.exports,
         );
-        const { useDesk, ensureDeskHydrated, isLangReady } = module.exports;
+        const { useDesk, ensureDeskHydrated, isLangReady, useStorageStatus } = module.exports;
         if (scenario.lang === "es")
           assert.equal(isLangReady("es"), false, "fixture has no inline pack");
         const readyStates = [];
@@ -144,9 +159,20 @@ test("real hydration resolves cookie language and level together, with the pack 
         assert.equal(cookieReads, 2, "one boot hint read and one shared hydration hint read");
         if (scenario.chosen) assert.ok(cookie.includes(`=${scenario.lang}.${scenario.level};`));
         else assert.ok(cookie.includes("Max-Age=0"));
-        const persisted = JSON.parse(data.get(key)).state;
-        assert.equal(persisted.lang, scenario.lang);
-        assert.equal(persisted.level, scenario.level);
+        if (scenario.held) {
+          assert.equal(useStorageStatus.getState().failed, true);
+          useDesk.getState().addNote("must stay in memory only");
+          assert.equal(
+            data.get(key),
+            original,
+            "hydration and later edits preserve the original bytes",
+          );
+        } else {
+          const persisted = JSON.parse(data.get(key)).state;
+          assert.equal(persisted.lang, scenario.lang);
+          assert.equal(persisted.level, scenario.level);
+          assert.equal(useStorageStatus.getState().failed, false);
+        }
       } finally {
         for (const [name, descriptor] of originals) {
           if (descriptor) Object.defineProperty(globalThis, name, descriptor);

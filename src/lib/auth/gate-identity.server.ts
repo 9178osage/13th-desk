@@ -57,11 +57,13 @@ export function gateKeyResolver(
 
     let entry = jwksCache.get(url);
     if (!entry || Date.now() - entry.fetchedAt > JWKS_CACHE_TTL_MS) {
+      // Discard expired trust before fetching: null/throw must not leave a key
+      // reusable by this call or a later resolver sharing the cache.
+      jwksCache.delete(url);
       const jwks = await jwksFetch(url);
-      if (jwks) {
-        entry = { jwks, fetchedAt: Date.now() };
-        jwksCache.set(url, entry);
-      }
+      if (!jwks) throw new Error("could not refresh gate identity keys");
+      entry = { jwks, fetchedAt: Date.now() };
+      jwksCache.set(url, entry);
     }
 
     let key = entry ? findKey(entry.jwks) : undefined;

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DISTRICTS, districtAt, districtCopy, isDistrict } from "@/data/districts";
 import { useDesk, useLang } from "@/lib/store";
-import { tr } from "@/lib/text";
+import { tr, type Copy } from "@/lib/text";
 import { cn } from "@/lib/cn";
 
 /**
@@ -15,68 +15,73 @@ export function DistrictBar() {
   const district = useDesk((state) => state.district);
   const setDistrict = useDesk((state) => state.setDistrict);
   const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState<Copy | null>(null);
   const [open, setOpen] = useState(false);
+  const lookupVersion = useRef(0);
+
+  useEffect(() => {
+    setBusy(false);
+    setNote(null);
+    return () => {
+      // Geolocation cannot be cancelled; ignore callbacks from a previous level or mount.
+      lookupVersion.current += 1;
+    };
+  }, [level]);
 
   if (level === "uni") return null;
 
   function locate() {
+    const version = ++lookupVersion.current;
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setNote(
-        tr(lang, {
-          en: "This browser cannot share a location. Pick the district yourself.",
-          zh: "当前浏览器不支持定位，请手动选择学区。",
-          es: "Este navegador no puede dar la ubicación. Elige el distrito tú.",
-          ko: "이 브라우저는 위치를 줄 수 없어요. 학구를 직접 고르세요.",
-          vi: "Trình duyệt này không định vị được. Tự chọn học khu.",
-          ja: "このブラウザは位置を渡せません。学区は自分で選んでください。",
-        }),
-      );
+      setNote({
+        en: "This browser cannot share a location. Pick the district yourself.",
+        zh: "当前浏览器不支持定位，请手动选择学区。",
+        es: "Este navegador no puede dar la ubicación. Elige el distrito tú.",
+        ko: "이 브라우저는 위치를 줄 수 없어요. 학구를 직접 고르세요.",
+        vi: "Trình duyệt này không định vị được. Tự chọn học khu.",
+        ja: "このブラウザは位置を渡せません。学区は自分で選んでください。",
+      });
       return;
     }
     setBusy(true);
-    setNote("");
+    setNote(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (version !== lookupVersion.current) return;
         setBusy(false);
         const hit = districtAt(pos.coords.longitude, pos.coords.latitude);
         if (!hit) {
-          setNote(
-            tr(lang, {
-              en: "That spot is outside the districts around Eugene. Pick yours if you know it. The location stays on this device.",
-              zh: "当前位置不在已收录的学区范围内，请手动选择。定位仅用于本地匹配，不会上传。",
-              es: "Ese punto está fuera de los distritos cerca de Eugene. Elige el tuyo si lo sabes. La ubicación se queda en este aparato.",
-              ko: "그 위치는 유진 근처 학구 밖이에요. 알면 직접 고르세요. 위치는 이 기기에만 있고 올라가지 않아요.",
-              vi: "Vị trí đó nằm ngoài các học khu quanh Eugene. Biết thì tự chọn. Vị trí chỉ ở trên máy này, không gửi đi.",
-              ja: "その位置はユージン周辺の学区の外です。分かるなら自分で選んでください。位置はこの端末だけに残り、送りません。",
-            }),
-          );
+          setNote({
+            en: "That spot is outside the districts around Eugene. Pick yours if you know it. The location stays on this device.",
+            zh: "当前位置不在已收录的学区范围内，请手动选择。定位仅用于本地匹配，不会上传。",
+            es: "Ese punto está fuera de los distritos cerca de Eugene. Elige el tuyo si lo sabes. La ubicación se queda en este aparato.",
+            ko: "그 위치는 유진 근처 학구 밖이에요. 알면 직접 고르세요. 위치는 이 기기에만 있고 올라가지 않아요.",
+            vi: "Vị trí đó nằm ngoài các học khu quanh Eugene. Biết thì tự chọn. Vị trí chỉ ở trên máy này, không gửi đi.",
+            ja: "その位置はユージン周辺の学区の外です。分かるなら自分で選んでください。位置はこの端末だけに残り、送りません。",
+          });
           return;
         }
         setDistrict(hit.id);
-        setNote(
-          tr(lang, {
-            en: `This is where you are standing: ${hit.en}. A district follows the home address, so it can be wrong if you are not home. The location stays on this device.`,
-            zh: `根据当前位置，可能属于${hit.zh}。学区以居住地址为准，若你不在家，请手动确认。定位仅用于本地匹配，不会上传。`,
-            es: `Según donde estás parado: ${hit.en}. El distrito sigue la dirección de casa, así que puede fallar si no estás en casa. La ubicación se queda en este aparato.`,
-            ko: `지금 서 있는 곳으로는 ${hit.en}예요. 학구는 집 주소로 정해져서, 집이 아니면 틀릴 수 있어요. 위치는 이 기기에만 있고 올라가지 않아요.`,
-            vi: `Theo chỗ bạn đang đứng: ${hit.en}. Học khu tính theo địa chỉ nhà, không ở nhà thì có thể sai. Vị trí chỉ ở trên máy này, không gửi đi.`,
-            ja: `今立っている場所だと ${hit.en} です。学区は家の住所で決まるので、家にいないと違うことがあります。位置はこの端末だけに残り、送りません。`,
-          }),
-        );
+        setNote({
+          en: `This is where you are standing: ${hit.en}. A district follows the home address, so it can be wrong if you are not home. The location stays on this device.`,
+          zh: `根据当前位置，可能属于${hit.zh}。学区以居住地址为准，若你不在家，请手动确认。定位仅用于本地匹配，不会上传。`,
+          es: `Según donde estás parado: ${hit.en}. El distrito sigue la dirección de casa, así que puede fallar si no estás en casa. La ubicación se queda en este aparato.`,
+          ko: `지금 서 있는 곳으로는 ${hit.en}예요. 학구는 집 주소로 정해져서, 집이 아니면 틀릴 수 있어요. 위치는 이 기기에만 있고 올라가지 않아요.`,
+          vi: `Theo chỗ bạn đang đứng: ${hit.en}. Học khu tính theo địa chỉ nhà, không ở nhà thì có thể sai. Vị trí chỉ ở trên máy này, không gửi đi.`,
+          ja: `今立っている場所だと ${hit.en} です。学区は家の住所で決まるので、家にいないと違うことがあります。位置はこの端末だけに残り、送りません。`,
+        });
       },
       () => {
+        if (version !== lookupVersion.current) return;
         setBusy(false);
-        setNote(
-          tr(lang, {
-            en: "No location came back. Pick the district yourself.",
-            zh: "暂时无法获取位置，请手动选择学区。",
-            es: "No llegó la ubicación. Elige el distrito tú.",
-            ko: "위치를 받지 못했어요. 학구를 직접 고르세요.",
-            vi: "Không lấy được vị trí. Tự chọn học khu.",
-            ja: "位置が取れませんでした。学区は自分で選んでください。",
-          }),
-        );
+        setNote({
+          en: "No location came back. Pick the district yourself.",
+          zh: "暂时无法获取位置，请手动选择学区。",
+          es: "No llegó la ubicación. Elige el distrito tú.",
+          ko: "위치를 받지 못했어요. 학구를 직접 고르세요.",
+          vi: "Không lấy được vị trí. Tự chọn học khu.",
+          ja: "位置が取れませんでした。学区は自分で選んでください。",
+        });
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 120_000 },
     );
@@ -126,8 +131,10 @@ export function DistrictBar() {
               value={district ?? ""}
               onChange={(event) => {
                 const next = event.target.value;
+                lookupVersion.current += 1;
+                setBusy(false);
                 setDistrict(isDistrict(next) ? next : null);
-                setNote("");
+                setNote(null);
               }}
               className="min-h-10 w-full rounded-md border border-line bg-paper px-2 text-sm text-ink"
             >
@@ -172,7 +179,7 @@ export function DistrictBar() {
                   ja: "位置で見る",
                 })}
           </button>
-          {note ? <p className="text-xs text-muted">{note}</p> : null}
+          {note ? <p className="text-xs text-muted">{tr(lang, note)}</p> : null}
           {mismatch && picked ? (
             <p className="text-xs text-muted">
               {tr(lang, {

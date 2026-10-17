@@ -200,6 +200,140 @@ describe("verifyGateIdentityToken", () => {
   });
 });
 
+describe("gate key cache lifetime", () => {
+  const ttlMs = 300_000;
+  const start = Date.UTC(2026, 9, 17, 12);
+
+  it("accepts a cached key within the TTL without refreshing during an outage", async (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: start });
+    const key = await makeKey("cached");
+    let available = true;
+    let calls = 0;
+    const getKey = gateKeyResolver(uniqueUrl(), async () => {
+      calls += 1;
+      return available ? { keys: [key.jwk] } : null;
+    });
+    const options = { issuer: ISSUER, audience: AUDIENCE, getKey };
+    assert.equal(
+      (await verifyGateIdentityToken(await signToken(key, { sub: "user-1" }), options))?.sub,
+      "user-1",
+    );
+
+    available = false;
+    t.mock.timers.tick(ttlMs - 1);
+    assert.equal(
+      (await verifyGateIdentityToken(await signToken(key, { sub: "user-1" }), options))?.sub,
+      "user-1",
+    );
+    assert.equal(calls, 1);
+  });
+
+  for (const failure of ["null", "throw"] as const) {
+    it(`rejects an expired cache on ${failure} and cannot revive it after a clock correction`, async (t) => {
+      t.mock.timers.enable({ apis: ["Date"], now: start });
+      const key = await makeKey("expired");
+      const url = uniqueUrl();
+      let available = true;
+      const fetchImpl = async (): Promise<GateJwks | null> => {
+        if (available) return { keys: [key.jwk] };
+        if (failure === "throw") throw new Error("synthetic JWKS outage");
+        return null;
+      };
+      const options = {
+        issuer: ISSUER,
+        audience: AUDIENCE,
+        getKey: gateKeyResolver(url, fetchImpl),
+      };
+      assert.equal(
+        (await verifyGateIdentityToken(await signToken(key, { sub: "user-1" }), options))?.sub,
+        "user-1",
+      );
+
+      available = false;
+      t.mock.timers.tick(ttlMs + 1);
+      // Mint a fresh token: rejection must come from key trust, not token expiry.
+      assert.equal(
+        await verifyGateIdentityToken(await signToken(key, { sub: "user-1" }), options),
+        null,
+      );
+      assert.equal(
+        await verifyGateIdentityToken(await signToken(key, { sub: "user-1" }), options),
+        null,
+      );
+
+      // A clock adjustment and a new resolver must not resurrect the discarded key.
+      t.mock.timers.setTime(start + 1);
+      assert.equal(
+        await verifyGateIdentityToken(await signToken(key, { sub: "user-1" }), {
+          ...options,
+          getKey: gateKeyResolver(url, fetchImpl),
+        }),
+        null,
+      );
+    });
+  }
+
+  it("replaces expired keys on rotation and never falls back to a removed key", async (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: start });
+    const oldKey = await makeKey("removed");
+    const newKey = await makeKey("current");
+    let published: GateJwks | null = { keys: [oldKey.jwk] };
+    const getKey = gateKeyResolver(uniqueUrl(), async () => published);
+    const options = { issuer: ISSUER, audience: AUDIENCE, getKey };
+    assert.equal(
+      (await verifyGateIdentityToken(await signToken(oldKey, { sub: "user-1" }), options))?.sub,
+      "user-1",
+    );
+
+    published = { keys: [newKey.jwk] };
+    t.mock.timers.tick(ttlMs + 1);
+    assert.equal(
+      await verifyGateIdentityToken(await signToken(oldKey, { sub: "user-1" }), options),
+      null,
+    );
+    assert.equal(
+      (await verifyGateIdentityToken(await signToken(newKey, { sub: "user-1" }), options))?.sub,
+      "user-1",
+    );
+
+    published = null;
+    assert.equal(
+      await verifyGateIdentityToken(await signToken(oldKey, { sub: "user-1" }), options),
+      null,
+    );
+    assert.equal(
+      (await verifyGateIdentityToken(await signToken(newKey, { sub: "user-1" }), options))?.sub,
+      "user-1",
+    );
+  });
+
+  it("honors removal of every key even if later refreshes fail", async (t) => {
+    t.mock.timers.enable({ apis: ["Date"], now: start });
+    const key = await makeKey("revoked");
+    let published: GateJwks | null = { keys: [key.jwk] };
+    const options = {
+      issuer: ISSUER,
+      audience: AUDIENCE,
+      getKey: gateKeyResolver(uniqueUrl(), async () => published),
+    };
+    assert.equal(
+      (await verifyGateIdentityToken(await signToken(key, { sub: "user-1" }), options))?.sub,
+      "user-1",
+    );
+    t.mock.timers.tick(ttlMs + 1);
+    published = { keys: [] };
+    assert.equal(
+      await verifyGateIdentityToken(await signToken(key, { sub: "user-1" }), options),
+      null,
+    );
+    published = null;
+    assert.equal(
+      await verifyGateIdentityToken(await signToken(key, { sub: "user-1" }), options),
+      null,
+    );
+  });
+});
+
 describe("gateIdentityFromHeaders", () => {
   it("verifies the header token end to end and fails closed without it", async () => {
     const key = await makeKey("k1");

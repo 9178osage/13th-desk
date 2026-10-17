@@ -52,6 +52,10 @@ jobs:
         id: tests
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm test 2>&1 | tee verification/tests.log
+      - name: Audit locked dependencies
+        id: security
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm audit --audit-level=low 2>&1 | tee verification/security.log
       - name: Type check
         id: types
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -71,6 +75,7 @@ jobs:
         env:
           INSTALL_RESULT: ${{ steps.install.outcome }}
           TEST_RESULT: ${{ steps.tests.outcome }}
+          SECURITY_RESULT: ${{ steps.security.outcome }}
           TYPE_RESULT: ${{ steps.types.outcome }}
           LINT_RESULT: ${{ steps.lint.outcome }}
           BUILD_RESULT: ${{ steps.build.outcome }}
@@ -85,6 +90,7 @@ jobs:
             echo '| --- | --- |'
             echo "| Locked install | $INSTALL_RESULT |"
             echo "| Full tests | $TEST_RESULT |"
+            echo "| Dependency audit | $SECURITY_RESULT |"
             echo "| Type check | $TYPE_RESULT |"
             echo "| Lint | $LINT_RESULT |"
             echo "| Production build | $BUILD_RESULT |"

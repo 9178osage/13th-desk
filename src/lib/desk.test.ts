@@ -31,6 +31,7 @@ import {
   type PersistedDeskLike,
 } from "./desk-backup.ts";
 import { parseBucket } from "./desk-records.ts";
+import { asForecast } from "./forecast.ts";
 import {
   k12CalendarSourceMeta,
   k12HasStoredDates,
@@ -365,6 +366,39 @@ test("the same record ID in separate stages is valid", () => {
   const state = sampleState();
   state.buckets.high.notes = [...state.buckets.uni.notes];
   assert.equal(parseDeskBackup(JSON.stringify(serializeDeskBackup(state))).ok, true);
+});
+test("malformed bucket containers are rejected rather than imported as empty stages", () => {
+  for (const invalid of [null, [], 0, true, "lost bucket"]) {
+    assert.equal(parseBucket(invalid).lossy, true);
+    const file = serializeDeskBackup(sampleState());
+    Object.assign(file.state.buckets, { uni: invalid });
+    assert.equal(parseDeskBackup(JSON.stringify(file)).ok, false);
+  }
+  assert.equal(parseBucket({}).lossy, false, "legacy objects may omit newer fields");
+});
+
+test("weather rejects impossible upstream dates before Intl can crash the home page", () => {
+  const forecast = {
+    current: { temperature_2m: 67, weather_code: 3 },
+    daily: {
+      time: ["2026-10-17", "2026-10-18", "2026-10-19"],
+      weather_code: [3, 0, 1],
+      temperature_2m_max: [67, 63, 64],
+      temperature_2m_min: [45, 43, 44],
+    },
+  };
+  assert.equal(asForecast(forecast), forecast, "precipitation is optional and renders a dash");
+  for (const date of ["2026-13-18", "2026-02-31", "2027-02-29", "not-a-day", null]) {
+    assert.equal(
+      asForecast({ ...forecast, daily: { ...forecast.daily, time: ["2026-10-17", date] } }),
+      null,
+    );
+  }
+  assert.ok(asForecast({ ...forecast, daily: { ...forecast.daily, time: ["2028-02-29"] } }));
+  assert.equal(
+    asForecast({ ...forecast, current: { temperature_2m: Infinity, weather_code: 0 } }),
+    null,
+  );
 });
 test("every place-hours hint has six translations and no silent English fallback", () => {
   for (const place of places) {
@@ -1135,6 +1169,24 @@ test("lock-screen wrap fills the line for a mixed Latin + CJK title", () => {
   const lines = wrap(ctx, "BIOL 211 普通生物学", 160, 3);
   assert.deepEqual(lines, ["BIOL 211 普", "通生物学"]);
   for (const line of lines) assert.ok(measure(line).width <= 160, JSON.stringify(lines));
+});
+
+test("mixed-script lock-screen titles split an oversized Latin run before wrapping", () => {
+  const ctx = {
+    measureText: (text: string) => ({ width: [...text].length * 10 }),
+  } as unknown as CanvasRenderingContext2D;
+  for (const title of [
+    "IntroductionToMicroeconomics学 Seminar",
+    "학IntroductionToMicroeconomics Seminar",
+  ]) {
+    const lines = wrap(ctx, title, 147, 2);
+    assert.equal(lines.length, 2);
+    assert.ok(
+      lines.every((line) => ctx.measureText(line).width <= 147),
+      JSON.stringify(lines),
+    );
+    assert.ok(lines.at(-1)?.endsWith("…"));
+  }
 });
 
 test("lock-screen wrap breaks a word wider than the card", () => {

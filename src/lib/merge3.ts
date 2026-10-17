@@ -18,16 +18,19 @@ export function merge3(base: unknown, ours: unknown, theirs: unknown): unknown {
   }
   if (isObject(ours) && isObject(theirs)) {
     const b = isObject(base) ? base : {};
-    const out: Record<string, unknown> = {};
+    const entries: [string, unknown][] = [];
     for (const key of new Set([...Object.keys(theirs), ...Object.keys(ours)])) {
-      const inOurs = key in ours;
-      const inTheirs = key in theirs;
-      if (inOurs && inTheirs) out[key] = merge3(b[key], ours[key], theirs[key]);
+      const inOurs = Object.hasOwn(ours, key);
+      const inTheirs = Object.hasOwn(theirs, key);
+      const inBase = Object.hasOwn(b, key);
+      if (inOurs && inTheirs)
+        entries.push([key, merge3(inBase ? b[key] : undefined, ours[key], theirs[key])]);
       else if (inOurs) {
-        if (!(key in b) || !same(b[key], ours[key])) out[key] = ours[key];
-      } else if (!(key in b) || !same(b[key], theirs[key])) out[key] = theirs[key];
+        if (!inBase || !same(b[key], ours[key])) entries.push([key, ours[key]]);
+      } else if (!inBase || !same(b[key], theirs[key])) entries.push([key, theirs[key]]);
     }
-    return out;
+    // Unlike out[key] assignment, fromEntries keeps "__proto__" as an ordinary own key.
+    return Object.fromEntries(entries);
   }
   return ours;
 }

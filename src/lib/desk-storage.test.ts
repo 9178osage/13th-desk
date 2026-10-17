@@ -336,3 +336,124 @@ test("a parsed save that would lose records is held, not overwritten (defect 3)"
   assert.equal(archived.length, 1);
   assert.equal(data.get(archived[0]), bad);
 });
+
+test("malformed and unsupported saves are held even after a tab has hydrated", async (t) => {
+  for (const bad of [
+    "{broken",
+    "null",
+    "false",
+    "0",
+    '"text"',
+    "[]",
+    "{}",
+    JSON.stringify({ state: null, version: 0 }),
+    JSON.stringify({ state: [], version: 0 }),
+    JSON.stringify({ state: { notes: ["future"] }, version: 1 }),
+    JSON.stringify({ state: { notes: ["future"] }, version: "0" }),
+  ]) {
+    await t.test(bad, async () => {
+      const env = environment();
+      const tab = env.open();
+      await tab.hydrate();
+      env.data.set(KEY, bad); // a newer disk value before its storage event arrives
+      tab.add("must not overwrite");
+      assert.equal(env.data.get(KEY), bad);
+      assert.equal(tab.status(), "failed");
+      assert.equal(await tab.replace(value("restored")), true);
+      const archives = [...env.data.keys()].filter((key) => key.startsWith(`${KEY}:recovery:`));
+      assert.equal(archives.length, 1);
+      assert.equal(env.data.get(archives[0]), bad);
+      tab.storage.setItem(KEY, value("restored", "new"));
+      assert.deepEqual(saved(env.data), ["restored", "new"]);
+    });
+  }
+});
+
+test("initial invalid JSON values and unknown versions cannot be overwritten by hydration", async () => {
+  for (const bad of [
+    "null",
+    "false",
+    "0",
+    "[]",
+    "{}",
+    JSON.stringify({ ...value("future"), version: 1 }),
+  ]) {
+    const env = environment();
+    env.data.set(KEY, bad);
+    const tab = env.open();
+    assert.equal(await tab.storage.getItem(KEY), null);
+    tab.storage.setItem(KEY, value());
+    assert.equal(env.data.get(KEY), bad);
+    assert.equal(tab.status(), "failed");
+  }
+});
+
+test("a corrupt storage event enters the same recovery hold instead of reporting ready", async () => {
+  const env = environment();
+  const tab = env.open();
+  await tab.hydrate();
+  env.data.set(KEY, "{broken");
+  assert.equal(
+    tab.syncFrom("{broken", () => assert.fail("applied corrupt save")),
+    false,
+  );
+  assert.equal(tab.status(), "failed");
+  tab.add("still held");
+  assert.equal(env.data.get(KEY), "{broken");
+});
+
+test("legacy saves without a version are normalized and still merge with version zero", async () => {
+  const env = environment();
+  const tab = env.open();
+  await tab.hydrate();
+  env.data.set(KEY, JSON.stringify({ state: { notes: ["legacy"] } }));
+  tab.add("mine");
+  assert.deepEqual(saved(env.data), ["legacy", "mine"]);
+  assert.equal(tab.status(), "ready");
+});
+
+test("a failed disk read never applies the storage event's possibly stale value", async () => {
+  let failRead = false;
+  let raw = JSON.stringify(value("newest"));
+  let status: SaveStatus = "ready";
+  const tab = createDeskStorage<Desk>({
+    storage: {
+      getItem() {
+        if (failRead) throw new Error("blocked");
+        return raw;
+      },
+      setItem(_key, next) {
+        raw = next;
+      },
+      removeItem() {},
+    },
+    status: (next) => {
+      status = next;
+    },
+  });
+  await tab.storage.getItem(KEY);
+  failRead = true;
+  assert.equal(
+    tab.syncFrom(JSON.stringify(value("old event")), () => assert.fail("rolled back")),
+    false,
+  );
+  assert.equal(status, "failed");
+  failRead = false;
+  tab.storage.setItem(KEY, value("newest", "edit"));
+  assert.deepEqual(JSON.parse(raw).state.notes, ["newest", "edit"]);
+  assert.equal(status, "ready");
+});
+
+test("explicit import archives a newer corrupt save even before its storage event arrives", async () => {
+  for (const original of ["{unreadable", JSON.stringify({ ...value("future"), version: 1 })]) {
+    const env = environment();
+    const tab = env.open();
+    await tab.hydrate();
+    env.data.set(KEY, original);
+    assert.equal(await tab.replace(value("imported")), true);
+    const archives = [...env.data.keys()].filter((key) => key.startsWith(`${KEY}:recovery:`));
+    assert.equal(archives.length, 1);
+    assert.equal(env.data.get(archives[0]), original);
+    assert.deepEqual(saved(env.data), ["imported"]);
+  }
+});

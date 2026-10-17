@@ -120,7 +120,9 @@ export function storedDeskIsUsable(value: unknown): boolean {
   const raw = state as Record<string, unknown>;
   const stored = raw.buckets;
   if (stored === undefined) return asBucket(raw) !== null; // legacy single-bucket save
-  if (!stored || typeof stored !== "object") return false;
+  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return false;
+  // A newer/hand-edited stage must not silently vanish when this version saves again.
+  if (Object.keys(stored).some((id) => !isLevel(id))) return false;
   for (const id of ["elem", "mid", "high", "uni"] as const) {
     const item = (stored as Record<string, unknown>)[id];
     if (item !== undefined && asBucket(item) === null) return false;
