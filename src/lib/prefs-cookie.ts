@@ -8,11 +8,13 @@
  * Value format: `<lang>.<level>`, with `-` for "not chosen", e.g. `es.high`,
  * `ja.-`, `-.mid`. Keep this module alias-free: desk.test.ts imports it.
  */
+import { LEVEL_IDS } from "./levels.ts";
+
 export const PREFS_COOKIE = "eugene-desk-prefs";
 export const PREFS_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 export const PREFS_LANGS = ["en", "zh", "es", "ko", "vi", "ja"] as const;
-export const PREFS_LEVELS = ["elem", "mid", "high", "uni"] as const;
+export const PREFS_LEVELS = LEVEL_IDS;
 export type PrefsLang = (typeof PREFS_LANGS)[number];
 export type PrefsLevel = (typeof PREFS_LEVELS)[number];
 export type PrefsHint = { lang: PrefsLang | null; level: PrefsLevel | null };

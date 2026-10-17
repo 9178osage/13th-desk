@@ -7,8 +7,10 @@ export function isCalendarDay(value: unknown): value is string {
 }
 
 export function daysBetween(fromYmd: string, toYmd: string): number {
-  const start = Date.parse(`${fromYmd}T12:00:00-07:00`);
-  const end = Date.parse(`${toYmd}T12:00:00-07:00`);
+  if (!isCalendarDay(fromYmd) || !isCalendarDay(toYmd)) return Number.NaN;
+  // Calendar-day distance is independent of local timezone and daylight-saving changes.
+  const start = Date.parse(`${fromYmd}T12:00:00Z`);
+  const end = Date.parse(`${toYmd}T12:00:00Z`);
   return Math.round((end - start) / 86_400_000);
 }
 

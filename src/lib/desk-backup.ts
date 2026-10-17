@@ -21,7 +21,7 @@ function isDistrict(value: unknown): value is DistrictId {
 import { asStoredCredits, isLetter } from "./gpa.ts";
 import type { Bucket } from "./desk-records.ts";
 import { parseBucket as parseBucketShared } from "./desk-records.ts";
-import { isLevel, type Level } from "./levels.ts";
+import { LEVEL_IDS as LEVELS, isLevel, type Level } from "./levels.ts";
 import { validScheduleTime } from "./schedule.ts";
 export type Lang = "en" | "zh" | "es" | "ko" | "vi" | "ja";
 function isLang(value: unknown): value is Lang {
@@ -80,8 +80,6 @@ export type BackupParseError = "json" | "shape" | "version" | "stages" | "times"
 export type BackupParseResult =
   | { ok: true; backup: DeskBackupFile; summary: BackupSummary }
   | { ok: false; error: BackupParseError };
-
-const LEVELS: Level[] = ["elem", "mid", "high", "uni"];
 
 /** Used only to name the failing part of a rejected file; reading itself is shared. */
 function asHmStrict(value: unknown): string | null {

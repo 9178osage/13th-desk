@@ -1,4 +1,5 @@
 import { LOCALE } from "./locale.ts";
+import { LEVEL_IDS } from "./levels.ts";
 
 /**
  * Tiny inline script that runs in <head> before first paint (see __root.tsx).
@@ -16,7 +17,7 @@ import { LOCALE } from "./locale.ts";
  * It only reads storage; it never writes, and any error leaves the defaults.
  * Keep it alias-free: desk.test.ts evaluates it under node.
  */
-export const BOOT_LEVELS = ["elem", "mid", "high", "uni"];
+export const BOOT_LEVELS = LEVEL_IDS;
 
 function boot(key: string, langs: Record<string, string>, levels: string[]) {
   try {

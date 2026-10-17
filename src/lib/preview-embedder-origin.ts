@@ -2,6 +2,7 @@ export function isGrokEmbedderOrigin(origin: string): boolean {
   try {
     const url = new URL(origin);
     if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+    if (url.username || url.password) return false;
     const host = url.hostname.toLowerCase();
     if (host === "grok.com" || host.endsWith(".grok.com")) return true;
     if (host === "localhost" || host === "127.0.0.1" || host === "[::1]") return true;
@@ -35,10 +36,13 @@ export function resolveParentEmbedderOrigin(
   guestHostname: string = "",
 ): string | null {
   if (parentIsSelf) return null;
-  for (const candidate of [referrer, ancestorOrigin ?? ""].filter(Boolean)) {
+  // ancestorOrigins[0] describes the current parent. A navigation referrer may
+  // describe an older document; it must not override a known untrusted/opaque parent.
+  for (const candidate of [ancestorOrigin || referrer].filter(Boolean)) {
     try {
       const url = new URL(candidate.includes("://") ? candidate : `https://${candidate}`);
       if (url.protocol !== "https:" && url.protocol !== "http:") continue;
+      if (url.username || url.password) continue;
       if (isGrokEmbedderOrigin(url.origin)) return url.origin;
       // A sandbox guest hostname does not establish trust in its parent.
       if (isRemintPreviewPair(guestHostname, url.hostname)) {

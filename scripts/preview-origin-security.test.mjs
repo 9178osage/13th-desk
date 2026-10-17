@@ -175,6 +175,32 @@ test("resolver keeps trusted ancestor fallback, schemeless hosts and top-level n
   );
 });
 
+test("the actual parent origin takes precedence over a stale trusted referrer", () => {
+  for (const ancestor of [
+    "https://attacker.example",
+    "null",
+    "https://grok.com.attacker.example",
+  ]) {
+    const frame = fakeFrame({ parentOrigin: ancestor, referrer: "https://grok.com/chat" });
+    assert.equal(frame.api.resolveCurrentEmbedderOrigin(), null);
+    frame.install();
+    frame.send("navigate", { path: "/gpa" });
+    assert.deepEqual(frame.posts, []);
+    assert.deepEqual(frame.navigations, []);
+    assert.equal(frame.listeners.size, 0);
+  }
+});
+
+test("URL credentials cannot disguise a preview parent, while redacted referrers still work", () => {
+  const { resolveParentEmbedderOrigin: resolve, isGrokEmbedderOrigin } = fakeFrame().api;
+  for (const candidate of ["https://user:pass@grok.com/chat", "http://user@localhost:8080/"]) {
+    assert.equal(isGrokEmbedderOrigin(candidate), false);
+    assert.equal(resolve(false, candidate), null);
+  }
+  assert.equal(resolve(false, "", "https://grok.com"), "https://grok.com");
+  assert.equal(resolve(false, "https://grok.com/chat", null), "https://grok.com");
+});
+
 for (const source of ["referrer", "ancestor"]) {
   test(`actual bridge under an untrusted ${source} discloses nothing and accepts no commands`, () => {
     const frame = fakeFrame(source === "ancestor" ? { referrer: "" } : { ancestorOrigin: null });

@@ -1,10 +1,10 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist, type StorageValue } from "zustand/middleware";
-import { createDeskStorage, type SaveStatus } from "@/lib/desk-storage";
+import { createDeskStorage, DESK_STORAGE_VERSION, type SaveStatus } from "@/lib/desk-storage";
 import { DESK_LIMITS, canRestore } from "@/lib/desk-limits";
 import { createTabPresence } from "@/lib/tab-presence";
-import { isLevel, type Level } from "@/lib/levels";
+import { LEVEL_IDS, isLevel, type Level } from "@/lib/levels";
 import { isDistrict, type DistrictId } from "@/data/districts";
 import { asStoredCredits, cleanDecimal, isLetter } from "@/lib/gpa";
 import {
@@ -93,7 +93,7 @@ export function weekdayToScheduleDay(weekday: number): WeekDay | null {
 const blankBucket = emptyBucket;
 
 function blankBuckets(): Record<Level, Bucket> {
-  return { elem: blankBucket(), mid: blankBucket(), high: blankBucket(), uni: blankBucket() };
+  return Object.fromEntries(LEVEL_IDS.map((id) => [id, blankBucket()])) as Record<Level, Bucket>;
 }
 
 /**
@@ -123,7 +123,7 @@ export function storedDeskIsUsable(value: unknown): boolean {
   if (!stored || typeof stored !== "object" || Array.isArray(stored)) return false;
   // A newer/hand-edited stage must not silently vanish when this version saves again.
   if (Object.keys(stored).some((id) => !isLevel(id))) return false;
-  for (const id of ["elem", "mid", "high", "uni"] as const) {
+  for (const id of LEVEL_IDS) {
     const item = (stored as Record<string, unknown>)[id];
     if (item !== undefined && asBucket(item) === null) return false;
   }
@@ -412,6 +412,7 @@ const deskStore = create<DeskState>()(
     }),
     {
       name: "13th-desk-v1",
+      version: DESK_STORAGE_VERSION,
       skipHydration: true,
       storage: deskStorage?.storage ?? {
         getItem: () => null,
@@ -449,7 +450,7 @@ const deskStore = create<DeskState>()(
         const buckets = blankBuckets();
         const stored = raw.buckets;
         if (stored && typeof stored === "object") {
-          for (const id of ["elem", "mid", "high", "uni"] as const) {
+          for (const id of LEVEL_IDS) {
             const bucket = asBucket((stored as Record<string, unknown>)[id]);
             if (bucket) buckets[id] = bucket;
           }
@@ -562,7 +563,7 @@ function syncFromOtherTab(raw: string | null) {
 
 /** Load a saved desk value into memory (stored values win, including language and level). */
 function applyStoredDesk(value: StorageValue<PersistedDesk>) {
-  if (value.version !== 0) return;
+  if (value.version !== DESK_STORAGE_VERSION) return;
   const merge = useDesk.persist.getOptions().merge;
   if (!merge) return;
   const current = useDesk.getState();
@@ -664,7 +665,11 @@ export async function replacePersistedDeskState(next: PersistedDeskLike): Promis
     district: next.district,
     buckets: structuredClone(next.buckets),
   };
-  if (!deskStorage || !(await deskStorage.replace({ state: payload, version: 0 }))) return false;
+  if (
+    !deskStorage ||
+    !(await deskStorage.replace({ state: payload, version: DESK_STORAGE_VERSION }))
+  )
+    return false;
   useDesk.setState({
     ...payload,
     hydrated: true,

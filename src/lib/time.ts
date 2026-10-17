@@ -44,7 +44,7 @@ export function eugeneClock(now = new Date()): EugeneClock {
 }
 
 // Pure day math lives in days.ts so the node test runner can import it.
-import { daysBetween } from "./days.ts";
+import { daysBetween, isCalendarDay } from "./days.ts";
 export { daysBetween, soonDays } from "./days.ts";
 
 const WEEKDAY_INDEX: Record<string, number> = {
@@ -70,6 +70,7 @@ function localeDate(lang: Lang, options: Intl.DateTimeFormatOptions, date: Date)
 }
 
 export function formatWhen(ymd: string, today: string, lang: Lang): string {
+  if (!isCalendarDay(ymd)) return "—";
   const delta = daysBetween(today, ymd);
   if (delta === 0) return tr(lang, { en: "Today", zh: "今天" });
   if (delta === 1) return tr(lang, { en: "Tomorrow", zh: "明天" });

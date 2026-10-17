@@ -18,7 +18,7 @@ test("real hydration resolves cookie language and level together, with the pack 
         },
         load(id) {
           if (id === "virtual:desk-hydration-test") {
-            return 'export {useDesk, ensureDeskHydrated, useStorageStatus} from "@/lib/store"; export {isLangReady} from "@/lib/text";';
+            return 'export {useDesk, ensureDeskHydrated, useStorageStatus, getPersistedDeskState} from "@/lib/store"; export {isLangReady} from "@/lib/text"; export {LEVEL_IDS} from "@/lib/levels"; export {serializeDeskBackup, parseDeskBackup} from "@/lib/desk-backup";';
           }
         },
       },
@@ -126,7 +126,16 @@ test("real hydration resolves cookie language and level together, with the pack 
           module,
           module.exports,
         );
-        const { useDesk, ensureDeskHydrated, isLangReady, useStorageStatus } = module.exports;
+        const {
+          useDesk,
+          ensureDeskHydrated,
+          isLangReady,
+          useStorageStatus,
+          getPersistedDeskState,
+          LEVEL_IDS,
+          serializeDeskBackup,
+          parseDeskBackup,
+        } = module.exports;
         if (scenario.lang === "es")
           assert.equal(isLangReady("es"), false, "fixture has no inline pack");
         const readyStates = [];
@@ -137,6 +146,11 @@ test("real hydration resolves cookie language and level together, with the pack 
         await ensureDeskHydrated();
         unsubscribe();
         const state = useDesk.getState();
+        assert.deepEqual(
+          Object.keys(state.buckets),
+          LEVEL_IDS,
+          "every registered stage is initialized",
+        );
         assert.deepEqual(
           {
             lang: state.lang,
@@ -172,6 +186,11 @@ test("real hydration resolves cookie language and level together, with the pack 
           assert.equal(persisted.lang, scenario.lang);
           assert.equal(persisted.level, scenario.level);
           assert.equal(useStorageStatus.getState().failed, false);
+          const exported = serializeDeskBackup(getPersistedDeskState());
+          assert.deepEqual(Object.keys(exported.state.buckets), LEVEL_IDS);
+          const imported = parseDeskBackup(JSON.stringify(exported));
+          assert.equal(imported.ok, true, "registry-driven save exports and imports every stage");
+          assert.deepEqual(imported.backup.state.buckets, state.buckets);
         }
       } finally {
         for (const [name, descriptor] of originals) {

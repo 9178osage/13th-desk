@@ -39,9 +39,12 @@ import {
   UO_VALID_THROUGH,
 } from "./calendar-meta.ts";
 import { releaseLine } from "../data/k12.ts";
-import { deskBootScript, BOOT_HTML_LANG } from "./boot-script.ts";
+import { deskBootScript, BOOT_HTML_LANG, BOOT_LEVELS } from "./boot-script.ts";
+import { LEVEL_IDS, LEVELS, isLevel } from "./levels.ts";
+import { DESK_STORAGE_VERSION } from "./desk-storage.ts";
 import {
   PREFS_COOKIE,
+  PREFS_LEVELS,
   formatPrefsValue,
   parsePrefsValue,
   prefsCookieString,
@@ -918,7 +921,7 @@ import { buildIcs, icsEscape, icsFold, ICS_FILENAME } from "./ics.ts";
 import { skyAdvice } from "./sky-advice.ts";
 import { sampleSlots } from "./schedule-samples.ts";
 import { quickLinks, ALL_QUICK_LINKS } from "../data/quick-links.ts";
-import { soonDays } from "./days.ts";
+import { daysBetween, isCalendarDay, soonDays } from "./days.ts";
 import { wrap, lockLayout, MIN_CARD_H } from "./lock-screen.ts";
 
 test("upgrade copy keys exist in all six languages", () => {
@@ -1017,6 +1020,47 @@ test("soon badge window is today through seven days out", () => {
   assert.equal(soonDays("2026-10-14", "2026-10-21"), 7);
   assert.equal(soonDays("2026-10-14", "2026-10-22"), null);
   assert.equal(soonDays("2026-10-14", "2026-10-13"), null);
+});
+
+test("invalid calendar days never roll into a valid reminder", () => {
+  for (const invalid of [
+    "2026-02-29",
+    "2026-02-31",
+    "2026-13-01",
+    "2026-1-01",
+    "",
+    "2026-10-17T00:00:00Z",
+  ]) {
+    assert.equal(isCalendarDay(invalid), false, invalid);
+    assert.ok(Number.isNaN(daysBetween("2026-02-28", invalid)), invalid);
+    assert.ok(Number.isNaN(daysBetween(invalid, "2026-03-01")), invalid);
+    assert.equal(soonDays("2026-02-28", invalid), null, invalid);
+  }
+  assert.equal(isCalendarDay("2024-02-29"), true);
+  assert.equal(isCalendarDay("2000-02-29"), true);
+  assert.equal(isCalendarDay("1900-02-29"), false);
+  assert.equal(daysBetween("2024-02-28", "2024-03-01"), 2);
+  assert.equal(daysBetween("2026-03-07", "2026-03-09"), 2, "DST cannot change calendar-day math");
+});
+
+test("one level registry feeds UI, cookie, boot and every backup bucket", () => {
+  assert.deepEqual(
+    LEVELS.map((item) => item.id),
+    LEVEL_IDS,
+  );
+  assert.equal(PREFS_LEVELS, LEVEL_IDS);
+  assert.equal(BOOT_LEVELS, LEVEL_IDS);
+  for (const id of LEVEL_IDS) assert.equal(isLevel(id), true);
+  for (const id of ["future", "__proto__", null, []]) assert.equal(isLevel(id), false);
+  assert.deepEqual(Object.keys(serializeDeskBackup(sampleState()).state.buckets), LEVEL_IDS);
+  // Compatibility fence: adding/renaming a persisted level cannot silently retain v0.
+  // A deliberate schema/version migration and its old-save fixtures must accompany it.
+  const versionedLevelContracts = { 0: ["elem", "mid", "high", "uni"] };
+  assert.deepEqual(
+    LEVEL_IDS,
+    versionedLevelContracts[DESK_STORAGE_VERSION],
+    "level changes require an explicit schema migration",
+  );
 });
 
 test(".ics export builds valid all-day and timed events", () => {

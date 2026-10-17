@@ -1,6 +1,9 @@
 import type { PersistStorage, StorageValue } from "zustand/middleware";
 import { merge3 } from "./merge3.ts";
 
+/** Bump only with an explicit migration; the level/schema contract is tested. */
+export const DESK_STORAGE_VERSION = 0;
+
 export type SaveStatus = "ready" | "failed";
 export type DeskStorageEnvironment = {
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -52,12 +55,12 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
         !value.state ||
         typeof value.state !== "object" ||
         Array.isArray(value.state) ||
-        (value.version !== undefined && value.version !== 0) ||
+        (value.version !== undefined && value.version !== DESK_STORAGE_VERSION) ||
         (env.validate && !env.validate(value))
       )
         return null;
       // Versionless legacy desks use the current schema, including during cross-tab merges.
-      return { ...value, version: 0 };
+      return { ...value, version: DESK_STORAGE_VERSION };
     } catch {
       return null;
     }
