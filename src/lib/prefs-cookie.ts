@@ -57,6 +57,18 @@ export function resolveHydratedLevel<L extends string>(
   return { level: fallback, levelSet: false };
 }
 
+/** Language follows the same saved choice → cookie hint → default rule as level. */
+export function resolveHydratedLang<L extends string>(
+  saved: { lang: L; langSet: boolean },
+  hint: PrefsHint,
+  fallback: L,
+): { lang: L | PrefsLang; langSet: boolean } {
+  if (saved.langSet) return { lang: saved.lang, langSet: true };
+  const cookieLang = asLang(hint.lang);
+  if (cookieLang) return { lang: cookieLang, langSet: true };
+  return { lang: fallback, langSet: false };
+}
+
 /** Parse a cookie value; anything unexpected becomes "not chosen". */
 export function parsePrefsValue(value: string | null | undefined): PrefsHint {
   if (!value || value.length > 16) return EMPTY_PREFS;

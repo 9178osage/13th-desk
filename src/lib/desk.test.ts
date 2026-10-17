@@ -45,6 +45,7 @@ import {
   parsePrefsValue,
   prefsCookieString,
   readPrefsCookie,
+  resolveHydratedLang,
   resolveHydratedLevel,
 } from "./prefs-cookie.ts";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -1411,4 +1412,37 @@ test("hydration level: explicit save wins, else a valid cookie level, else the d
   // The adopted level round-trips into the same cookie value, so it is not cleared.
   const kept = resolveHydratedLevel(unsaved, readPrefsCookie("eugene-desk-prefs=-.mid"), "uni");
   assert.equal(formatPrefsValue({ lang: "en", langSet: false, ...kept }), "-.mid");
+});
+
+test("hydration language: saved choice wins, else cookie, else unchosen defaults like level", () => {
+  const unsaved = { lang: "zh", langSet: false, level: "uni", levelSet: false };
+  const resolve = (saved: typeof unsaved, cookie: string) => {
+    const hint = readPrefsCookie(cookie);
+    return {
+      ...resolveHydratedLang(saved, hint, "zh"),
+      ...resolveHydratedLevel(saved, hint, "uni"),
+    };
+  };
+  assert.deepEqual(resolve(unsaved, "eugene-desk-prefs=es.high"), {
+    lang: "es",
+    langSet: true,
+    level: "high",
+    levelSet: true,
+  });
+  assert.deepEqual(resolve({ ...unsaved, langSet: true }, "eugene-desk-prefs=es.high"), {
+    lang: "zh",
+    langSet: true,
+    level: "high",
+    levelSet: true,
+  });
+  assert.deepEqual(resolve(unsaved, ""), unsaved);
+  for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+    const result = resolve(unsaved, `eugene-desk-prefs=${lang}.high`);
+    assert.equal(result.lang, lang);
+    assert.equal(formatPrefsValue(result), `${lang}.high`);
+  }
+  assert.deepEqual(resolveHydratedLang(unsaved, { lang: "xx" as never, level: null }, "zh"), {
+    lang: "zh",
+    langSet: false,
+  });
 });

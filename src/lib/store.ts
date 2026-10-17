@@ -22,6 +22,7 @@ import {
   EMPTY_PREFS,
   formatPrefsValue,
   prefsCookieString,
+  resolveHydratedLang,
   resolveHydratedLevel,
   readPrefsCookie,
   type PrefsHint,
@@ -676,28 +677,27 @@ export function ensureDeskHydrated(): Promise<void> {
   if (useDesk.getState().hydrated) return Promise.resolve();
   if (!hydratePromise) {
     hydratePromise = (async () => {
+      // Both preferences use this same snapshot, before hydration can rewrite it.
+      const hint = typeof document === "undefined" ? EMPTY_PREFS : readPrefsCookie(document.cookie);
       try {
-        // Load the saved language's pack first so the desk never flashes English.
-        const saved = typeof window === "undefined" ? null : storedLang();
-        if (saved) await loadLangPack(saved).catch(() => {});
+        // Saved choices win; without one, preload the cookie language before
+        // adopting it. An inline SSR pack makes this a no-op when already ready.
+        const lang = (typeof window === "undefined" ? null : storedLang()) ?? hint.lang;
+        if (lang) await loadLangPack(lang).catch(() => {});
         if (!useDesk.persist.hasHydrated()) {
           await useDesk.persist.rehydrate();
         }
       } catch {
         /* broken storage should not blank the desk */
       }
-      // localStorage is the source of truth; an unsaved language falls back to
-      // the default, but an unsaved level adopts a valid cookie level (the same
-      // one the server rendered) instead of jumping to the default.
+      // Explicit saved choices win. Otherwise adopt the same valid cookie
+      // language and level the server rendered; only absent hints use defaults.
       const loaded = useDesk.getState();
-      const level = resolveHydratedLevel(
-        loaded,
-        typeof document === "undefined" ? EMPTY_PREFS : readPrefsCookie(document.cookie),
-        DEFAULT_LEVEL,
-      );
+      const lang = resolveHydratedLang(loaded, hint, DEFAULT_LANG);
+      const level = resolveHydratedLevel(loaded, hint, DEFAULT_LEVEL);
       useDesk.setState({
         hydrated: true,
-        ...(loaded.langSet ? {} : { lang: DEFAULT_LANG }),
+        ...(loaded.langSet ? {} : (lang as Pick<DeskState, "lang" | "langSet">)),
         ...(loaded.levelSet ? {} : (level as Pick<DeskState, "level" | "levelSet">)),
       });
     })();
