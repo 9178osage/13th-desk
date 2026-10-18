@@ -45,14 +45,30 @@ function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+/** How long a fetched forecast is reused when the card mounts again (route changes). */
+const WEATHER_CACHE_MS = 15 * 60 * 1000;
+
+// Browser-only in practice: effects never run on the server, so SSR always renders the
+// "checking" line and a full page load starts empty, keeping hydration identical.
+let lastForecast: { data: Forecast; fetchedAt: number } | null = null;
+
+function cachedForecast(now = Date.now()): Forecast | null {
+  if (!lastForecast) return null;
+  const age = now - lastForecast.fetchedAt;
+  return age >= 0 && age < WEATHER_CACHE_MS ? lastForecast.data : null;
+}
+
 export function WeatherCard() {
   const lang = useLang();
   const level = useDesk((s) => s.level);
-  const [data, setData] = useState<Forecast | null>(null);
+  const [data, setData] = useState<Forecast | null>(() => cachedForecast());
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    // Back on a page within the cache window: keep the forecast, skip the request.
+    // "Try again" (attempt > 0) always goes to the network.
+    if (attempt === 0 && cachedForecast()) return;
     setFailed(false);
     const ctrl = new AbortController();
     let gone = false;
@@ -67,6 +83,7 @@ export function WeatherCard() {
       .then((json) => {
         const forecast = asForecast(json);
         if (!forecast) throw new Error("shape");
+        lastForecast = { data: forecast, fetchedAt: Date.now() };
         if (!gone) setData(forecast);
       })
       .catch(() => {
