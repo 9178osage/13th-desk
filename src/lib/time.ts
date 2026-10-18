@@ -47,22 +47,12 @@ export function eugeneClock(now = new Date()): EugeneClock {
 import { daysBetween, isCalendarDay } from "./days.ts";
 export { daysBetween, soonDays } from "./days.ts";
 
-const WEEKDAY_INDEX: Record<string, number> = {
-  Sun: 0,
-  Mon: 1,
-  Tue: 2,
-  Wed: 3,
-  Thu: 4,
-  Fri: 5,
-  Sat: 6,
-};
-
 function localeDate(lang: Lang, options: Intl.DateTimeFormatOptions, date: Date): string {
   const fmt = new Intl.DateTimeFormat(LOCALE[lang], options);
   if (lang !== "vi" || options.weekday !== "short") return fmt.format(date);
   // Same server/browser ICU mismatch as dayName(): pin the Vietnamese weekday.
   const en = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: options.timeZone });
-  const weekday = VI_SHORT_WEEKDAYS[WEEKDAY_INDEX[en.format(date)] ?? 0];
+  const weekday = VI_SHORT_WEEKDAYS[WEEKDAY[en.format(date)] ?? 0];
   return fmt
     .formatToParts(date)
     .map((part) => (part.type === "weekday" ? weekday : part.value))

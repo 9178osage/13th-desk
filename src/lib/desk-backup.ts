@@ -1,38 +1,11 @@
-const DISTRICT_IDS = [
-  "4j",
-  "bethel",
-  "springfield",
-  "creswell",
-  "crow",
-  "fern",
-  "harrisburg",
-  "junction",
-  "lowell",
-  "marcola",
-  "monroe",
-  "pleasant",
-  "southlane",
-  "sweethome",
-] as const;
-type DistrictId = (typeof DISTRICT_IDS)[number];
-function isDistrict(value: unknown): value is DistrictId {
-  return typeof value === "string" && (DISTRICT_IDS as readonly string[]).includes(value);
-}
 import { asStoredCredits, isLetter } from "./gpa.ts";
 import type { Bucket } from "./desk-records.ts";
 import { asHm, parseBucket as parseBucketShared } from "./desk-records.ts";
 import { LEVEL_IDS as LEVELS, isLevel, type Level } from "./levels.ts";
-export type Lang = "en" | "zh" | "es" | "ko" | "vi" | "ja";
-function isLang(value: unknown): value is Lang {
-  return (
-    value === "en" ||
-    value === "zh" ||
-    value === "es" ||
-    value === "ko" ||
-    value === "vi" ||
-    value === "ja"
-  );
-}
+import { isDistrict, type DistrictId } from "../data/districts.ts";
+import { isLang, type Lang } from "./text.ts";
+
+export type { Lang };
 
 export const DESK_STORAGE_KEY = "13th-desk-v1" as const;
 export const DESK_PRE_IMPORT_KEY = "13th-desk-v1:pre-import" as const;
