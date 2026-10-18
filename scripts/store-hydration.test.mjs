@@ -28,6 +28,15 @@ test("real hydration resolves cookie language and level together, with the pack 
   await bundle.close();
   const code = output.output.find((item) => item.type === "chunk").code;
   const key = "13th-desk-v1";
+  const scheduleSave = (start, end) => ({
+    buckets: {
+      uni: {
+        schedule: [
+          { id: "legacy", day: "mon", start, end, title: "Writing", place: "", pinned: false },
+        ],
+      },
+    },
+  });
   const cases = [
     {
       name: "empty storage adopts es.high",
@@ -61,11 +70,28 @@ test("real hydration resolves cookie language and level together, with the pack 
       level: "uni",
       chosen: false,
     },
+    {
+      name: "legacy single-digit hour hydrates without a save lock",
+      cookie: "",
+      saved: scheduleSave("9:00", "10:00"),
+      lang: "zh",
+      level: "uni",
+      chosen: false,
+      scheduleStart: "09:00",
+    },
     ...[
       { name: "future-version desk is held", saved: { buckets: {} }, version: 1 },
       { name: "array buckets are held", saved: { buckets: [] } },
       { name: "null stage is held", saved: { buckets: { uni: null } } },
       { name: "unknown stage is held", saved: { buckets: { future: { notes: ["keep"] } } } },
+      ...[
+        ["25:00", "26:00"],
+        ["09:99", "10:00"],
+        ["09:00", "99:99"],
+      ].map(([start, end]) => ({
+        name: `invalid clock ${start}/${end} is held without overwriting bytes`,
+        saved: scheduleSave(start, end),
+      })),
     ].map((scenario) => ({
       ...scenario,
       cookie: "",
@@ -186,6 +212,11 @@ test("real hydration resolves cookie language and level together, with the pack 
           assert.equal(persisted.lang, scenario.lang);
           assert.equal(persisted.level, scenario.level);
           assert.equal(useStorageStatus.getState().failed, false);
+          if (scenario.scheduleStart) {
+            assert.equal(state.buckets.uni.schedule.length, 1, "legacy class is not dropped");
+            assert.equal(state.buckets.uni.schedule[0].start, scenario.scheduleStart);
+            assert.equal(persisted.buckets.uni.schedule[0].start, scenario.scheduleStart);
+          }
           const exported = serializeDeskBackup(getPersistedDeskState());
           assert.deepEqual(Object.keys(exported.state.buckets), LEVEL_IDS);
           const imported = parseDeskBackup(JSON.stringify(exported));

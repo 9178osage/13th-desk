@@ -20,9 +20,8 @@ function isDistrict(value: unknown): value is DistrictId {
 }
 import { asStoredCredits, isLetter } from "./gpa.ts";
 import type { Bucket } from "./desk-records.ts";
-import { parseBucket as parseBucketShared } from "./desk-records.ts";
+import { asHm, parseBucket as parseBucketShared } from "./desk-records.ts";
 import { LEVEL_IDS as LEVELS, isLevel, type Level } from "./levels.ts";
-import { validScheduleTime } from "./schedule.ts";
 export type Lang = "en" | "zh" | "es" | "ko" | "vi" | "ja";
 function isLang(value: unknown): value is Lang {
   return (
@@ -80,11 +79,6 @@ export type BackupParseError = "json" | "shape" | "version" | "stages" | "times"
 export type BackupParseResult =
   | { ok: true; backup: DeskBackupFile; summary: BackupSummary }
   | { ok: false; error: BackupParseError };
-
-/** Used only to name the failing part of a rejected file; reading itself is shared. */
-function asHmStrict(value: unknown): string | null {
-  return typeof value === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : null;
-}
 
 /**
  * One bucket from a backup file. Import accepts exactly what the save loader accepts, so a
@@ -202,27 +196,25 @@ export function parseDeskBackup(raw: string): BackupParseResult {
   if (!state) {
     if (!file.state || typeof file.state !== "object") return { ok: false, error: "shape" };
     const buckets = (file.state as Record<string, unknown>).buckets;
-    if (!buckets || typeof buckets !== "object") return { ok: false, error: "stages" };
+    if (!buckets || typeof buckets !== "object" || Array.isArray(buckets))
+      return { ok: false, error: "stages" };
     if (Object.keys(buckets).some((key) => !isLevel(key))) return { ok: false, error: "stages" };
     for (const id of LEVELS) {
       if (!(id in (buckets as object))) return { ok: false, error: "stages" };
     }
     for (const id of LEVELS) {
       const bucket = (buckets as Record<string, unknown>)[id];
-      if (!bucket || typeof bucket !== "object") return { ok: false, error: "stages" };
+      if (!bucket || typeof bucket !== "object" || Array.isArray(bucket))
+        return { ok: false, error: "stages" };
       const schedule = (bucket as Record<string, unknown>).schedule;
       if (Array.isArray(schedule)) {
         for (const row of schedule) {
           if (!row || typeof row !== "object") return { ok: false, error: "times" };
           const start = (row as Record<string, unknown>).start;
           const end = (row as Record<string, unknown>).end;
-          if (typeof start === "string" && typeof end === "string") {
-            if (!asHmStrict(start) || !asHmStrict(end) || !validScheduleTime(start, end)) {
-              return { ok: false, error: "times" };
-            }
-          } else {
-            return { ok: false, error: "times" };
-          }
+          // Match the shared reader: real clocks are required, but reversed/equal
+          // saved ranges remain importable and are flagged for editing in the UI.
+          if (!asHm(start) || !asHm(end)) return { ok: false, error: "times" };
         }
       }
       const grades = (bucket as Record<string, unknown>).grades;

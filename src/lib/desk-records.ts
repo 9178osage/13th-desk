@@ -9,9 +9,9 @@
  * import its own backup, which is the one thing a backup must never do. Both sides now
  * read records through the functions here.
  *
- * Reading is deliberately permissive about *contents* and strict only about *shape*: a
- * legacy or hand-corrected record survives the round trip, and anything needing judgement
- * (an inverted time range, a blank id) is surfaced in the UI instead of being dropped.
+ * Reading preserves usable legacy contents: single-digit hours are padded, while invalid
+ * clock values make the read lossy so callers protect the original. Anything needing
+ * judgement (an inverted time range, a blank id) is surfaced in the UI rather than dropped.
  */
 import { asStoredCredits, cleanDecimal, isLetter, type Letter } from "./gpa.ts";
 
@@ -55,9 +55,12 @@ export function asText(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-/** A stored `HH:MM`. Values outside a real day are the UI's business, not the reader's. */
+/** A real clock time; legacy single-digit hours are normalized without losing a row. */
 export function asHm(value: unknown): string | null {
-  return typeof value === "string" && /^\d{2}:\d{2}$/.test(value.trim()) ? value.trim() : null;
+  if (typeof value !== "string") return null;
+  const match = /^(\d{1,2}):([0-5]\d)$/.exec(value.trim());
+  if (!match || Number(match[1]) > 23) return null;
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
 }
 
 export function isWeekDay(value: unknown): value is WeekDay {
@@ -106,23 +109,6 @@ export function asSchedule(value: unknown): ScheduleBlock | null {
     place: asText(raw.place, 60),
     pinned: raw.pinned === true,
   };
-}
-
-export function asRecordList<T>(value: unknown, parse: (item: unknown) => T | null): T[] | null {
-  if (!Array.isArray(value)) return null;
-  const out: T[] = [];
-  for (const item of value) {
-    const parsed = parse(item);
-    if (parsed === null) return null;
-    out.push(parsed);
-  }
-  return out;
-}
-
-export function asStringList(value: unknown): string[] | null {
-  return Array.isArray(value) && value.every((item) => typeof item === "string")
-    ? (value as string[])
-    : null;
 }
 
 /**

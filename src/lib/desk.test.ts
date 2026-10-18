@@ -30,7 +30,7 @@ import {
   clearPreImportSnapshot,
   type PersistedDeskLike,
 } from "./desk-backup.ts";
-import { parseBucket } from "./desk-records.ts";
+import { asHm, parseBucket } from "./desk-records.ts";
 import { asForecast } from "./forecast.ts";
 import {
   k12CalendarSourceMeta,
@@ -378,6 +378,79 @@ test("malformed bucket containers are rejected rather than imported as empty sta
     assert.equal(parseDeskBackup(JSON.stringify(file)).ok, false);
   }
   assert.equal(parseBucket({}).lossy, false, "legacy objects may omit newer fields");
+});
+
+test("stored clocks validate real hours and minutes while normalizing legacy hours", () => {
+  for (const value of ["25:00", "24:00", "99:99", "09:99", "12:60", "-1:00", "9:0", null, 900]) {
+    assert.equal(asHm(value), null, String(value));
+  }
+  for (const [value, normalized] of [
+    ["9:00", "09:00"],
+    ["0:00", "00:00"],
+    ["23:59", "23:59"],
+    [" 9:05 ", "09:05"],
+  ]) {
+    assert.equal(asHm(value), normalized);
+  }
+});
+
+test("legacy single-digit clocks survive loading and backup round trips", () => {
+  const state = sampleState();
+  state.buckets.uni.schedule[0].start = "9:00";
+  const loaded = parseBucket(state.buckets.uni);
+  assert.equal(loaded.lossy, false, "padding a legacy hour does not discard a class");
+  assert.equal(loaded.bucket.schedule[0].start, "09:00");
+  const parsed = parseDeskBackup(JSON.stringify(serializeDeskBackup(state)));
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) return;
+  assert.deepEqual(parsed.backup.state.buckets.uni, loaded.bucket);
+  assert.deepEqual(
+    parseDeskBackup(
+      JSON.stringify(serializeDeskBackup(parsed.backup.state, parsed.backup.exportedAt)),
+    ),
+    parsed,
+    "normalized exports still import unchanged",
+  );
+});
+
+test("backup rejects out-of-range clocks as times without altering the original desk", () => {
+  const original = sampleState();
+  const before = structuredClone(original);
+  for (const [start, end] of [
+    ["25:00", "26:00"],
+    ["09:99", "10:00"],
+    ["09:00", "99:99"],
+  ]) {
+    const state = structuredClone(original);
+    Object.assign(state.buckets.uni.schedule[0], { start, end });
+    assert.equal(parseBucket(state.buckets.uni).lossy, true);
+    assert.deepEqual(parseDeskBackup(JSON.stringify(serializeDeskBackup(state))), {
+      ok: false,
+      error: "times",
+    });
+    assert.deepEqual(original, before);
+  }
+});
+
+test("accepted reversed or equal schedule ranges do not mask a grade error", () => {
+  for (const end of ["09:00", "10:00"]) {
+    const state = sampleState();
+    Object.assign(state.buckets.uni.schedule[0], { start: "10:00", end });
+    assert.equal(parseDeskBackup(JSON.stringify(serializeDeskBackup(state))).ok, true);
+    Object.assign(state.buckets.uni.grades[0], { grade: "Z" });
+    assert.deepEqual(parseDeskBackup(JSON.stringify(serializeDeskBackup(state))), {
+      ok: false,
+      error: "grades",
+    });
+  }
+});
+
+test("array stage containers report stages rather than the generic shape error", () => {
+  for (const buckets of [[], { ...sampleState().buckets, uni: [] }]) {
+    const file = serializeDeskBackup(sampleState());
+    Object.assign(file.state, { buckets });
+    assert.deepEqual(parseDeskBackup(JSON.stringify(file)), { ok: false, error: "stages" });
+  }
 });
 
 test("weather rejects impossible upstream dates before Intl can crash the home page", () => {
