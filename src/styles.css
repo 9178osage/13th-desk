@@ -1480,8 +1480,15 @@
   .desk-footer,
   .task-compose,
   .class-actions,
-  .form-actions {
-    display: none;
+  .form-actions,
+  .district-toolbar,
+  .quick-links,
+  .ics-export,
+  .panel-actions,
+  .welcome-note,
+  .tab-notice {
+    /* Several of these are styled further down the file with their own display. */
+    display: none !important;
   }
   .desk-workspace {
     margin: 0;
