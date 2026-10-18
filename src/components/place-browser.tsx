@@ -48,6 +48,7 @@ export function PlaceBrowser({
   const level = useDesk((state) => state.level);
   const favs = useDesk((state) => state.buckets[state.level].favs);
   const toggleFav = useDesk((state) => state.toggleFav);
+  const hydrated = useDesk((state) => state.hydrated);
   const cat = category && cats.some((item) => item.id === category) ? category : "all";
 
   const list = useMemo(() => {
@@ -173,6 +174,7 @@ export function PlaceBrowser({
                           <button
                             type="button"
                             aria-pressed={saved}
+                            disabled={!hydrated}
                             aria-label={
                               (saved
                                 ? tr(lang, { en: "Unpin", zh: "取消收藏" })

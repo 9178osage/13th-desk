@@ -14,10 +14,11 @@ import { K12Guide } from "@/components/k12-guide";
 import { cn } from "@/lib/cn";
 import { useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
-import { eugeneClock, formatWhen, hmToMin, soonDays } from "@/lib/time";
+import { eugeneClock, formatWhen, soonDays } from "@/lib/time";
 import { IcsButton } from "@/components/ics-button";
-import { liveDeadlines, uoAcademicTerm, uoTermIsExpired } from "@/lib/calendar";
+import { deadlinePassed, liveDeadlines, uoAcademicTerm, uoTermIsExpired } from "@/lib/calendar";
 import { deskText as c } from "@/lib/desk-copy";
+import { applicableChecks } from "@/lib/starter-tasks";
 
 export const Route = createFileRoute("/guide")({
   head: () => ({
@@ -33,13 +34,6 @@ export const Route = createFileRoute("/guide")({
   component: GuidePage,
 });
 
-function isPast(item: { ymd: string; time?: string }, clock: ReturnType<typeof eugeneClock>) {
-  if (item.ymd > clock.ymd) return false;
-  if (item.ymd < clock.ymd) return true;
-  if (!item.time) return false;
-  return clock.minutes >= hmToMin(item.time);
-}
-
 function GuidePage() {
   const level = useDesk((state) => state.level);
   if (level !== "uni") return <K12Guide level={level} />;
@@ -50,9 +44,12 @@ function UniGuide() {
   const lang = useLang();
   const now = useClock();
   const clock = now ? eugeneClock(now) : null;
+  const hydrated = useDesk((state) => state.hydrated);
   const checks = useDesk((state) => state.buckets[state.level].checks);
   const toggleCheck = useDesk((state) => state.toggleCheck);
-  const done = checklist.filter((item) => checks.includes(item.id)).length;
+  // Same rule as K12Guide and the homepage starters: drop items past their `until` date.
+  const list = applicableChecks(checklist, null, clock?.ymd ?? null);
+  const done = list.filter((item) => checks.includes(item.id)).length;
 
   return (
     <div className="flex flex-col gap-12">
@@ -138,7 +135,7 @@ function UniGuide() {
         ) : (
           <ol className="mt-4 divide-y divide-line border-y border-line">
             {deadlines.map((item) => {
-              const past = clock ? isPast(item, clock) : false;
+              const past = clock ? deadlinePassed(item, clock) : false;
               return (
                 <li key={item.id} className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
                   <p className={cn("font-display text-lg", past ? "text-muted" : "text-ink")}>
@@ -180,17 +177,18 @@ function UniGuide() {
             {tr(lang, { en: "First ten days", zh: "开学头十天" })}
           </h2>
           <p className="text-sm tabular-nums text-muted">
-            {done} / {checklist.length}
+            {done} / {list.length}
           </p>
         </div>
         <ul className="mt-4 flex flex-col gap-2">
-          {checklist.map((item) => {
+          {list.map((item) => {
             const on = checks.includes(item.id);
             return (
               <li key={item.id}>
                 <button
                   type="button"
                   aria-pressed={on}
+                  disabled={!hydrated}
                   onClick={() => toggleCheck(item.id)}
                   className="flex w-full items-start gap-3 rounded-lg border border-line bg-card px-4 py-3 text-left"
                 >

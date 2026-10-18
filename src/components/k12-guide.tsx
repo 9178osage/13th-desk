@@ -3,6 +3,7 @@ import { Check, ExternalLink } from "lucide-react";
 import { k12Checks, k12Links, releaseLine } from "@/data/k12";
 import { cn } from "@/lib/cn";
 import {
+  deadlinePassed,
   k12CalendarSource,
   k12DeadlinesForDistrict,
   k12DatesExpired,
@@ -12,22 +13,16 @@ import { deskText as c } from "@/lib/desk-copy";
 import { LEVELS, type Level } from "@/lib/levels";
 import { useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
-import { eugeneClock, formatWhen, hmToMin, soonDays } from "@/lib/time";
+import { eugeneClock, formatWhen, soonDays } from "@/lib/time";
 import { IcsButton } from "@/components/ics-button";
 import { applicableChecks } from "@/lib/starter-tasks";
-
-function isPast(item: { ymd: string; time?: string }, clock: ReturnType<typeof eugeneClock>) {
-  if (item.ymd > clock.ymd) return false;
-  if (item.ymd < clock.ymd) return true;
-  if (!item.time) return false;
-  return clock.minutes >= hmToMin(item.time);
-}
 
 export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
   const lang = useLang();
   const now = useClock();
   const clock = now ? eugeneClock(now) : null;
   const district = useDesk((state) => state.district);
+  const hydrated = useDesk((state) => state.hydrated);
   const checks = useDesk((state) => state.buckets[state.level].checks);
   const toggleCheck = useDesk((state) => state.toggleCheck);
   const list = applicableChecks(k12Checks[level], district, clock?.ymd ?? null);
@@ -124,7 +119,7 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
         ) : (
           <ol className="mt-4 divide-y divide-line border-y border-line">
             {dates.map((item) => {
-              const past = clock ? isPast(item, clock) : false;
+              const past = clock ? deadlinePassed(item, clock) : false;
               return (
                 <li key={item.id} className="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
                   <p className={cn("font-display text-lg", past ? "text-muted" : "text-ink")}>
@@ -168,6 +163,7 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
                 <button
                   type="button"
                   aria-pressed={on}
+                  disabled={!hydrated}
                   onClick={() => toggleCheck(item.id)}
                   className="flex w-full items-start gap-3 rounded-lg border border-line bg-card px-4 py-3 text-left"
                 >
