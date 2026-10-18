@@ -1651,3 +1651,134 @@ test("hydration language: saved choice wins, else cookie, else unchosen defaults
     langSet: false,
   });
 });
+
+import { editedGrade, insertAt, type GradeRow } from "./desk-records.ts";
+test("GPA undo: a deleted class goes back where it was, within the same restore limits", () => {
+  const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `g${i}` }));
+  assert.equal(canRestore(rows(LIMITS.grades), "gone", "grades"), true);
+  assert.equal(canRestore(rows(LIMITS.grades + 1), "gone", "grades"), false);
+  assert.equal(canRestore(rows(3), "g1", "grades"), false);
+  assert.deepEqual(insertAt(["a", "c"], "b", 1), ["a", "b", "c"]);
+  assert.deepEqual(insertAt(["a"], "b", 0), ["b", "a"]);
+  assert.deepEqual(insertAt(["a"], "b", 9), ["a", "b"], "an index past the end appends");
+  assert.deepEqual(insertAt(["a"], "b", -1), ["b", "a"]);
+  assert.deepEqual(insertAt(["a"], "b", Number.NaN), ["a", "b"]);
+  const store = readFileSync(join(import.meta.dirname, "store.ts"), "utf8");
+  assert.match(store, /canRestore\(bucket\.grades, row\.id, "grades"\)/);
+  assert.match(store, /insertAt\(bucket\.grades, row, index\)/);
+  assert.match(store, /bucket\.grades\.length >= DESK_LIMITS\.grades/, "adding keeps >=");
+  const page = readFileSync(join(import.meta.dirname, "../routes/gpa.tsx"), "utf8");
+  assert.match(page, /restoreGrade\(deleted\.row, deleted\.level, deleted\.index\)/);
+  assert.match(page, /setMessage\("undoFailed"\)/);
+});
+
+test("GPA inline edit keeps id and title and uses the add rules for grade and credits", () => {
+  const row: GradeRow = { id: "x", title: "Bio", credits: 4, grade: "B", boost: false };
+  assert.deepEqual(editedGrade(row, { grade: "A-", credits: 3, boost: false }, "uni"), {
+    id: "x",
+    title: "Bio",
+    credits: 3,
+    grade: "A-",
+    boost: false,
+  });
+  assert.equal(editedGrade(row, { grade: "Q", credits: 3, boost: false }, "uni"), null);
+  assert.equal(editedGrade(row, { grade: "A", credits: 1.25, boost: false }, "uni"), null);
+  assert.equal(editedGrade(row, { grade: "A", credits: 0, boost: false }, "uni"), null);
+  assert.equal(editedGrade(row, { grade: "A", credits: 1, boost: true }, "uni")?.boost, false);
+  assert.equal(editedGrade(row, { grade: "A", credits: 1, boost: true }, "high")?.boost, true);
+  // An edited row is still a valid stored row (13th-desk-v1 shape unchanged).
+  const edited = editedGrade(row, { grade: "C+", credits: 0.5, boost: true }, "high");
+  assert.deepEqual(parseBucket({ grades: [edited] }).lossy, false);
+});
+
+test("writes wait for hydration on every page that saves (GPA, guide checklists, pins)", () => {
+  const read = (path: string) => readFileSync(join(import.meta.dirname, path), "utf8");
+  const gpa = read("../routes/gpa.tsx");
+  // Add, clear, edit, remove, and the three prior-transcript inputs.
+  assert.ok((gpa.match(/disabled=\{!hydrated\}/g) ?? []).length >= 7);
+  for (const path of ["../routes/guide.tsx", "../components/k12-guide.tsx"]) {
+    assert.match(
+      read(path),
+      /disabled=\{!hydrated\}\s+onClick=\{\(\) => toggleCheck\(item\.id\)\}/,
+    );
+  }
+  assert.match(
+    read("../components/place-browser.tsx"),
+    /aria-pressed=\{saved\}\s+disabled=\{!hydrated\}/,
+  );
+});
+
+test("guides share one past-deadline rule and filter expired checklist items alike", () => {
+  const read = (path: string) => readFileSync(join(import.meta.dirname, path), "utf8");
+  for (const path of ["../routes/guide.tsx", "../components/k12-guide.tsx"]) {
+    const src = read(path);
+    assert.doesNotMatch(src, /function isPast/);
+    assert.match(src, /deadlinePassed\(item, clock\)/);
+  }
+  assert.match(
+    read("../routes/guide.tsx"),
+    /applicableChecks\(checklist, null, clock\?\.ymd \?\? null\)/,
+  );
+  const live = applicableChecks(checklist, null, "2026-10-06");
+  assert.ok(live.length < checklist.length);
+  assert.ok(live.every((item) => !item.until || item.until >= "2026-10-06"));
+  assert.equal(applicableChecks(checklist, null, null).length, checklist.length);
+  assert.doesNotMatch(read("time.ts"), /WEEKDAY_INDEX/);
+});
+
+import { DISTRICTS, isDistrict as isDistrictId } from "../data/districts.ts";
+import { checklist } from "../data/guide.ts";
+test("district and language ids have one source; backup validation reads it", () => {
+  // The 14 ids the backup importer used to keep as its own copy.
+  assert.deepEqual(
+    DISTRICTS.map((item) => item.id),
+    [
+      "4j",
+      "bethel",
+      "springfield",
+      "creswell",
+      "crow",
+      "fern",
+      "harrisburg",
+      "junction",
+      "lowell",
+      "marcola",
+      "monroe",
+      "pleasant",
+      "southlane",
+      "sweethome",
+    ],
+  );
+  assert.equal(isDistrictId("4j"), true);
+  assert.equal(isDistrictId("nope"), false);
+  assert.equal(isDistrictId(4), false);
+  const backup = readFileSync(join(import.meta.dirname, "desk-backup.ts"), "utf8");
+  assert.doesNotMatch(backup, /const DISTRICT_IDS|function isDistrict|function isLang/);
+  assert.match(backup, /import \{ isDistrict, type DistrictId \} from "\.\.\/data\/districts\.ts"/);
+  assert.match(backup, /import \{ isLang, type Lang \} from "\.\/text\.ts"/);
+});
+
+test("print hides the toolbars, links and actions that make no sense on paper", () => {
+  const css = readFileSync(join(import.meta.dirname, "../styles.css"), "utf8");
+  const block = /@media print \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? "";
+  for (const name of [
+    "district-toolbar",
+    "quick-links",
+    "ics-export",
+    "panel-actions",
+    "welcome-note",
+    "tab-notice",
+  ]) {
+    assert.match(block, new RegExp(`\\.${name}[,\\s]`), name);
+  }
+  assert.match(block, /display: none !important/);
+});
+
+test("weather card reuses a fresh forecast on remount instead of refetching", () => {
+  const src = readFileSync(join(import.meta.dirname, "../components/weather.tsx"), "utf8");
+  assert.match(src, /const WEATHER_CACHE_MS = 15 \* 60 \* 1000/);
+  assert.match(src, /useState<Forecast \| null>\(\(\) => cachedForecast\(\)\)/);
+  assert.match(src, /if \(attempt === 0 && cachedForecast\(\)\) return;/);
+  // Only validated forecasts are cached.
+  assert.match(src, /if \(!forecast\) throw new Error\("shape"\);\s+lastForecast = /);
+});
