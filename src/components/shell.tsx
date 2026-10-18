@@ -54,7 +54,12 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [otherTabs]);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const path = homeAliasPath(pathname.replace(/\/$/, "") || "/");
-  const current = NAV.find((item) => item.to === path) ?? NAV[0];
+  const current = NAV.find((item) => item.to === path);
+  // Unknown addresses render <NotFoundPage>; the crumb and tab title should say so
+  // instead of falling back to "Today" while the page says it is missing.
+  const notFound = useRouterState({
+    select: (s) => s.matches.some((match) => match.status === "notFound"),
+  });
   const label = (key: DeskCopyKey) =>
     c(lang, key === "campus" && level !== "uni" ? "schools" : key);
 
@@ -84,7 +89,13 @@ export function Shell({ children }: { children: ReactNode }) {
 
   // Route heads ship English titles for crawlers; the open tab follows the
   // chosen language and school level (e.g. "学校 · Eugene Desk").
-  const pageTitle = path === "/" ? "Eugene Desk · Eugene" : `${label(current.key)} · Eugene Desk`;
+  const pageTitle = notFound
+    ? "404 · Eugene Desk"
+    : path === "/"
+      ? "Eugene Desk · Eugene"
+      : current
+        ? `${label(current.key)} · Eugene Desk`
+        : "Eugene Desk";
   useEffect(() => {
     const apply = () => {
       if (document.title !== pageTitle) document.title = pageTitle;
@@ -141,7 +152,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <header className="desk-topbar">
           <div className="mobile-brand">{brand}</div>
           <span className="desktop-crumb">
-            Eugene Desk <span>/</span> <strong>{label(current.key)}</strong>
+            Eugene Desk <span>/</span>{" "}
+            <strong>{notFound ? "404" : current ? label(current.key) : "Eugene Desk"}</strong>
           </span>
           <button
             type="button"

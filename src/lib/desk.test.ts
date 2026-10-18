@@ -187,6 +187,29 @@ test("new controls and weekday names exist in all six languages", () => {
     assert.ok(deskText(lang, "importPreview", { notes: 1, classes: 2, grades: 3 }).length > 0);
   }
 });
+test("missing routes render a branded, translated 404 instead of bare Not Found", () => {
+  for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+    for (const key of ["notFoundTitle", "notFoundBody", "notFoundHome"] as const) {
+      assert.ok(deskText(lang, key).trim(), `${key} is empty in ${lang}`);
+    }
+    if (lang !== "en") {
+      assert.notEqual(
+        deskText(lang, "notFoundTitle"),
+        deskText("en", "notFoundTitle"),
+        `${lang} still falls back to English`,
+      );
+    }
+  }
+  const router = readFileSync(join(import.meta.dirname, "..", "router.tsx"), "utf8");
+  assert.match(router, /defaultNotFoundComponent:\s*NotFoundPage/);
+  const page = readFileSync(join(import.meta.dirname, "..", "components", "not-found.tsx"), "utf8");
+  assert.match(page, /Link to="\/"/);
+  assert.match(page, /aria-labelledby="not-found-heading"/);
+  // The shell must not keep saying "Today" in the crumb/tab title on a 404.
+  const shell = readFileSync(join(import.meta.dirname, "..", "components", "shell.tsx"), "utf8");
+  assert.match(shell, /status === "notFound"/);
+  assert.match(shell, /"404 · Eugene Desk"/);
+});
 test("overlap detection lists conflicting classes and ignores adjacent times", () => {
   const hits = overlappingClasses(schedule, {
     day: "mon",

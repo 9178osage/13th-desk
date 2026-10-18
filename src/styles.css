@@ -320,6 +320,54 @@
 .shell-main h1 {
   letter-spacing: -0.035em;
 }
+.not-found-page {
+  display: grid;
+  justify-items: start;
+  gap: 0.9rem;
+  max-width: 40rem;
+  margin: 2.5rem auto 0;
+  padding: clamp(1.75rem, 5vw, 3rem);
+  background: var(--color-card);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-paper);
+}
+.not-found-code {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 14vw, 7rem);
+  line-height: 0.85;
+  letter-spacing: -0.06em;
+  color: var(--color-moss-soft);
+}
+.not-found-page h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 5vw, 2.8rem);
+  line-height: 1.15;
+}
+.not-found-page p {
+  margin: 0;
+  max-width: 32rem;
+  color: var(--color-muted);
+}
+.not-found-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin-top: 0.35rem;
+  padding: 0 1rem;
+  border-radius: var(--radius-md);
+  background: var(--color-moss);
+  color: var(--color-card);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.not-found-home:hover {
+  background: var(--color-moss-deep);
+}
 .desk-footer {
   display: flex;
   justify-content: space-between;

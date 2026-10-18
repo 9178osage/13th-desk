@@ -828,6 +828,30 @@ const copy = {
     "Không tạo được ảnh trên trình duyệt này.",
     "このブラウザでは画像を作成できませんでした。",
   ],
+  notFoundTitle: [
+    "This page isn't on the desk.",
+    "这个页面不在书桌上。",
+    "Esta página no está en el escritorio.",
+    "이 페이지는 책상 위에 없어요.",
+    "Trang này không có trên bàn học.",
+    "このページはデスクの上にありません。",
+  ],
+  notFoundBody: [
+    "The address may be mistyped, or the page has moved. Your saved desk is still in this browser.",
+    "可能是地址写错了，或页面已经移动。你保存的书桌仍在这个浏览器里。",
+    "Puede que la dirección esté mal escrita o que la página se haya movido. Tu escritorio guardado sigue en este navegador.",
+    "주소가 잘못되었거나 페이지가 옮겨졌을 수 있어요. 저장한 책상은 이 브라우저에 그대로 있어요.",
+    "Có thể địa chỉ bị gõ sai hoặc trang đã chuyển. Bàn học đã lưu vẫn còn trong trình duyệt này.",
+    "アドレスが違うか、ページが移動したかもしれません。保存したデスクはこのブラウザに残っています。",
+  ],
+  notFoundHome: [
+    "Back to today",
+    "回到今日",
+    "Volver a hoy",
+    "오늘로 돌아가기",
+    "Về hôm nay",
+    "今日に戻る",
+  ],
   weekTitle: ["This week", "本周课表", "Esta semana", "이번 주", "Tuần này", "今週"],
 } as const satisfies Record<string, readonly [string, string, string, string, string, string]>;
 
