@@ -119,6 +119,7 @@ function text(tree) {
 const tr = (lang, copy) => copy[lang] || copy.en;
 const districts = load("src/data/districts.ts");
 const gpa = load("src/lib/gpa.ts");
+const deskCopy = load("src/lib/desk-copy.ts", { "./locale.ts": load("src/lib/locale.ts") });
 const langs = ["en", "zh", "es", "ko", "vi", "ja"];
 const position = { coords: { longitude: -123.0726, latitude: 44.0448 } };
 const outside = { coords: { longitude: 0, latitude: 0 } };
@@ -349,8 +350,24 @@ function gpaFixture(count = 0) {
         },
       ]),
     ),
+    hydrated: true,
     addGrade: (row) => added.push(row),
-    removeGrade() {},
+    removeGrade(id) {
+      const bucket = state.buckets[state.level];
+      bucket.grades = bucket.grades.filter((row) => row.id !== id);
+    },
+    restoreGrade(row, level, index) {
+      const bucket = state.buckets[level];
+      if (bucket.grades.some((item) => item.id === row.id)) return false;
+      bucket.grades = [...bucket.grades.slice(0, index), row, ...bucket.grades.slice(index)];
+      return true;
+    },
+    updateGrade(id, patch) {
+      const bucket = state.buckets[state.level];
+      if (!bucket.grades.some((row) => row.id === id)) return false;
+      bucket.grades = bucket.grades.map((row) => (row.id === id ? { ...row, ...patch } : row));
+      return true;
+    },
     clearGrades() {},
     setGpaPrior() {},
   };
@@ -376,15 +393,34 @@ function gpaFixture(count = 0) {
     "@/lib/gpa": gpa,
     "@/lib/store": { useLang: () => lang, useDesk: (select) => select(state) },
     "@/lib/text": { tr },
+    "@/lib/desk-copy": deskCopy,
   });
   let tree;
   const render = () => (tree = runner.render(Route.component));
   render();
+  const byLabel = (prefix) =>
+    nodes(tree).find((n) => n.type === "button" && n.props["aria-label"]?.startsWith(prefix));
   return {
     state,
     added,
     render,
+    tree: () => tree,
     alert: () => text(nodes(tree).find((n) => n.props?.role === "alert")),
+    status: () => text(nodes(tree).find((n) => n.props?.className === "inline-feedback")),
+    click(prefix) {
+      byLabel(prefix).props.onClick();
+      render();
+    },
+    button: byLabel,
+    undo() {
+      nodes(tree)
+        .find((n) => n.props?.className === "inline-feedback")
+        .props.children.flat()
+        .find((n) => n?.type === "button")
+        .props.onClick();
+      render();
+    },
+    editor: () => nodes(tree).find((n) => typeof n.type === "function" && n.props?.draft),
     submit() {
       nodes(tree)
         .find((n) => n.type === "form")
@@ -446,4 +482,70 @@ test("GPA credit feedback translates and clears after a successful submission", 
   assert.equal(f.alert(), "");
   assert.equal(f.added.length, 1);
   assert.equal(f.added[0].credits, 4);
+});
+
+test("GPA rows: delete then undo puts the class back in place, in all six languages", () => {
+  const f = gpaFixture(3);
+  const titles = () => f.state.buckets.uni.grades.map((row) => row.id);
+  f.click("Remove: Class");
+  assert.deepEqual(titles(), ["1", "2"]);
+  assert.match(f.status(), /Item deleted\.Undo/);
+  f.undo();
+  assert.deepEqual(titles(), ["0", "1", "2"], "back at its old index");
+  assert.equal(f.status(), "Restored.");
+  f.click("Remove: Class");
+  // Restored elsewhere (another tab): undo refuses with the shared copy.
+  f.state.buckets.uni.grades = [{ id: "0" }, ...f.state.buckets.uni.grades];
+  const expected = [
+    "Couldn't undo: it is already back, or the list is over its limit.",
+    "无法撤销：这一项已经恢复，或列表已超出上限。",
+    "No se pudo deshacer: ya está de vuelta o la lista supera su límite.",
+    "되돌릴 수 없어요. 이미 복원됐거나 목록이 한도를 넘었어요.",
+    "Không thể hoàn tác: mục này đã được khôi phục hoặc danh sách đã vượt giới hạn.",
+    "元に戻せません。すでに戻っているか、リストが上限を超えています。",
+  ];
+  f.undo();
+  langs.forEach((lang, i) => {
+    f.language(lang);
+    assert.ok(f.status().startsWith(expected[i]), lang);
+  });
+});
+
+test("GPA rows: inline edit saves grade and credits, and a vanished row says so", () => {
+  const f = gpaFixture(2);
+  f.click("Edit: Class");
+  const editor = f.editor();
+  assert.ok(editor, "the first row turned into the editor");
+  assert.deepEqual({ ...editor.props.draft }, { id: "0", grade: "A", credits: "4", boost: false });
+  editor.props.onChange({ ...editor.props.draft, grade: "B+", credits: "3" });
+  f.render();
+  f.editor().props.onSubmit({ preventDefault() {} });
+  f.render();
+  assert.deepEqual(f.state.buckets.uni.grades[0], {
+    id: "0",
+    title: "Class",
+    credits: 3,
+    grade: "B+",
+    boost: false,
+  });
+  assert.equal(f.editor(), undefined);
+  assert.equal(f.status(), "Class updated.");
+  f.click("Edit: Class");
+  f.state.buckets.uni.grades = [];
+  f.editor().props.onSubmit({ preventDefault() {} });
+  f.render();
+  assert.equal(f.status(), "That class is no longer in your list, so nothing was saved.");
+});
+
+test("GPA writes stay disabled until the saved desk has loaded", () => {
+  const f = gpaFixture(1);
+  f.state.hydrated = false;
+  f.render();
+  const disabled = nodes(f.tree()).filter((n) => n.props?.disabled === true);
+  // Add, Clear list, Edit, Remove, prior GPA and prior credits.
+  assert.ok(disabled.length >= 6, String(disabled.length));
+  assert.equal(f.button("Remove: Class").props.disabled, true);
+  f.state.hydrated = true;
+  f.render();
+  assert.equal(f.button("Remove: Class").props.disabled, false);
 });

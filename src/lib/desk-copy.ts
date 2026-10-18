@@ -385,6 +385,22 @@ const copy = {
     "Lớp đó không còn trong thời khóa biểu nên chưa lưu gì. Thêm lại nếu bạn vẫn cần.",
     "その授業は時間割から削除済みのため、保存していません。必要ならもう一度追加してください。",
   ],
+  gradeSaved: [
+    "Class updated.",
+    "课程已更新。",
+    "Clase actualizada.",
+    "수업을 수정했어요.",
+    "Đã cập nhật môn học.",
+    "授業を更新しました。",
+  ],
+  gradeGone: [
+    "That class is no longer in your list, so nothing was saved.",
+    "这门课已不在列表中（可能在其他标签页删除），本次未保存。",
+    "Esa clase ya no está en tu lista, así que no se guardó nada.",
+    "그 수업은 더 이상 목록에 없어서 저장하지 않았어요.",
+    "Môn đó không còn trong danh sách nên chưa lưu gì.",
+    "その授業は一覧から削除済みのため、保存していません。",
+  ],
   pin: [
     "Mark as important",
     "标记为重点",

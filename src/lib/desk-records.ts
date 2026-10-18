@@ -91,6 +91,26 @@ export function asGrade(value: unknown): GradeRow | null {
   };
 }
 
+/**
+ * A grade row after an inline edit, or null when the new grade/credits could not be
+ * stored (same rules as adding). The id and title stay; boost only exists for high school.
+ */
+export function editedGrade(
+  row: GradeRow,
+  patch: { grade: string; credits: number; boost: boolean },
+  level: string,
+): GradeRow | null {
+  const credits = asStoredCredits(patch.credits);
+  if (!isLetter(patch.grade) || credits == null) return null;
+  return { ...row, grade: patch.grade, credits, boost: level === "high" && patch.boost };
+}
+
+/** `list` with `item` put back at `index` (clamped), so undo keeps the original order. */
+export function insertAt<T>(list: readonly T[], item: T, index: number): T[] {
+  const at = Number.isInteger(index) ? Math.min(Math.max(index, 0), list.length) : list.length;
+  return [...list.slice(0, at), item, ...list.slice(at)];
+}
+
 export function asSchedule(value: unknown): ScheduleBlock | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;

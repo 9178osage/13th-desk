@@ -16,7 +16,14 @@ import {
   type Lang,
 } from "@/lib/text";
 import { validScheduleTime, type ScheduleDraft } from "@/lib/schedule";
-import { asHm, emptyBucket, isWeekDay, parseBucket } from "./desk-records.ts";
+import {
+  asHm,
+  editedGrade,
+  emptyBucket,
+  insertAt,
+  isWeekDay,
+  parseBucket,
+} from "./desk-records.ts";
 import type { PersistedDeskLike } from "@/lib/desk-backup";
 import {
   EMPTY_PREFS,
@@ -67,6 +74,8 @@ type DeskState = {
   toggleCheck: (id: string) => void;
   addGrade: (row: { title: string; credits: number; grade: string; boost: boolean }) => void;
   removeGrade: (id: string) => void;
+  restoreGrade: (row: GradeRow, level: Level, index: number) => boolean;
+  updateGrade: (id: string, patch: { grade: string; credits: number; boost: boolean }) => boolean;
   clearGrades: () => void;
   setGpaPrior: (patch: { gpa?: string; weighted?: string; credits?: string }) => void;
   addScheduleBlock: (row: ScheduleDraft) => boolean;
@@ -303,6 +312,35 @@ const deskStore = create<DeskState>()(
             [level]: { ...bucket, grades: bucket.grades.filter((item) => item.id !== id) },
           },
         });
+      },
+      restoreGrade: (row, level, index) => {
+        const { buckets } = get();
+        const bucket = buckets[level];
+        if (!canRestore(bucket.grades, row.id, "grades")) return false;
+        set({
+          buckets: {
+            ...buckets,
+            [level]: { ...bucket, grades: insertAt(bucket.grades, row, index) },
+          },
+        });
+        return true;
+      },
+      updateGrade: (id, patch) => {
+        const { level, buckets } = get();
+        const bucket = buckets[level];
+        const current = bucket.grades.find((item) => item.id === id);
+        const next = current ? editedGrade(current, patch, level) : null;
+        if (!next) return false;
+        set({
+          buckets: {
+            ...buckets,
+            [level]: {
+              ...bucket,
+              grades: bucket.grades.map((item) => (item.id === id ? next : item)),
+            },
+          },
+        });
+        return true;
       },
       clearGrades: () => {
         const { level, buckets } = get();

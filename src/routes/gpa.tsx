@@ -20,6 +20,7 @@ import {
 import type { Level } from "@/lib/levels";
 import type { GradeRow } from "@/lib/store";
 import { useDesk, useLang } from "@/lib/store";
+import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr, type Copy, type Lang } from "@/lib/text";
 
 // Recharts is heavy; it only downloads once there is something to chart.
@@ -87,6 +88,9 @@ function GpaPage() {
   const priorCredits = useDesk((state) => state.buckets[state.level].priorCredits);
   const addGrade = useDesk((state) => state.addGrade);
   const removeGrade = useDesk((state) => state.removeGrade);
+  const restoreGrade = useDesk((state) => state.restoreGrade);
+  const updateGrade = useDesk((state) => state.updateGrade);
+  const hydrated = useDesk((state) => state.hydrated);
   const clearGrades = useDesk((state) => state.clearGrades);
   const setGpaPrior = useDesk((state) => state.setGpaPrior);
 
@@ -97,13 +101,47 @@ function GpaPage() {
   const [error, setError] = useState<Copy | null>(null);
   const [target, setTarget] = useState("3.50");
   const [whatIfCredits, setWhatIfCredits] = useState(defaultCredits(level));
+  const [editing, setEditing] = useState<GradeDraft | null>(null);
+  const [message, setMessage] = useState<DeskCopyKey | null>(null);
+  const [deleted, setDeleted] = useState<{ row: GradeRow; index: number; level: Level } | null>(
+    null,
+  );
 
   useEffect(() => {
     setCredits(defaultCredits(level));
     setWhatIfCredits(defaultCredits(level));
     setBoost(false);
     setError(null);
+    setEditing(null);
+    setMessage(null);
+    setDeleted(null);
   }, [level]);
+
+  function startEdit(row: GradeRow) {
+    setEditing({ id: row.id, grade: row.grade, credits: String(row.credits), boost: row.boost });
+    setMessage(null);
+    // The undo key belongs to an earlier delete, not to this edit.
+    setDeleted(null);
+  }
+
+  function saveEdit(event: FormEvent) {
+    event.preventDefault();
+    if (!editing) return;
+    const saved = updateGrade(editing.id, {
+      grade: editing.grade,
+      credits: Number(editing.credits),
+      boost: editing.boost,
+    });
+    setEditing(null);
+    setMessage(saved ? "gradeSaved" : "gradeGone");
+  }
+
+  function remove(row: GradeRow, index: number) {
+    removeGrade(row.id);
+    if (editing?.id === row.id) setEditing(null);
+    setDeleted({ row, index, level });
+    setMessage("deleted");
+  }
 
   const choices = creditChoices(level);
   const rows = grades.map(toInput);
@@ -183,6 +221,8 @@ function GpaPage() {
     addGrade({ title, credits: Number(credits), grade, boost: level === "high" && boost });
     setTitle("");
     setError(null);
+    setMessage(null);
+    setDeleted(null);
   }
 
   return (
@@ -489,13 +529,13 @@ function GpaPage() {
           </p>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="submit">
+          <Button type="submit" disabled={!hydrated}>
             {tr(lang, { en: "Add", zh: "添加", es: "Agregar", ko: "추가", vi: "Thêm", ja: "追加" })}
           </Button>
           {grades.length > 0 ? (
             <AlertDialog.Root>
               <AlertDialog.Trigger asChild>
-                <Button variant="ghost">
+                <Button variant="ghost" disabled={!hydrated}>
                   {tr(lang, {
                     en: "Clear list",
                     zh: "清空课程列表",
@@ -543,7 +583,14 @@ function GpaPage() {
                       </Button>
                     </AlertDialog.Cancel>
                     <AlertDialog.Action asChild>
-                      <Button onClick={clearGrades}>
+                      <Button
+                        onClick={() => {
+                          clearGrades();
+                          setEditing(null);
+                          setMessage(null);
+                          setDeleted(null);
+                        }}
+                      >
                         {tr(lang, {
                           en: "Clear list",
                           zh: "确认清空",
@@ -562,45 +609,83 @@ function GpaPage() {
         </div>
       </form>
 
-      {grades.length > 0 ? (
-        <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card shadow-paper">
-          {grades.map((row) => (
-            <li key={row.id} className="flex items-center gap-3 px-4 py-2">
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-ink">{row.title || row.grade}</p>
-                <p className="text-sm text-muted">
-                  {row.title ? `${row.grade} · ` : ""}
-                  {formatCredits(Math.round(row.credits * 100))}{" "}
-                  {tr(lang, {
-                    en: "credits",
-                    zh: "学分",
-                    es: "créditos",
-                    ko: "학점",
-                    vi: "tín chỉ",
-                    ja: "単位",
-                  })}
-                  {level === "high" && row.boost
-                    ? ` · ${tr(lang, { en: "weighted", zh: "加权", es: "con peso", ko: "가중", vi: "có hệ số", ja: "加重" })}`
-                    : ""}
-                </p>
-              </div>
+      {grades.length > 0 || message || deleted ? (
+        <div>
+          {grades.length > 0 ? (
+            <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card shadow-paper">
+              {grades.map((row, index) =>
+                editing?.id === row.id ? (
+                  <li key={row.id} className="px-4 py-3">
+                    <GradeEditor
+                      lang={lang}
+                      level={level}
+                      label={row.title || row.grade}
+                      draft={editing}
+                      onChange={setEditing}
+                      onSubmit={saveEdit}
+                      onCancel={() => setEditing(null)}
+                    />
+                  </li>
+                ) : (
+                  <li key={row.id} className="flex items-center gap-1 px-4 py-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium text-ink">{row.title || row.grade}</p>
+                      <p className="text-sm text-muted">
+                        {row.title ? `${row.grade} · ` : ""}
+                        {formatCredits(Math.round(row.credits * 100))}{" "}
+                        {tr(lang, {
+                          en: "credits",
+                          zh: "学分",
+                          es: "créditos",
+                          ko: "학점",
+                          vi: "tín chỉ",
+                          ja: "単位",
+                        })}
+                        {level === "high" && row.boost
+                          ? ` · ${tr(lang, { en: "weighted", zh: "加权", es: "con peso", ko: "가중", vi: "có hệ số", ja: "加重" })}`
+                          : ""}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!hydrated}
+                      aria-label={`${c(lang, "edit")}: ${row.title || row.grade}`}
+                      onClick={() => startEdit(row)}
+                      className="min-h-11 shrink-0 px-2 text-sm text-moss"
+                    >
+                      {c(lang, "edit")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!hydrated}
+                      aria-label={`${tr(lang, REMOVE)}: ${row.title || row.grade}`}
+                      onClick={() => remove(row, index)}
+                      className="min-h-11 shrink-0 px-2 text-sm text-muted"
+                    >
+                      {tr(lang, REMOVE)}
+                    </button>
+                  </li>
+                ),
+              )}
+            </ul>
+          ) : null}
+          <div className="inline-feedback" role="status">
+            {message && c(lang, message)}
+            {deleted && (
               <button
                 type="button"
-                onClick={() => removeGrade(row.id)}
-                className="min-h-11 shrink-0 px-2 text-sm text-muted"
+                onClick={() => {
+                  if (restoreGrade(deleted.row, deleted.level, deleted.index)) {
+                    setDeleted(null);
+                    setMessage("restored");
+                  } else setMessage("undoFailed");
+                }}
               >
-                {tr(lang, {
-                  en: "Remove",
-                  zh: "删除",
-                  es: "Quitar",
-                  ko: "삭제",
-                  vi: "Xóa",
-                  ja: "削除",
-                })}
+                {c(lang, "undo")}
               </button>
-            </li>
-          ))}
-        </ul>
+            )}
+          </div>
+        </div>
       ) : null}
 
       <Card className="border-t-0">
@@ -647,6 +732,7 @@ function GpaPage() {
             <Input
               inputMode="decimal"
               value={priorGpa}
+              disabled={!hydrated}
               onChange={(event) => setGpaPrior({ gpa: event.target.value })}
               placeholder="3.50"
               className="mt-1 tabular-nums"
@@ -665,6 +751,7 @@ function GpaPage() {
               <Input
                 inputMode="decimal"
                 value={priorWeighted}
+                disabled={!hydrated}
                 onChange={(event) => setGpaPrior({ weighted: event.target.value })}
                 placeholder="3.70"
                 className="mt-1 tabular-nums"
@@ -683,6 +770,7 @@ function GpaPage() {
             <Input
               inputMode="decimal"
               value={priorCredits}
+              disabled={!hydrated}
               onChange={(event) => setGpaPrior({ credits: event.target.value })}
               placeholder={level === "uni" ? "16" : "12"}
               className="mt-1 tabular-nums"
@@ -721,6 +809,112 @@ function GpaPage() {
         ) : null}
       </Card>
     </div>
+  );
+}
+
+const REMOVE: Copy = {
+  en: "Remove",
+  zh: "删除",
+  es: "Quitar",
+  ko: "삭제",
+  vi: "Xóa",
+  ja: "削除",
+};
+
+type GradeDraft = { id: string; grade: string; credits: string; boost: boolean };
+
+const selectClass =
+  "mt-1 min-h-11 w-full rounded-md border border-line bg-card px-3 font-normal shadow-sm";
+
+/** Inline edit of one saved class: grade, credits and (high school) the AP/IB weight. */
+function GradeEditor({
+  lang,
+  level,
+  label,
+  draft,
+  onChange,
+  onSubmit,
+  onCancel,
+}: {
+  lang: Lang;
+  level: Level;
+  label: string;
+  draft: GradeDraft;
+  onChange: (next: GradeDraft) => void;
+  onSubmit: (event: FormEvent) => void;
+  onCancel: () => void;
+}) {
+  // A legacy row may hold credits outside today's menu: offer it so saving never
+  // silently changes a number the visitor did not touch.
+  const choices = creditChoices(level);
+  const creditOptions = choices.includes(draft.credits) ? choices : [draft.credits, ...choices];
+  return (
+    <form onSubmit={onSubmit} aria-label={`${c(lang, "edit")}: ${label}`}>
+      <p className="truncate font-medium text-ink">{label}</p>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm font-medium text-ink">
+          {tr(lang, { en: "Grade", zh: "成绩", es: "Nota", ko: "성적", vi: "Điểm", ja: "成績" })}
+          <select
+            value={draft.grade}
+            onChange={(event) => onChange({ ...draft, grade: event.target.value })}
+            className={selectClass}
+          >
+            {LETTERS.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
+        {level === "elem" ? null : (
+          <label className="block text-sm font-medium text-ink">
+            {tr(lang, {
+              en: "Credits",
+              zh: "学分",
+              es: "Créditos",
+              ko: "학점",
+              vi: "Tín chỉ",
+              ja: "単位",
+            })}
+            <select
+              value={draft.credits}
+              onChange={(event) => onChange({ ...draft, credits: event.target.value })}
+              className={selectClass}
+            >
+              {creditOptions.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+      {level === "high" ? (
+        <label className="mt-3 flex min-h-11 items-center gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            checked={draft.boost}
+            onChange={(event) => onChange({ ...draft, boost: event.target.checked })}
+            className="size-5 accent-moss"
+          />
+          {tr(lang, {
+            en: "AP, IB, or College Now (weighted)",
+            zh: "AP、IB 或 College Now（加权）",
+            es: "AP, IB o College Now (con peso)",
+            ko: "AP, IB, College Now (가중)",
+            vi: "AP, IB hoặc College Now (có hệ số)",
+            ja: "AP、IB、College Now（加重）",
+          })}
+        </label>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button type="submit">{c(lang, "save")}</Button>
+        <Button variant="quiet" onClick={onCancel}>
+          {c(lang, "cancel")}
+        </Button>
+      </div>
+    </form>
   );
 }
 

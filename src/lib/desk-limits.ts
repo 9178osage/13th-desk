@@ -17,6 +17,10 @@ export function hasDeskOverflow(
  * already over the limit, or an id that is already present, refuses. Adding uses
  * `>=`; restoring uses `>`.
  */
-export function canRestore(list: { id: string }[], id: string, key: "notes" | "schedule"): boolean {
+export function canRestore(
+  list: { id: string }[],
+  id: string,
+  key: "notes" | "schedule" | "grades",
+): boolean {
   return list.length <= DESK_LIMITS[key] && !list.some((item) => item.id === id);
 }
