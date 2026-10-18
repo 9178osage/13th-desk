@@ -56,9 +56,11 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = homeAliasPath(pathname.replace(/\/$/, "") || "/");
   const current = NAV.find((item) => item.to === path);
   // Unknown addresses render <NotFoundPage>; the crumb and tab title should say so
-  // instead of falling back to "Today" while the page says it is missing.
+  // instead of falling back to "Today" while the page says it is missing. A route that
+  // throws notFound() (/foo via $channel) sets status; a path no route matches at all
+  // (/isa/x) only flags the route that renders the 404 with _notFound.
   const notFound = useRouterState({
-    select: (s) => s.matches.some((match) => match.status === "notFound"),
+    select: (s) => s.matches.some((match) => match.status === "notFound" || match._notFound),
   });
   const label = (key: DeskCopyKey) =>
     c(lang, key === "campus" && level !== "uni" ? "schools" : key);

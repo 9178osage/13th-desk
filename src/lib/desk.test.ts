@@ -207,7 +207,7 @@ test("missing routes render a branded, translated 404 instead of bare Not Found"
   assert.match(page, /aria-labelledby="not-found-heading"/);
   // The shell must not keep saying "Today" in the crumb/tab title on a 404.
   const shell = readFileSync(join(import.meta.dirname, "..", "components", "shell.tsx"), "utf8");
-  assert.match(shell, /status === "notFound"/);
+  assert.match(shell, /status === "notFound" \|\| match\._notFound/);
   assert.match(shell, /"404 · Eugene Desk"/);
 });
 test("overlap detection lists conflicting classes and ignores adjacent times", () => {

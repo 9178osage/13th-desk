@@ -161,7 +161,12 @@ export function PlaceBrowser({
                           <div className="min-w-0">
                             <div className="mb-1.5 flex flex-wrap gap-1.5">
                               <Chip>{tr(lang, areaName[place.area])}</Chip>
-                              {place.hours ? <Chip>{placeHours(lang, place.hours)}</Chip> : null}
+                              {place.hours ? (
+                                // Long translated hours (Spanish) must wrap, not widen the page at 390px.
+                                <Chip className="max-w-full shrink rounded-2xl py-1">
+                                  {placeHours(lang, place.hours)}
+                                </Chip>
+                              ) : null}
                             </div>
                             <h2 className="font-display text-2xl text-ink">{place.name}</h2>
                           </div>
