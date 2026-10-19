@@ -304,6 +304,18 @@ export const DISTRICTS: District[] = [
           [-123.1888, 43.8866],
         ],
       ],
+      // The simplified outline above stops just west of Creswell's city center, which
+      // put the town and the high school inside Pleasant Hill's polygon. This city block
+      // closes that gap; it stays south of Pleasant Hill's populated area.
+      [
+        [
+          [-122.902, 43.895],
+          [-122.83, 43.895],
+          [-122.83, 43.938],
+          [-122.902, 43.938],
+          [-122.902, 43.895],
+        ],
+      ],
     ],
   },
   {

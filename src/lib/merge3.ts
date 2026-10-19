@@ -36,9 +36,21 @@ export function merge3(base: unknown, ours: unknown, theirs: unknown): unknown {
 }
 
 function mergeArrays(base: unknown[], ours: unknown[], theirs: unknown[]): unknown[] {
+  /**
+   * Index each record by its id/value *and its occurrence number*. The reader and the
+   * backup importer deliberately accept duplicate or blank ids, so a plain Map keyed by
+   * id would collapse two different records into one and silently drop the first. The
+   * occurrence suffix keeps every stored item while still pairing the usual by-id case.
+   */
   const index = (list: unknown[]) => {
     const map = new Map<string, unknown>();
-    for (const item of list) map.set(keyOf(item), item);
+    const seen = new Map<string, number>();
+    for (const item of list) {
+      const key = keyOf(item);
+      const occurrence = seen.get(key) ?? 0;
+      seen.set(key, occurrence + 1);
+      map.set(`${key}#${occurrence}`, item);
+    }
     return map;
   };
   const b = index(base);

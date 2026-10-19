@@ -11,7 +11,9 @@ import {
 import { Card, Chip, SectionHeader } from "@/components/ui";
 import type { Level } from "@/lib/levels";
 import { LEVELS } from "@/lib/levels";
-import { useLang } from "@/lib/store";
+import { k12CalendarSource } from "@/lib/calendar";
+import { deskText as c } from "@/lib/desk-copy";
+import { useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
 import { eugeneClock } from "@/lib/time";
 
@@ -66,6 +68,11 @@ export function K12Campus({ level }: { level: Exclude<Level, "uni"> }) {
   const lang = useLang();
   const now = useClock();
   const clock = now ? eugeneClock(now) : null;
+  const district = useDesk((state) => state.district);
+  // releaseLine is 4J's bell schedule. With another district selected, show where to
+  // find that district's times instead of presenting 4J's as the page's own.
+  const fourJ = district === null || district === "4j";
+  const source = k12CalendarSource(district);
   const name = LEVELS.find((item) => item.id === level);
   const label = name ? tr(lang, name) : "";
 
@@ -77,7 +84,23 @@ export function K12Campus({ level }: { level: Exclude<Level, "uni"> }) {
         </p>
         <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">{label}</h1>
         <p className="mt-3 max-w-2xl text-muted">
-          {tr(lang, releaseLine(level, clock?.weekday === 3))}
+          {fourJ ? (
+            tr(lang, releaseLine(level, clock?.weekday === 3))
+          ) : (
+            <>
+              {c(lang, "districtBellHint")}{" "}
+              {source.href ? (
+                <a
+                  href={source.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-moss underline"
+                >
+                  {c(lang, "officialCalendar")}
+                </a>
+              ) : null}
+            </>
+          )}
         </p>
       </header>
 

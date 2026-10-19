@@ -203,6 +203,40 @@ test("quota failure retains pending edits and retries on the next edit", async (
   assert.equal(tab.status(), "ready");
   assert.deepEqual(saved(env.data), ["pending", "next"]);
 });
+test("a thrown first read is retried by the next save instead of latching", async () => {
+  const data = new Map<string, string>([[KEY, JSON.stringify(value("saved"))]]);
+  let throwOnce = true;
+  let status: SaveStatus = "ready";
+  let writes = 0;
+  const adapter = createDeskStorage<Desk>({
+    storage: {
+      getItem: () => {
+        if (throwOnce) {
+          throwOnce = false;
+          throw new Error("blocked once");
+        }
+        return data.get(KEY) ?? null;
+      },
+      setItem: (_key, raw) => {
+        writes += 1;
+        data.set(KEY, raw);
+      },
+      removeItem: (key) => {
+        data.delete(key);
+      },
+    },
+    status: (s) => {
+      status = s;
+    },
+  });
+  assert.equal(await adapter.storage.getItem(KEY), null);
+  assert.equal(status, "failed", "the blocked read is visible");
+  adapter.storage.setItem(KEY, value("new"));
+  assert.equal(writes, 1, "the next save retries and writes");
+  assert.equal(status, "ready");
+  // The desk read on retry is not overwritten by the empty in-memory default.
+  assert.deepEqual(new Set(saved(data)), new Set(["saved", "new"]));
+});
 test("no Web Locks needed: the adapter saves with plain localStorage", async () => {
   const env = environment();
   const tab = env.open();

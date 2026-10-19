@@ -373,10 +373,43 @@ export const highSchoolCards: SchoolCard[] = [
 
 const sharedDates: Deadline[] = [
   {
+    id: "k-oct9",
+    ymd: "2026-10-09",
+    title: { en: "No school", zh: "停课" },
+    detail: {
+      en: "4J has no school for teacher planning and professional development. All grades.",
+      zh: "4J 全区停课：老师备课与培训。所有年级。",
+      es: "No hay clases en 4J: planificación y desarrollo profesional del profesorado. Todos los grados.",
+      ko: "4J는 교사 계획·연수로 수업이 없어요. 모든 학년.",
+      vi: "4J nghỉ học để giáo viên lập kế hoạch và bồi dưỡng. Tất cả các khối.",
+      ja: "4Jは教員の計画・研修日のため休校です。全学年。",
+    },
+  },
+  {
+    id: "k-midterm",
+    ymd: "2026-11-06",
+    title: { en: "Grading day", zh: "登分日，不上课" },
+    detail: {
+      en: "No school for 4J students while teachers finish mid-semester grades.",
+      zh: "4J 学生停课，老师完成期中登分。",
+      es: "No hay clases en 4J mientras el profesorado cierra las notas de mitad de semestre.",
+      ko: "4J 학생은 수업이 없고, 교사는 중간 성적을 마무리해요.",
+      vi: "Học sinh 4J nghỉ học trong khi giáo viên hoàn tất điểm giữa học kỳ.",
+      ja: "4Jの生徒は休校、教員は中間成績を確定します。",
+    },
+  },
+  {
     id: "k-veterans",
     ymd: "2026-11-11",
     title: { en: "Veterans Day", zh: "退伍军人节" },
-    detail: { en: "No school in 4J.", zh: "4J 停课。" },
+    detail: {
+      en: "No school in 4J.",
+      zh: "4J 停课。",
+      es: "No hay clases en 4J.",
+      ko: "4J는 수업이 없어요.",
+      vi: "4J nghỉ học.",
+      ja: "4Jは休校です。",
+    },
   },
   {
     id: "k-conf",
@@ -385,6 +418,10 @@ const sharedDates: Deadline[] = [
     detail: {
       en: "4J is out November 23–27. Conference sign-up is per school.",
       zh: "4J 11 月 23 日至 27 日不上课。家长会预约看各校通知。",
+      es: "En 4J no hay clases del 23 al 27 de noviembre. La inscripción a las conferencias es por escuela.",
+      ko: "4J는 11월 23–27일 수업이 없어요. 학부모 상담 신청은 학교마다 달라요.",
+      vi: "4J nghỉ từ 23 đến 27 tháng 11. Đăng ký họp phụ huynh tùy từng trường.",
+      ja: "4Jは11月23〜27日が休みです。面談の申し込みは学校ごとです。",
     },
   },
   {
@@ -394,21 +431,114 @@ const sharedDates: Deadline[] = [
     detail: {
       en: "4J is out December 21 through January 4. Classes resume after the planning day.",
       zh: "4J 从 12 月 21 日放到 1 月 4 日。老师培训日过了才上课。",
+      es: "En 4J no hay clases del 21 de diciembre al 4 de enero. Las clases vuelven tras el día de planificación.",
+      ko: "4J는 12월 21일부터 1월 4일까지 방학이에요. 교사 계획일이 지나면 수업이 다시 시작해요.",
+      vi: "4J nghỉ từ 21 tháng 12 đến 4 tháng 1. Học lại sau ngày giáo viên lập kế hoạch.",
+      ja: "4Jは12月21日から1月4日まで休みです。教員計画日のあと授業が再開します。",
     },
   },
   {
     id: "k-mlk",
     ymd: "2027-01-18",
     title: { en: "MLK Day", zh: "马丁·路德·金日" },
-    detail: { en: "No school.", zh: "停课。" },
+    detail: {
+      en: "No school.",
+      zh: "停课。",
+      es: "No hay clases.",
+      ko: "수업이 없어요.",
+      vi: "Không có lớp.",
+      ja: "休校です。",
+    },
+  },
+  {
+    id: "k-semester",
+    ymd: "2027-02-01",
+    title: { en: "Semester grading day", zh: "学期登分日，不上课" },
+    detail: {
+      en: "No school. First semester ends and teachers finish grades.",
+      zh: "不上课。第一学期结束，老师完成登分。",
+      es: "No hay clases. Termina el primer semestre y el profesorado cierra las notas.",
+      ko: "수업이 없어요. 1학기가 끝나고 교사가 성적을 마무리해요.",
+      vi: "Không có lớp. Học kỳ một kết thúc và giáo viên hoàn tất điểm.",
+      ja: "休校です。前期が終わり、教員が成績を確定します。",
+    },
+  },
+  {
+    id: "k-transition",
+    ymd: "2027-02-02",
+    title: { en: "Transition planning", zh: "过渡规划日，不上课" },
+    detail: {
+      en: "No school. Staff prepare for the second semester.",
+      zh: "不上课。教职员工为下学期做准备。",
+      es: "No hay clases. El personal prepara el segundo semestre.",
+      ko: "수업이 없어요. 교직원이 2학기를 준비해요.",
+      vi: "Không có lớp. Nhân viên chuẩn bị cho học kỳ hai.",
+      ja: "休校です。教職員が後期の準備をします。",
+    },
+  },
+  {
+    id: "k-second",
+    ymd: "2027-02-03",
+    title: { en: "Second semester", zh: "下学期开始" },
+    detail: {
+      en: "Second semester begins.",
+      zh: "下学期开始。",
+      es: "Empieza el segundo semestre.",
+      ko: "2학기가 시작돼요.",
+      vi: "Học kỳ hai bắt đầu.",
+      ja: "後期が始まります。",
+    },
+  },
+  {
+    id: "k-presidents",
+    ymd: "2027-02-15",
+    title: { en: "Presidents Day", zh: "总统日" },
+    detail: {
+      en: "No school. The district also lists it as a possible weather make-up day.",
+      zh: "停课。学区也把它列为可能的恶劣天气补课日。",
+      es: "No hay clases. El distrito también lo marca como posible día de recuperación por mal tiempo.",
+      ko: "수업이 없어요. 학군은 악천후 보충 수업 가능일로도 잡아 두었어요.",
+      vi: "Không có lớp. Học khu cũng ghi đây là ngày dự phòng bù do thời tiết.",
+      ja: "休校です。学区は悪天候時の振替候補日にもしています。",
+    },
   },
   {
     id: "k-spring",
     ymd: "2027-03-22",
     title: { en: "Spring break", zh: "春假" },
     detail: {
-      en: "4J lists March 22–29 with no school. Confirm the Monday back on the district PDF.",
-      zh: "4J 写的是 3 月 22 日至 29 日不上课。哪天回来以学区 PDF 为准。",
+      en: "4J is out March 22–29: spring break, then a teacher planning day. Classes resume March 30.",
+      zh: "4J 3 月 22 日至 29 日不上课：春假，之后一天老师备课。3 月 30 日复课。",
+      es: "En 4J no hay clases del 22 al 29 de marzo: vacaciones de primavera y un día de planificación. Las clases vuelven el 30 de marzo.",
+      ko: "4J는 3월 22–29일 수업이 없어요. 봄방학 뒤 교사 계획일이 하루 있고, 3월 30일부터 수업해요.",
+      vi: "4J nghỉ từ 22 đến 29 tháng 3: nghỉ xuân rồi một ngày giáo viên lập kế hoạch. Học lại từ 30 tháng 3.",
+      ja: "4Jは3月22〜29日が休みです。春休みのあと教員計画日が1日あり、3月30日から授業です。",
+    },
+  },
+  {
+    id: "k-apr",
+    ymd: "2027-04-16",
+    title: { en: "Grading day", zh: "登分日，不上课" },
+    detail: {
+      en: "No school for 4J students while teachers finish mid-semester grades.",
+      zh: "4J 学生停课，老师完成期中登分。",
+      es: "No hay clases en 4J mientras el profesorado cierra las notas de mitad de semestre.",
+      ko: "4J 학생은 수업이 없고, 교사는 중간 성적을 마무리해요.",
+      vi: "Học sinh 4J nghỉ học trong khi giáo viên hoàn tất điểm giữa học kỳ.",
+      ja: "4Jの生徒は休校、教員は中間成績を確定します。",
+    },
+  },
+  {
+    id: "k-memorial",
+    ymd: "2027-05-31",
+    title: { en: "Memorial Day", zh: "阵亡将士纪念日" },
+    detail: {
+      en: "No school.",
+      zh: "停课。",
+      es: "No hay clases.",
+      ko: "수업이 없어요.",
+      vi: "Không có lớp.",
+      ja: "休校です。",
     },
   },
   {
@@ -418,45 +548,41 @@ const sharedDates: Deadline[] = [
     detail: {
       en: "4J’s last day is a Wednesday half day.",
       zh: "4J 最后一天是周三，只上半天。",
+      es: "El último día de 4J es un miércoles de medio día.",
+      ko: "4J의 마지막 수업일은 수요일 반나절이에요.",
+      vi: "Ngày cuối của 4J là thứ Tư, học nửa ngày.",
+      ja: "4Jの最終日は水曜の半日です。",
+    },
+  },
+  {
+    id: "k-jun-grading",
+    ymd: "2027-06-17",
+    title: { en: "Semester grading day", zh: "学期登分日，不上课" },
+    detail: {
+      en: "No school. Grades close after the last student day.",
+      zh: "不上课。学生最后一天之后老师完成登分。",
+      es: "No hay clases. Las notas se cierran después del último día del alumnado.",
+      ko: "수업이 없어요. 학생 마지막 수업일 뒤에 성적을 마감해요.",
+      vi: "Không có lớp. Điểm được chốt sau ngày học cuối của học sinh.",
+      ja: "休校です。生徒の最終日のあとに成績を確定します。",
     },
   },
 ];
 
-const secondaryDates: Deadline[] = [
-  {
-    id: "k-oct9",
-    ymd: "2026-10-09",
-    title: { en: "No school", zh: "停课" },
-    detail: {
-      en: "On the 4J middle and high calendar. Elementary may differ — check the PDF before you travel.",
-      zh: "这是尤金 4J 学区里，初中和高中的校历。不是一所叫 4J 的学校。小学可能不是同一天。出门前先看学区 PDF。",
-    },
+// The 4J PDF marks June 11 as no school for elementary students only.
+const elementaryDate: Deadline = {
+  id: "k-elem-grading",
+  ymd: "2027-06-11",
+  title: { en: "Elementary grading day", zh: "小学登分日，不上课" },
+  detail: {
+    en: "No school for elementary students; teachers finish grades.",
+    zh: "小学停课，老师完成登分。",
+    es: "No hay clases en primaria; el profesorado cierra las notas.",
+    ko: "초등학생은 수업이 없고, 교사가 성적을 마무리해요.",
+    vi: "Học sinh tiểu học nghỉ học; giáo viên hoàn tất điểm.",
+    ja: "小学校は休校、教員が成績を確定します。",
   },
-  {
-    id: "k-midterm",
-    ymd: "2026-11-06",
-    title: { en: "Grading day", zh: "登分日，不上课" },
-    detail: {
-      en: "No school for 4J middle and high. A grading day, not a holiday you invent plans around until you confirm.",
-      zh: "尤金 4J 学区的初中和高中这天不上课，老师在登成绩。确认了再拿它当休息日。",
-    },
-  },
-  {
-    id: "k-semester",
-    ymd: "2027-01-29",
-    title: { en: "Semester grading day", zh: "学期登分日，不上课" },
-    detail: { en: "No school for 4J middle and high.", zh: "尤金 4J 学区的初中和高中不上课。" },
-  },
-  {
-    id: "k-second",
-    ymd: "2027-02-02",
-    title: { en: "Second semester", zh: "下学期开始" },
-    detail: {
-      en: "4J middle and high start the second semester. February 1 is a transition day with no school.",
-      zh: "尤金 4J 学区的初中和高中下学期开学。2 月 1 日是过渡日，不上课。",
-    },
-  },
-];
+};
 
 const seniorDate: Deadline = {
   id: "k-early",
@@ -470,7 +596,7 @@ const seniorDate: Deadline = {
 
 export function deadlinesFor(level: Level): Deadline[] {
   const list = [...sharedDates];
-  if (level === "mid" || level === "high") list.push(...secondaryDates);
+  if (level === "elem") list.push(elementaryDate);
   if (level === "high") list.push(seniorDate);
   return list.sort((a, b) => a.ymd.localeCompare(b.ymd));
 }
@@ -631,10 +757,14 @@ export const k12Checks: Record<Exclude<Level, "uni">, K12Check[]> = {
     {
       id: "sem",
       district: "4j",
-      until: "2027-02-02",
+      until: "2027-02-03",
       label: {
-        en: "Second semester starts February 2. February 1 is a day off.",
-        zh: "下学期 2 月 2 日开始。2 月 1 日不上课。",
+        en: "Second semester starts February 3. February 1 is a grading day; February 2 is transition planning.",
+        zh: "下学期 2 月 3 日开始。2 月 1 日是登分日，2 月 2 日是过渡规划日。",
+        es: "El segundo semestre empieza el 3 de febrero. El 1 de febrero es día de notas; el 2 es planificación de transición.",
+        ko: "2학기는 2월 3일에 시작해요. 2월 1일은 성적 마감일, 2월 2일은 전환 준비일이에요.",
+        vi: "Học kỳ hai bắt đầu ngày 3 tháng 2. Ngày 1 tháng 2 là ngày nhập điểm; ngày 2 là chuẩn bị chuyển học kỳ.",
+        ja: "後期は2月3日に始まります。2月1日は成績確定日、2月2日は移行準備日です。",
       },
     },
     {
@@ -672,19 +802,27 @@ export const k12Checks: Record<Exclude<Level, "uni">, K12Check[]> = {
     {
       id: "grade",
       district: "4j",
-      until: "2027-01-29",
+      until: "2027-02-01",
       label: {
-        en: "November 6 and January 29 are grading days. No school.",
-        zh: "11 月 6 日和 1 月 29 日是登分日，不上课。",
+        en: "November 6 and February 1 are grading days. No school.",
+        zh: "11 月 6 日和 2 月 1 日是登分日，不上课。",
+        es: "El 6 de noviembre y el 1 de febrero son días de notas. No hay clases.",
+        ko: "11월 6일과 2월 1일은 성적 마감일이에요. 수업이 없어요.",
+        vi: "Ngày 6 tháng 11 và 1 tháng 2 là ngày nhập điểm. Không có lớp.",
+        ja: "11月6日と2月1日は成績確定日です。授業はありません。",
       },
     },
     {
       id: "sem",
       district: "4j",
-      until: "2027-02-02",
+      until: "2027-02-03",
       label: {
-        en: "Second semester starts February 2.",
-        zh: "下学期 2 月 2 日开始。",
+        en: "Second semester starts February 3.",
+        zh: "下学期 2 月 3 日开始。",
+        es: "El segundo semestre empieza el 3 de febrero.",
+        ko: "2학기는 2월 3일에 시작해요.",
+        vi: "Học kỳ hai bắt đầu ngày 3 tháng 2.",
+        ja: "後期は2月3日に始まります。",
       },
     },
     {

@@ -108,9 +108,15 @@ export function buildIcs(events: IcsEvent[], now = new Date()): string {
     lines.push(`DTSTAMP:${stamp(now)}`);
     if (validTime(event.time)) {
       const [h, m] = event.time.split(":").map(Number);
-      const endMin = Math.min(h * 60 + m + 30, 23 * 60 + 59);
+      const endMin = h * 60 + m + 30;
+      // Keep the event 30 minutes long even when it starts near midnight; roll DTEND
+      // into the next calendar day rather than clamping it to 23:59 (zero/short event).
+      const endYmd = endMin >= 24 * 60 ? nextDay(event.ymd) : event.ymd;
+      const endDay = endYmd.replace(/-/g, "");
       lines.push(`DTSTART;TZID=${TZID}:${day}T${pad(h)}${pad(m)}00`);
-      lines.push(`DTEND;TZID=${TZID}:${day}T${pad(Math.floor(endMin / 60))}${pad(endMin % 60)}00`);
+      lines.push(
+        `DTEND;TZID=${TZID}:${endDay}T${pad(Math.floor((endMin % 1440) / 60))}${pad(endMin % 60)}00`,
+      );
     } else {
       lines.push(`DTSTART;VALUE=DATE:${day}`);
       lines.push(`DTEND;VALUE=DATE:${nextDay(event.ymd).replace(/-/g, "")}`);

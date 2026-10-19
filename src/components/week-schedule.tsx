@@ -15,6 +15,7 @@ import { tr } from "@/lib/text";
 import { sampleSlots } from "@/lib/schedule-samples";
 import { Button, Input } from "@/components/ui";
 import { useDesk, useLang, WEEK_DAYS, type ScheduleBlock, type WeekDay } from "@/lib/store";
+import { useDeskReplaced } from "@/lib/desk-replaced";
 import { deskText as c, dayName, type DeskCopyKey } from "@/lib/desk-copy";
 import {
   conflictingClassIds,
@@ -54,6 +55,14 @@ function ScheduleEditor() {
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
   const [deleted, setDeleted] = useState<ScheduleBlock | null>(null);
   const [awaitConfirm, setAwaitConfirm] = useState(false);
+  // Undo and the open form are bound to the schedule that was on screen.
+  useDeskReplaced(() => {
+    setDeleted(null);
+    setEditing(null);
+    setOpen(false);
+    setAwaitConfirm(false);
+    setMessage(null);
+  });
   const rows = scheduleForDay(schedule, day);
   const invalid = !validScheduleTime(draft.start, draft.end);
   const conflicts = overlappingClasses(schedule, draft, editing ?? undefined);
@@ -398,6 +407,9 @@ function ScheduleEditor() {
             type="button"
             onClick={() => {
               if (restore(deleted, level)) {
+                // The row went back to its own weekday; show it instead of leaving the
+                // visitor on an unrelated day with an empty list and a "restored" note.
+                setDay(deleted.day);
                 setDeleted(null);
                 setMessage("restored");
               } else setMessage("undoFailed");

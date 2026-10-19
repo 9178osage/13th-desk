@@ -40,6 +40,9 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
   const name = "13th-desk-v1";
   let initialized = false;
   let readFailed = false;
+  // A thrown first read (blocked/transient storage), unlike a parsed-but-unusable value,
+  // is retryable: the next save reads again instead of disabling writes for the session.
+  let initialReadError = false;
   let applying = false;
   let pending: StorageValue<T> | null = null;
   let base: string | null = null;
@@ -102,7 +105,12 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       }
       if (disk && disk.version === next.version) {
         // Another tab saved after our last sync and its event has not arrived yet.
-        next = mergeOnto(disk, next);
+        // After a failed first read there is no trustworthy base for this tab, so the
+        // saved desk owns the scalar fields; the pending items are still merged in.
+        next =
+          initialReadError && base === null
+            ? { ...next, state: merge3(undefined, disk.state, next.state) as T }
+            : mergeOnto(disk, next);
         raw = JSON.stringify(next);
         merged = raw !== JSON.stringify(pending);
       }
@@ -110,6 +118,7 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       if (current !== raw) env.storage.setItem(name, raw);
       base = raw;
       pending = null;
+      initialReadError = false;
       env.status("ready");
       if (merged) applyLocal(next);
     } catch {
@@ -124,18 +133,26 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       // (e.g. a language click while the pack loads) would hide the saved desk;
       // merge keeps that choice and the next set saves it on top of the real data.
       pending = null;
+      let raw: string | null;
       try {
-        const raw = env.storage.getItem(name);
-        initialized = true;
-        const value = parse(raw);
-        if (raw !== null && !value) throw new Error("unusable save");
-        base = raw;
-        return value;
+        raw = env.storage.getItem(name);
       } catch {
+        // The browser refused the read (blocked storage, transient policy error). That is
+        // not evidence of a corrupt save: keep writes available and retry on the next save.
         initialized = true;
+        initialReadError = true;
+        env.status("failed");
+        return null;
+      }
+      initialized = true;
+      const value = parse(raw);
+      if (raw !== null && !value) {
+        // Readable but unusable/unsupported: hold the original bytes.
         hold();
         return null;
       }
+      base = raw;
+      return value;
     },
     setItem(_name, value) {
       // State applied from another tab is already on disk; writing it back could ping-pong.
@@ -176,17 +193,24 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
         return false;
       }
       if (pending && pending.version === value.version) {
-        // A failed save is still waiting: keep it on top of the newer desk.
-        value = mergeOnto(value, pending);
+        // A failed save is still waiting: keep it on top of the newer desk. If the first
+        // read had failed, the disk is the only trustworthy side for scalar fields.
+        value =
+          initialReadError && base === null
+            ? { ...pending, state: merge3(undefined, value.state, pending.state) as T }
+            : mergeOnto(value, pending);
         pending = value;
         base = latest;
+        initialReadError = false;
         applyLocal(value, apply);
         flush();
         return true;
       }
       pending = null;
       base = latest;
+      initialReadError = false;
       applyLocal(value, apply);
+      env.status("ready");
       return true;
     },
     /** Explicit, confirmed import only. Preserve a corrupt original before replacing it. */
@@ -202,6 +226,7 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
         base = raw;
         initialized = true;
         readFailed = false;
+        initialReadError = false;
         pending = null;
         env.status("ready");
         return true;

@@ -48,6 +48,16 @@ export const DeskHintContext = createContext<PrefsHint>(EMPTY_PREFS);
 
 const bootHint: PrefsHint =
   typeof document === "undefined" ? EMPTY_PREFS : readPrefsCookie(document.cookie);
+
+/**
+ * A district picked while the saved desk is still loading. Hydration normally takes the
+ * stored value, but an explicit tap made before it completes is newer than the save and
+ * must not disappear under the visitor. This flag is never persisted.
+ */
+let preHydrationDistrict: { set: boolean; value: DistrictId | null } = {
+  set: false,
+  value: null,
+};
 import type { Bucket, GradeRow, Note, ScheduleBlock, WeekDay } from "./desk-records.ts";
 
 export type { Bucket, GradeRow, Note, ScheduleBlock, WeekDay };
@@ -200,14 +210,15 @@ const deskStore = create<DeskState>()(
         const next: Partial<DeskState> = {};
         if (patch.lang !== undefined) {
           if (!isLang(patch.lang)) return;
-          if (cur.lang !== patch.lang || !cur.langSet) {
+          // This is the setup note's "got it": acknowledge a choice, never replace one.
+          if (!cur.langSet) {
             next.lang = patch.lang;
             next.langSet = true;
           }
         }
         if (patch.level !== undefined) {
           if (!isLevel(patch.level)) return;
-          if (cur.level !== patch.level || !cur.levelSet) {
+          if (!cur.levelSet) {
             next.level = patch.level;
             next.levelSet = true;
           }
@@ -217,6 +228,7 @@ const deskStore = create<DeskState>()(
       setEarlyStart: (on) => set({ earlyStart: on }),
       setDistrict: (id) => {
         if (id !== null && !isDistrict(id)) return;
+        if (!get().hydrated) preHydrationDistrict = { set: true, value: id };
         set({ district: id });
       },
       toggleFav: (id) => {
@@ -708,6 +720,8 @@ export async function replacePersistedDeskState(next: PersistedDeskLike): Promis
     !(await deskStorage.replace({ state: payload, version: DESK_STORAGE_VERSION }))
   )
     return false;
+  // An explicit import is newer than any tap made while the old desk was loading.
+  preHydrationDistrict = { set: false, value: null };
   useDesk.setState({
     ...payload,
     hydrated: true,
@@ -740,11 +754,15 @@ export function ensureDeskHydrated(): Promise<void> {
       const loaded = useDesk.getState();
       const lang = resolveHydratedLang(loaded, hint, DEFAULT_LANG);
       const level = resolveHydratedLevel(loaded, hint, DEFAULT_LEVEL);
+      const pendingDistrict = preHydrationDistrict;
       useDesk.setState({
         hydrated: true,
+        // A district tapped while the save was loading is newer than the save.
+        ...(pendingDistrict.set ? { district: pendingDistrict.value } : {}),
         ...(loaded.langSet ? {} : (lang as Pick<DeskState, "lang" | "langSet">)),
         ...(loaded.levelSet ? {} : (level as Pick<DeskState, "level" | "levelSet">)),
       });
+      preHydrationDistrict = { set: false, value: null };
     })();
   }
   return hydratePromise;

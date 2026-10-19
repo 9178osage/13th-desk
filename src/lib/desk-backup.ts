@@ -288,6 +288,10 @@ export function writePreImportSnapshot(state: PersistedDeskLike): boolean {
     notifyPreImportListeners();
     return true;
   } catch {
+    // The write is atomic: this import has no persisted snapshot. Remove the older one
+    // rather than leave it: it belongs to a desk before an earlier import, so after a
+    // reload undoing it would skip an import. The caller still has the in-memory undo
+    // and the downloaded before-import backup.
     try {
       localStorage.removeItem(DESK_PRE_IMPORT_KEY);
     } catch {

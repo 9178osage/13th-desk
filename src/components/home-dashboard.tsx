@@ -20,6 +20,7 @@ import { deadlines } from "@/data/guide";
 import { releaseLine } from "@/data/k12";
 import { quickLinks } from "@/data/quick-links";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
+import { useDeskReplaced } from "@/lib/desk-replaced";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr } from "@/lib/text";
 import { LOCALE } from "@/lib/locale";
@@ -54,6 +55,11 @@ function TaskList() {
   const [filter, setFilter] = useState<"all" | "pending" | "done">("all");
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
   const [deleted, setDeleted] = useState<Note | null>(null);
+  // An import or a newer desk from another tab replaces the notes this undo belongs to.
+  useDeskReplaced(() => {
+    setDeleted(null);
+    setMessage(null);
+  });
   const complete = notes.filter((note) => note.done).length;
   const visible = notes.filter((note) => filter === "all" || note.done === (filter === "done"));
 
@@ -126,6 +132,9 @@ function TaskList() {
                   key={item.id}
                   onClick={() => {
                     if (add(tr(lang, item.label))) {
+                      // The new task is pending; under "Completed" it would be
+                      // invisible even though the message says it was added.
+                      setFilter("all");
                       setMessage("added");
                       setDeleted(null);
                     } else setMessage("taskLimit");

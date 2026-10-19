@@ -458,6 +458,14 @@ const copy = {
     "Lịch tham khảo. Xác nhận ngày với trường của bạn.",
     "参考カレンダー。日程は所属校にご確認ください。",
   ],
+  districtBellHint: [
+    "Bell times vary by district. The school cards below name their district; check your district’s official calendar for your own times.",
+    "各学区作息不同。下方学校卡片标注了所属学区，请到你所在学区的官网确认自己的时间。",
+    "Los horarios varían por distrito. Las tarjetas indican el distrito de cada escuela; consulta el calendario oficial de tu distrito.",
+    "학군마다 시간이 달라요. 아래 학교 카드에 학군이 표시되어 있으니, 우리 학군 공식 일정에서 시간을 확인하세요.",
+    "Giờ học khác nhau theo học khu. Thẻ trường bên dưới ghi rõ học khu; hãy xem lịch chính thức của học khu bạn.",
+    "時間は学区ごとに違います。下の学校カードに学区が書いてあります。自分の学区の公式カレンダーで確認してください。",
+  ],
   verifiedOn: [
     "Last checked {date}",
     "核对日期：{date}",

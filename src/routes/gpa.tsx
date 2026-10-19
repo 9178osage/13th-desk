@@ -20,6 +20,7 @@ import {
 import type { Level } from "@/lib/levels";
 import type { GradeRow } from "@/lib/store";
 import { useDesk, useLang } from "@/lib/store";
+import { useDeskReplaced } from "@/lib/desk-replaced";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr, type Copy, type Lang } from "@/lib/text";
 
@@ -106,6 +107,13 @@ function GpaPage() {
   const [deleted, setDeleted] = useState<{ row: GradeRow; index: number; level: Level } | null>(
     null,
   );
+
+  // An import (this tab or another) replaces the rows this undo/editor belong to.
+  useDeskReplaced(() => {
+    setEditing(null);
+    setMessage(null);
+    setDeleted(null);
+  });
 
   useEffect(() => {
     setCredits(defaultCredits(level));
@@ -196,6 +204,9 @@ function GpaPage() {
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    // Implicit Enter submission can reach the handler even while the visible Add button
+    // is disabled; never write a grade into a desk that has not loaded yet.
+    if (!hydrated) return;
     if (!choices.includes(credits)) {
       setError({
         en: "Pick a credit value from the list.",
@@ -533,7 +544,9 @@ function GpaPage() {
             {tr(lang, { en: "Add", zh: "添加", es: "Agregar", ko: "추가", vi: "Thêm", ja: "追加" })}
           </Button>
           {grades.length > 0 ? (
-            <AlertDialog.Root>
+            // A cross-tab level change remounts this dialog closed: its copy and its
+            // action describe the list that was on screen when it opened.
+            <AlertDialog.Root key={level}>
               <AlertDialog.Trigger asChild>
                 <Button variant="ghost" disabled={!hydrated}>
                   {tr(lang, {

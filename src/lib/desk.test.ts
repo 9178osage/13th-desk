@@ -30,7 +30,7 @@ import {
   clearPreImportSnapshot,
   type PersistedDeskLike,
 } from "./desk-backup.ts";
-import { asHm, parseBucket } from "./desk-records.ts";
+import { asHm, parseBucket, MAX_READ_TEXT } from "./desk-records.ts";
 import { asForecast } from "./forecast.ts";
 import {
   k12CalendarSourceMeta,
@@ -38,7 +38,7 @@ import {
   termExpiredByValidThrough,
   UO_VALID_THROUGH,
 } from "./calendar-meta.ts";
-import { releaseLine } from "../data/k12.ts";
+import { deadlinesFor, releaseLine } from "../data/k12.ts";
 import { deskBootScript, BOOT_HTML_LANG, BOOT_LEVELS } from "./boot-script.ts";
 import { LEVEL_IDS, LEVELS, isLevel } from "./levels.ts";
 import { DESK_STORAGE_VERSION } from "./desk-storage.ts";
@@ -209,6 +209,19 @@ test("missing routes render a branded, translated 404 instead of bare Not Found"
   const shell = readFileSync(join(import.meta.dirname, "..", "components", "shell.tsx"), "utf8");
   assert.match(shell, /status === "notFound" \|\| match\._notFound/);
   assert.match(shell, /"404 · Eugene Desk"/);
+});
+test("campus bell copy follows the selected district", () => {
+  for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+    assert.ok(deskText(lang, "districtBellHint").trim(), lang);
+  }
+  const campus = readFileSync(
+    join(import.meta.dirname, "..", "components", "k12-campus.tsx"),
+    "utf8",
+  );
+  assert.match(campus, /district === null \|\| district === "4j"/);
+  assert.match(campus, /c\(lang, "districtBellHint"\)/);
+  assert.match(campus, /releaseLine\(level, clock\?\.weekday === 3\)/);
+  assert.match(campus, /k12CalendarSource\(district\)/);
 });
 test("overlap detection lists conflicting classes and ignores adjacent times", () => {
   const hits = overlappingClasses(schedule, {
@@ -386,6 +399,47 @@ test("anything the loader accepts survives export and import unchanged", () => {
   const parsed = parseDeskBackup(JSON.stringify(serializeDeskBackup(state)));
   assert.equal(parsed.ok, true, "a loadable desk must always import");
   if (parsed.ok) assert.deepEqual(parsed.backup.state.buckets.uni, bucket);
+});
+
+test("long legacy text is preserved, never silently truncated", () => {
+  const long = "A".repeat(200);
+  const padded = "  padded note  ";
+  const raw = {
+    notes: [
+      { id: "n1", text: long, done: false },
+      { id: "n2", text: padded, done: false },
+    ],
+    grades: [{ id: "g1", title: long, credits: 4, grade: "A", boost: false }],
+    schedule: [
+      {
+        id: "s1",
+        day: "mon",
+        start: "09:00",
+        end: "10:00",
+        title: long,
+        place: long,
+        pinned: false,
+      },
+    ],
+  };
+  const parsed = parseBucket(raw);
+  assert.equal(parsed.lossy, false);
+  assert.equal(parsed.bucket.notes[0].text, long);
+  assert.equal(parsed.bucket.notes[1].text, padded, "spacing is content, not noise");
+  assert.equal(parsed.bucket.grades[0].title, long);
+  assert.equal(parsed.bucket.schedule[0].title, long);
+  assert.equal(parsed.bucket.schedule[0].place, long);
+
+  const state = sampleState();
+  state.buckets.uni = parsed.bucket;
+  const imported = parseDeskBackup(JSON.stringify(serializeDeskBackup(state)));
+  assert.equal(imported.ok, true);
+  if (imported.ok) assert.deepEqual(imported.backup.state.buckets.uni, parsed.bucket);
+
+  // Only the hard safety ceiling is unusable; that is reported as loss, not shortened.
+  const over = parseBucket({ notes: [{ id: "n3", text: "x".repeat(MAX_READ_TEXT + 1) }] });
+  assert.equal(over.lossy, true);
+  assert.equal(over.bucket.notes.length, 0);
 });
 
 test("the same record ID in separate stages is valid", () => {
@@ -1208,6 +1262,12 @@ test(".ics export builds valid all-day and timed events", () => {
     buildIcs([{ id: "a", ymd: "2026-11-26", title: "Thanksgiving" }], now),
     /VTIMEZONE/,
   );
+  // A late timed event keeps its 30 minutes and rolls the end into the next day.
+  const late = buildIcs([{ id: "late", ymd: "2026-11-08", time: "23:45", title: "Late" }], now);
+  assert.match(
+    late,
+    /DTSTART;TZID=America\/Los_Angeles:20261108T234500\r\nDTEND;TZID=America\/Los_Angeles:20261109T001500/,
+  );
   assert.equal(icsEscape("a\\b;c,d\ne"), "a\\\\b\\;c\\,d\\ne");
   const folded = icsFold("SUMMARY:" + "期末".repeat(40));
   for (const line of folded.split("\r\n")) assert.ok(new TextEncoder().encode(line).length <= 75);
@@ -1354,6 +1414,49 @@ test("lock-screen wrap breaks a word wider than the card", () => {
 
 import { starterTasks, applicableChecks } from "./starter-tasks.ts";
 import { k12Checks } from "../data/k12.ts";
+
+test("4J dates follow the official 2026–27 district calendar", () => {
+  const dates = (level: "elem" | "mid" | "high") => deadlinesFor(level).map((item) => item.ymd);
+  for (const level of ["elem", "mid", "high"] as const) {
+    const list = dates(level);
+    // District-wide no-school days, including the two the old secondary-only list hid.
+    for (const ymd of [
+      "2026-10-09",
+      "2026-11-06",
+      "2027-02-01",
+      "2027-02-02",
+      "2027-02-03",
+      "2027-02-15",
+      "2027-04-16",
+      "2027-05-31",
+      "2027-06-17",
+    ])
+      assert.ok(list.includes(ymd), `${level} is missing ${ymd}`);
+    assert.ok(!list.includes("2027-01-29"), `${level} still treats Jan 29 as a day off`);
+    assert.equal(new Set(list).size, list.length, `${level} has duplicate dates`);
+  }
+  // June 11 is the one no-school day marked elementary-only on the PDF.
+  assert.ok(dates("elem").includes("2027-06-11"));
+  assert.ok(!dates("mid").includes("2027-06-11"));
+  assert.ok(!dates("high").includes("2027-06-11"));
+
+  const feb1 = deadlinesFor("mid").find((item) => item.ymd === "2027-02-01");
+  const feb3 = deadlinesFor("mid").find((item) => item.ymd === "2027-02-03");
+  assert.equal(feb1?.id, "k-semester");
+  assert.equal(feb3?.id, "k-second");
+  assert.match(feb1?.detail.en ?? "", /First semester ends/);
+  assert.match(feb3?.detail.en ?? "", /Second semester begins/);
+
+  const midSem = k12Checks.mid.find((item) => item.id === "sem");
+  const highGrade = k12Checks.high.find((item) => item.id === "grade");
+  const highSem = k12Checks.high.find((item) => item.id === "sem");
+  assert.equal(midSem?.until, "2027-02-03");
+  assert.equal(highSem?.until, "2027-02-03");
+  assert.equal(highGrade?.until, "2027-02-01");
+  assert.match(midSem?.label.en ?? "", /February 3/);
+  assert.match(highGrade?.label.en ?? "", /February 1/);
+  assert.doesNotMatch(highGrade?.label.en ?? "", /January 29/);
+});
 import {
   placeSearchWithQuery,
   placeSearchWithCategory,
@@ -1726,7 +1829,7 @@ test("guides share one past-deadline rule and filter expired checklist items ali
   assert.doesNotMatch(read("time.ts"), /WEEKDAY_INDEX/);
 });
 
-import { DISTRICTS, isDistrict as isDistrictId } from "../data/districts.ts";
+import { DISTRICTS, districtAt, isDistrict as isDistrictId } from "../data/districts.ts";
 import { checklist } from "../data/guide.ts";
 test("district and language ids have one source; backup validation reads it", () => {
   // The 14 ids the backup importer used to keep as its own copy.
@@ -1758,6 +1861,15 @@ test("district and language ids have one source; backup validation reads it", ()
   assert.match(backup, /import \{ isLang, type Lang \} from "\.\/text\.ts"/);
 });
 
+test("Creswell's city and high school are not auto-assigned to Pleasant Hill", () => {
+  // Creswell High School and the city center, both inside Creswell School District.
+  assert.equal(districtAt(-122.864, 43.916)?.id, "creswell");
+  assert.equal(districtAt(-122.8623, 43.9179)?.id, "creswell");
+  // The Pleasant Hill area and central Eugene keep their own districts.
+  assert.equal(districtAt(-122.9, 43.96)?.id, "pleasant");
+  assert.equal(districtAt(-123.0726, 44.0448)?.id, "4j");
+});
+
 test("print hides the toolbars, links and actions that make no sense on paper", () => {
   const css = readFileSync(join(import.meta.dirname, "../styles.css"), "utf8");
   const block = /@media print \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? "";
@@ -1781,4 +1893,29 @@ test("weather card reuses a fresh forecast on remount instead of refetching", ()
   assert.match(src, /if \(attempt === 0 && cachedForecast\(\)\) return;/);
   // Only validated forecasts are cached.
   assert.match(src, /if \(!forecast\) throw new Error\("shape"\);\s+lastForecast = /);
+});
+
+test("editor state cannot outlive a replaced desk or point at the wrong slice", () => {
+  const read = (path: string) => readFileSync(join(import.meta.dirname, path), "utf8");
+  const hook = read("desk-replaced.ts");
+  assert.match(hook, /DESK_PRE_IMPORT_EVENT/);
+  assert.match(hook, /event\.key === "13th-desk-v1"/);
+  for (const path of [
+    "../components/home-dashboard.tsx",
+    "../components/week-schedule.tsx",
+    "../routes/gpa.tsx",
+  ]) {
+    assert.match(read(path), /useDeskReplaced\(/, path);
+  }
+
+  // A cross-tab level change must close the clear dialog that describes the old list.
+  assert.match(read("../routes/gpa.tsx"), /<AlertDialog\.Root key=\{level\}>/);
+  // Undo reveals the restored class on its own weekday.
+  assert.match(read("../components/week-schedule.tsx"), /setDay\(deleted\.day\)/);
+  // Quick add under a completed filter must become visible.
+  assert.match(read("../components/home-dashboard.tsx"), /setFilter\("all"\)/);
+  // Acknowledging setup fills only choices that were never made.
+  const store = read("store.ts");
+  assert.match(store, /if \(!cur\.langSet\) \{/);
+  assert.match(store, /if \(!cur\.levelSet\) \{/);
 });

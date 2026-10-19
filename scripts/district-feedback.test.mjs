@@ -394,6 +394,7 @@ function gpaFixture(count = 0) {
     "@/lib/store": { useLang: () => lang, useDesk: (select) => select(state) },
     "@/lib/text": { tr },
     "@/lib/desk-copy": deskCopy,
+    "@/lib/desk-replaced": { useDeskReplaced: () => {} },
   });
   let tree;
   const render = () => (tree = runner.render(Route.component));
@@ -545,7 +546,13 @@ test("GPA writes stay disabled until the saved desk has loaded", () => {
   // Add, Clear list, Edit, Remove, prior GPA and prior credits.
   assert.ok(disabled.length >= 6, String(disabled.length));
   assert.equal(f.button("Remove: Class").props.disabled, true);
+  // The disabled button is not the only guard: an implicit Enter submit can still reach
+  // the handler and must not write into an unloaded desk.
+  f.submit();
+  assert.equal(f.added.length, 0);
   f.state.hydrated = true;
   f.render();
   assert.equal(f.button("Remove: Class").props.disabled, false);
+  f.submit();
+  assert.equal(f.added.length, 1);
 });

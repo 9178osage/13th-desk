@@ -63,12 +63,55 @@ test("real hydration resolves cookie language and level together, with the pack 
       chosen: true,
     },
     {
+      name: "setup acknowledgement cannot replace an explicit choice",
+      cookie: "eugene-desk-prefs=es.high",
+      saved: null,
+      lang: "es",
+      level: "high",
+      chosen: true,
+      setupProbe: { lang: "zh", level: "uni" },
+    },
+    {
       name: "no cookie keeps unchosen defaults",
       cookie: "",
       saved: null,
       lang: "zh",
       level: "uni",
       chosen: false,
+    },
+    {
+      name: "a district tapped before hydration wins over the saved desk",
+      cookie: "",
+      saved: {
+        lang: "zh",
+        langSet: true,
+        level: "high",
+        levelSet: true,
+        district: "4j",
+        buckets: {},
+      },
+      lang: "zh",
+      level: "high",
+      chosen: true,
+      preHydrateDistrict: "bethel",
+      district: "bethel",
+    },
+    {
+      name: "clearing the district before hydration also wins",
+      cookie: "",
+      saved: {
+        lang: "zh",
+        langSet: true,
+        level: "high",
+        levelSet: true,
+        district: "4j",
+        buckets: {},
+      },
+      lang: "zh",
+      level: "high",
+      chosen: true,
+      preHydrateDistrict: null,
+      district: null,
     },
     {
       name: "legacy single-digit hour hydrates without a save lock",
@@ -169,9 +212,25 @@ test("real hydration resolves cookie language and level together, with the pack 
           if (state.hydrated)
             readyStates.push({ lang: state.lang, packReady: isLangReady(state.lang) });
         });
+        if (scenario.preHydrateDistrict !== undefined)
+          useDesk.getState().setDistrict(scenario.preHydrateDistrict);
         await ensureDeskHydrated();
         unsubscribe();
+        if (scenario.setupProbe) {
+          useDesk.getState().setSetup(scenario.setupProbe);
+          const probed = useDesk.getState();
+          assert.equal(probed.lang, scenario.lang, "setup must not replace an explicit language");
+          assert.equal(probed.level, scenario.level, "setup must not replace an explicit level");
+        }
         const state = useDesk.getState();
+        if (scenario.district !== undefined) {
+          assert.equal(state.district, scenario.district, "pre-hydration district is kept");
+          assert.equal(
+            JSON.parse(data.get(key)).state.district,
+            scenario.district,
+            "and is what gets saved",
+          );
+        }
         assert.deepEqual(
           Object.keys(state.buckets),
           LEVEL_IDS,

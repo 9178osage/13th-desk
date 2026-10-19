@@ -18,6 +18,22 @@ test("merge3: conflicting scalar goes to ours, unchanged side yields the other",
   assert.deepEqual(merge3(undefined, { x: 1 }, { y: 2 }), { y: 2, x: 1 });
 });
 
+test("merge3 keeps duplicate ids instead of collapsing them", () => {
+  const n = (id: string, text: string) => ({ id, text, done: false });
+  const base = { notes: [n("dup", "first"), n("dup", "second")] };
+  const ours = { notes: [...base.notes, n("b", "from B")] };
+  const theirs = { notes: [...base.notes, n("a", "from A")] };
+  assert.deepEqual(merge3(base, ours, theirs), {
+    notes: [n("dup", "first"), n("dup", "second"), n("a", "from A"), n("b", "from B")],
+  });
+
+  const baseFavs = { favs: ["knight", "knight"] };
+  assert.deepEqual(
+    merge3(baseFavs, { favs: [...baseFavs.favs, "price"] }, { favs: [...baseFavs.favs, "emu"] }),
+    { favs: ["knight", "knight", "emu", "price"] },
+  );
+});
+
 test("merge3 treats special JSON keys as own data, never as prototypes", () => {
   const ours = JSON.parse('{"__proto__":{"injected":true},"constructor":{"ours":1}}');
   const theirs = JSON.parse('{"constructor":{"theirs":2},"other":true}');

@@ -51,8 +51,23 @@ export type Bucket = {
 export { asStoredCredits, isLetter };
 export type { Letter };
 
-export function asText(value: unknown, max: number): string {
-  return typeof value === "string" ? value.trim().slice(0, max) : "";
+/**
+ * Generous ceiling for text read from an existing save or backup. The editor limits
+ * (140-char notes, 60/80-char titles) are creation limits; an older or hand-corrected
+ * desk may legitimately hold more, and silently cutting it would lose content the
+ * importer claims to preserve. Anything beyond this is treated as unusable (lossy), so
+ * a hostile multi-megabyte string cannot reach the DOM.
+ */
+export const MAX_READ_TEXT = 100_000;
+
+/**
+ * Text from a stored record. Missing fields read as ""; a string over MAX_READ_TEXT
+ * returns null so the caller drops the record and marks the bucket lossy. The original
+ * spacing is kept: trimming is not allowed to change content behind the visitor's back.
+ */
+export function asText(value: unknown): string | null {
+  if (typeof value !== "string") return "";
+  return value.length > MAX_READ_TEXT ? null : value;
 }
 
 /** A real clock time; legacy single-digit hours are normalized without losing a row. */
@@ -72,8 +87,8 @@ export function isWeekDay(value: unknown): value is WeekDay {
 export function asNote(value: unknown): Note | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
-  const text = asText(raw.text, 140);
-  if (typeof raw.id !== "string" || !text) return null;
+  const text = asText(raw.text);
+  if (typeof raw.id !== "string" || text === null || !text.trim()) return null;
   return { id: raw.id, text, done: Boolean(raw.done) };
 }
 
@@ -81,10 +96,12 @@ export function asGrade(value: unknown): GradeRow | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
   const credits = asStoredCredits(raw.credits);
-  if (typeof raw.id !== "string" || !isLetter(raw.grade) || credits == null) return null;
+  const title = asText(raw.title);
+  if (typeof raw.id !== "string" || !isLetter(raw.grade) || credits == null || title === null)
+    return null;
   return {
     id: raw.id,
-    title: asText(raw.title, 80),
+    title,
     credits,
     grade: raw.grade,
     boost: raw.boost === true,
@@ -114,10 +131,20 @@ export function insertAt<T>(list: readonly T[], item: T, index: number): T[] {
 export function asSchedule(value: unknown): ScheduleBlock | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
-  const title = asText(raw.title, 60);
+  const title = asText(raw.title);
+  const place = asText(raw.place);
   const start = asHm(raw.start);
   const end = asHm(raw.end);
-  if (typeof raw.id !== "string" || !isWeekDay(raw.day) || !title || !start || !end) return null;
+  if (
+    typeof raw.id !== "string" ||
+    !isWeekDay(raw.day) ||
+    title === null ||
+    place === null ||
+    !title.trim() ||
+    !start ||
+    !end
+  )
+    return null;
   // No `start < end` test: an inverted range stays and is flagged in the week view,
   // because hiding a saved class is worse than showing it with a warning.
   return {
@@ -126,7 +153,7 @@ export function asSchedule(value: unknown): ScheduleBlock | null {
     start,
     end,
     title,
-    place: asText(raw.place, 60),
+    place,
     pinned: raw.pinned === true,
   };
 }
