@@ -9,12 +9,15 @@ export function scheduleForDay(schedule: ScheduleBlock[], day: WeekDay | null) {
   return schedule.filter((item) => item.day === day).sort((a, b) => a.start.localeCompare(b.start));
 }
 export function nextClass(schedule: ScheduleBlock[], day: WeekDay | null, minutes: number) {
-  return (
-    scheduleForDay(schedule, day).find((item) => {
-      const [h, m] = item.end.split(":").map(Number);
-      return validScheduleTime(item.start, item.end) && h * 60 + m > minutes;
-    }) ?? null
-  );
+  let next: ScheduleBlock | null = null;
+  for (const item of schedule) {
+    if (item.day !== day || !validScheduleTime(item.start, item.end)) continue;
+    const [h, m] = item.end.split(":").map(Number);
+    // Strictly earlier keeps the original first row when start times are tied,
+    // matching the stable sort without allocating or sorting another daily list.
+    if (h * 60 + m > minutes && (!next || item.start < next.start)) next = item;
+  }
+  return next;
 }
 /** Classes that overlap the draft on the same day. Adjacent times (10:00 ends, 10:00 starts) are not conflicts. */
 export function overlappingClasses(

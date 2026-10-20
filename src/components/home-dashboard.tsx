@@ -23,7 +23,7 @@ import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
 import { useDeskReplaced } from "@/lib/desk-replaced";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr } from "@/lib/text";
-import { LOCALE } from "@/lib/locale";
+import { dateFormatter } from "@/lib/date-formatters";
 import { eugeneClock, formatDateline, formatWhen, hmToMin, soonDays } from "@/lib/time";
 import { IcsButton } from "@/components/ics-button";
 import { useClock } from "@/lib/use-clock";
@@ -436,10 +436,7 @@ export function HomeDashboard() {
               <Link to="/guide" className="desk-date" key={item.id}>
                 <div className="date-stamp">
                   <span>
-                    {new Intl.DateTimeFormat(LOCALE[lang], {
-                      month: "short",
-                      timeZone: "UTC",
-                    }).format(new Date(item.ymd + "T12:00:00Z"))}
+                    {dateFormatter(lang, "month").format(new Date(item.ymd + "T12:00:00Z"))}
                   </span>
                   <strong>{Number(item.ymd.slice(8))}</strong>
                   {soonDays(clock.ymd, item.ymd) !== null && (

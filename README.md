@@ -5,6 +5,8 @@
 **在线演示：** [eugene-desk.vercel.app](https://eugene-desk.vercel.app)  
 **仓库：** [9178osage/13th-desk](https://github.com/9178osage/13th-desk)
 
+**目录与维护 / Repository layout:** [项目结构与安全整理](docs/PROJECT-LAYOUT.md)
+
 书桌功能**不需要登录或数据库**。语言、学段、课表、笔记、绩点等存在本机浏览器的 `localStorage`（键名 `13th-desk-v1`，请勿改名以免丢数据）。
 
 ---

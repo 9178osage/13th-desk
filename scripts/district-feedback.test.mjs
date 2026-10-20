@@ -119,7 +119,11 @@ function text(tree) {
 const tr = (lang, copy) => copy[lang] || copy.en;
 const districts = load("src/data/districts.ts");
 const gpa = load("src/lib/gpa.ts");
-const deskCopy = load("src/lib/desk-copy.ts", { "./locale.ts": load("src/lib/locale.ts") });
+const deskCopy = load("src/lib/desk-copy.ts", {
+  "./date-formatters.ts": load("src/lib/date-formatters.ts", {
+    "./locale.ts": load("src/lib/locale.ts"),
+  }),
+});
 const langs = ["en", "zh", "es", "ko", "vi", "ja"];
 const position = { coords: { longitude: -123.0726, latitude: 44.0448 } };
 const outside = { coords: { longitude: 0, latitude: 0 } };

@@ -17,6 +17,7 @@ import {
   targetGpaEstimate,
 } from "./gpa.ts";
 import { deskText, dayName } from "./desk-copy.ts";
+import { dateFormatter } from "./date-formatters.ts";
 import {
   backupFileName,
   beforeImportFileName,
@@ -126,6 +127,63 @@ test("invalid legacy classes stay editable but never become the next class", () 
   const old = { ...schedule[0], start: "15:00", end: "14:00" };
   assert.equal(nextClass([old], "mon", 600), null);
   assert.equal(scheduleForDay([old], "mon").length, 1);
+});
+test("next-class scan keeps stable ties, blank IDs and the original array", () => {
+  const first = Object.freeze({ ...schedule[1], id: "", title: "First tie" });
+  const second = Object.freeze({ ...first, title: "Second tie", end: "11:00" });
+  const rows = Object.freeze([schedule[0], first, second]);
+  assert.equal(nextClass([...rows], "mon", 550), first);
+  assert.equal(nextClass([...rows], "mon", 600), second);
+  assert.deepEqual(rows, [schedule[0], first, second]);
+});
+test("next-class scan matches the old stable-sort result across legacy and boundary inputs", () => {
+  let seed = 20261020;
+  const random = (limit: number) => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed % limit;
+  };
+  const times = ["00:00", "08:00", "09:00", "09:30", "10:00", "23:59", "25:00", "9:00", ""];
+  const days = ["mon", "tue", "wed", "thu", "fri", null] as const;
+  const legacy = (rows: ScheduleBlock[], day: (typeof days)[number], minutes: number) =>
+    rows
+      .filter((row) => row.day === day)
+      .sort((a, b) => a.start.localeCompare(b.start))
+      .find((row) => {
+        const [h, m] = row.end.split(":").map(Number);
+        return validScheduleTime(row.start, row.end) && h * 60 + m > minutes;
+      }) ?? null;
+  for (let round = 0; round < 100; round++) {
+    const rows: ScheduleBlock[] = Array.from({ length: random(90) }, (_, i) => ({
+      ...schedule[0],
+      id: i % 3 ? "duplicate" : "",
+      day: days[random(5)] as ScheduleBlock["day"],
+      start: times[random(times.length)],
+      end: times[random(times.length)],
+    }));
+    const original = structuredClone(rows);
+    for (const day of days)
+      for (const minute of [-Infinity, -1, 0, 480, 540, 600, 1439, Infinity, NaN])
+        assert.equal(nextClass(rows, day, minute), legacy(rows, day, minute));
+    assert.deepEqual(rows, original);
+  }
+});
+test("date formatter reuse is bounded by language and preset, not by the date being shown", () => {
+  const presets = ["clock", "when", "dateline", "eugeneWeekday", "weekday", "month"] as const;
+  const instances = new Set<Intl.DateTimeFormat>();
+  for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const)
+    for (const preset of presets) {
+      const formatter = dateFormatter(lang, preset);
+      instances.add(formatter);
+      for (let month = 0; month < 12; month++) {
+        assert.equal(dateFormatter(lang, preset), formatter);
+        assert.ok(formatter.format(new Date(Date.UTC(2026, month, 1))));
+      }
+      assert.equal(
+        formatter.resolvedOptions().timeZone,
+        preset === "weekday" || preset === "month" ? "UTC" : "America/Los_Angeles",
+      );
+    }
+  assert.equal(instances.size, 36);
 });
 test("overlap warning excludes edited row and adjacent lessons", () => {
   assert.equal(
@@ -907,7 +965,7 @@ test("Vietnamese weekdays are pinned so server HTML matches the browser", () => 
   );
   const time = readFileSync(join(import.meta.dirname, "time.ts"), "utf8");
   assert.match(time, /VI_SHORT_WEEKDAYS\[/);
-  assert.match(time, /lang !== "vi" \|\| options\.weekday !== "short"/);
+  assert.match(time, /lang !== "vi" \|\| preset !== "when"/);
 });
 
 test("first-screen font faces are preloaded", () => {

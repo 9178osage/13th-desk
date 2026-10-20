@@ -1,6 +1,6 @@
 import { tr, type Lang } from "@/lib/text";
 import { VI_SHORT_WEEKDAYS } from "@/lib/desk-copy";
-import { LOCALE } from "@/lib/locale";
+import { dateFormatter } from "./date-formatters.ts";
 
 export type EugeneClock = {
   ymd: string;
@@ -21,16 +21,7 @@ const WEEKDAY: Record<string, number> = {
 };
 
 export function eugeneClock(now = new Date()): EugeneClock {
-  const fmt = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
+  const fmt = dateFormatter("en", "clock");
   const parts = Object.fromEntries(fmt.formatToParts(now).map((part) => [part.type, part.value]));
   let hour = Number(parts.hour);
   if (hour === 24) hour = 0;
@@ -47,11 +38,11 @@ export function eugeneClock(now = new Date()): EugeneClock {
 import { daysBetween, isCalendarDay } from "./days.ts";
 export { daysBetween, soonDays } from "./days.ts";
 
-function localeDate(lang: Lang, options: Intl.DateTimeFormatOptions, date: Date): string {
-  const fmt = new Intl.DateTimeFormat(LOCALE[lang], options);
-  if (lang !== "vi" || options.weekday !== "short") return fmt.format(date);
+function localeDate(lang: Lang, preset: "when" | "dateline", date: Date): string {
+  const fmt = dateFormatter(lang, preset);
+  if (lang !== "vi" || preset !== "when") return fmt.format(date);
   // Same server/browser ICU mismatch as dayName(): pin the Vietnamese weekday.
-  const en = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: options.timeZone });
+  const en = dateFormatter("en", "eugeneWeekday");
   const weekday = VI_SHORT_WEEKDAYS[WEEKDAY[en.format(date)] ?? 0];
   return fmt
     .formatToParts(date)
@@ -64,19 +55,11 @@ export function formatWhen(ymd: string, today: string, lang: Lang): string {
   const delta = daysBetween(today, ymd);
   if (delta === 0) return tr(lang, { en: "Today", zh: "今天" });
   if (delta === 1) return tr(lang, { en: "Tomorrow", zh: "明天" });
-  return localeDate(
-    lang,
-    { timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric" },
-    new Date(`${ymd}T12:00:00-07:00`),
-  );
+  return localeDate(lang, "when", new Date(`${ymd}T12:00:00-07:00`));
 }
 
 export function formatDateline(now: Date, lang: Lang): string {
-  return localeDate(
-    lang,
-    { timeZone: "America/Los_Angeles", weekday: "long", month: "long", day: "numeric" },
-    now,
-  );
+  return localeDate(lang, "dateline", now);
 }
 
 export function hmToMin(hm: string): number {

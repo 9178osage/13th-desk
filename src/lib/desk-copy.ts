@@ -1,7 +1,7 @@
 import type { Lang } from "./text";
 // Relative + `.ts`: desk-copy.ts is loaded by the node test runner, which does
 // not resolve the `@/` alias (see the note in locale.ts).
-import { LOCALE } from "./locale.ts";
+import { dateFormatter } from "./date-formatters.ts";
 
 // Every new desk control has all six translations. Order: en, zh, es, ko, vi, ja.
 const copy = {
@@ -897,8 +897,5 @@ export const VI_SHORT_WEEKDAYS = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 
 export function dayName(lang: Lang, day: string) {
   const n = ["mon", "tue", "wed", "thu", "fri"].indexOf(day);
   if (lang === "vi") return VI_SHORT_WEEKDAYS[Math.max(n, 0) + 1];
-  return new Intl.DateTimeFormat(LOCALE[lang], {
-    weekday: "short",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(2026, 0, 5 + Math.max(n, 0))));
+  return dateFormatter(lang, "weekday").format(new Date(Date.UTC(2026, 0, 5 + Math.max(n, 0))));
 }
