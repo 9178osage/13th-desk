@@ -18,6 +18,7 @@ import {
 import { validScheduleTime, type ScheduleDraft } from "@/lib/schedule";
 import {
   asHm,
+  asText,
   editedGrade,
   emptyBucket,
   insertAt,
@@ -409,18 +410,27 @@ const deskStore = create<DeskState>()(
         return true;
       },
       updateScheduleBlock: (id, row) => {
-        const title = row.title.trim().slice(0, 60);
+        // Editor caps apply to new classes, not text already accepted from a save.
+        // Keep imported contents verbatim when changing a time or another field.
+        const title = asText(row.title);
+        const place = asText(row.place);
         const start = asHm(row.start);
         const end = asHm(row.end);
-        if (!title || !start || !end || !isWeekDay(row.day) || !validScheduleTime(start, end))
+        if (
+          title === null ||
+          !title.trim() ||
+          place === null ||
+          !start ||
+          !end ||
+          !isWeekDay(row.day) ||
+          !validScheduleTime(start, end)
+        )
           return false;
         const { level, buckets } = get();
         const bucket = buckets[level];
         if (!bucket.schedule.some((item) => item.id === id)) return false;
         const schedule = bucket.schedule.map((item) =>
-          item.id === id
-            ? { ...item, day: row.day, title, start, end, place: row.place.trim().slice(0, 60) }
-            : item,
+          item.id === id ? { ...item, day: row.day, title, start, end, place } : item,
         );
         set({ buckets: { ...buckets, [level]: { ...bucket, schedule } } });
         return true;

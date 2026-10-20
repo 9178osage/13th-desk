@@ -51,6 +51,7 @@ function ScheduleEditor() {
   const [day, setDay] = useState<WeekDay>("mon");
   const [draft, setDraft] = useState<ScheduleDraft>(emptyDraft("mon"));
   const [editing, setEditing] = useState<string | null>(null);
+  const isEditing = editing !== null;
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
   const [deleted, setDeleted] = useState<ScheduleBlock | null>(null);
@@ -84,11 +85,11 @@ function ScheduleEditor() {
     // add() can fail on the 40-class cap or on stale/blank input; update() only
     // fails when the row is gone (deleted in another tab) or the input is stale,
     // so never report the cap for an edit — close the form and say what happened.
-    const saved = editing ? update(editing, draft) : add(draft);
+    const saved = isEditing ? update(editing, draft) : add(draft);
     if (!saved) {
-      setMessage(editing ? "classGone" : "classLimit");
+      setMessage(isEditing ? "classGone" : "classLimit");
       setAwaitConfirm(false);
-      if (editing) {
+      if (isEditing) {
         setOpen(false);
         setEditing(null);
       }
@@ -210,7 +211,7 @@ function ScheduleEditor() {
       {open && (
         <form className="class-form" onSubmit={submit}>
           <div className="form-heading">
-            <h3>{c(lang, editing ? "editClass" : "addClass")}</h3>
+            <h3>{c(lang, isEditing ? "editClass" : "addClass")}</h3>
             <button
               type="button"
               className="icon-button"
@@ -301,7 +302,7 @@ function ScheduleEditor() {
             <Button type="submit" disabled={!draft.title.trim() || invalid}>
               {awaitConfirm && overlap
                 ? c(lang, "saveAnyway")
-                : c(lang, editing ? "save" : "addClass")}
+                : c(lang, isEditing ? "save" : "addClass")}
             </Button>
             <Button
               variant="ghost"

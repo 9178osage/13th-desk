@@ -556,3 +556,154 @@ test("GPA writes stay disabled until the saved desk has loaded", () => {
   f.submit();
   assert.equal(f.added.length, 1);
 });
+
+function scheduleFixture(count = 1) {
+  const runner = hookRunner();
+  const calls = [];
+  const state = {
+    level: "uni",
+    hydrated: true,
+    buckets: {
+      uni: {
+        schedule: Array.from({ length: count }, (_, i) => ({
+          id: i ? `other-${i}` : "",
+          title: i ? `Other ${i}` : "Blank ID course",
+          day: i ? "tue" : "mon",
+          start: "09:00",
+          end: "10:00",
+          place: "",
+          pinned: false,
+        })),
+      },
+    },
+    addScheduleBlock(row) {
+      calls.push(["add"]);
+      if (state.buckets.uni.schedule.length >= 40) return false;
+      state.buckets.uni.schedule.push({ ...row, id: "new", pinned: false });
+      return true;
+    },
+    updateScheduleBlock(id, patch) {
+      calls.push(["update", id]);
+      const rows = state.buckets.uni.schedule;
+      if (!rows.some((row) => row.id === id)) return false;
+      state.buckets.uni.schedule = rows.map((row) => (row.id === id ? { ...row, ...patch } : row));
+      return true;
+    },
+    removeScheduleBlock() {},
+    restoreScheduleBlock() {},
+    toggleSchedulePin() {},
+  };
+  const { WeekSchedule } = load("src/components/week-schedule.tsx", {
+    react: runner.hooks,
+    "lucide-react": Object.fromEntries(
+      [
+        "AlertTriangle",
+        "CalendarDays",
+        "ImageDown",
+        "Pencil",
+        "Plus",
+        "Sparkles",
+        "Star",
+        "Trash2",
+        "X",
+      ].map((name) => [name, name]),
+    ),
+    "@/lib/levels": { LEVELS: [] },
+    "@/lib/text": { tr },
+    "@/lib/schedule-samples": { sampleSlots: () => [] },
+    "@/components/ui": { Button: "Button", Input: "Input" },
+    "@/lib/store": {
+      useLang: () => "en",
+      useDesk: (select) => select(state),
+      WEEK_DAYS: ["mon", "tue", "wed", "thu", "fri"].map((id) => ({ id })),
+    },
+    "@/lib/desk-replaced": { useDeskReplaced: () => {} },
+    "@/lib/desk-copy": deskCopy,
+    "@/lib/schedule": load("src/lib/schedule.ts"),
+  });
+  // Render the real inner editor; the wrapper only keys it by school level.
+  const Component = WeekSchedule().type;
+  let tree;
+  const render = () => (tree = runner.render(Component));
+  render();
+  return {
+    state,
+    calls,
+    render,
+    tree: () => tree,
+    edit() {
+      nodes(tree)
+        .find((n) => n.props?.["aria-label"] === "Edit: Blank ID course")
+        .props.onClick();
+      render();
+    },
+    add() {
+      nodes(tree)
+        .find((n) => n.type === "Button" && text(n) === "Add a class")
+        .props.onClick();
+      render();
+      nodes(tree)
+        .find((n) => n.type === "Input" && n.props.required && n.props.maxLength === 60)
+        .props.onChange({ target: { value: "New course" } });
+      render();
+      nodes(tree)
+        .find((n) => n.type === "select")
+        .props.onChange({ target: { value: "fri" } });
+      render();
+    },
+    submit() {
+      nodes(tree)
+        .find((n) => n.type === "form")
+        .props.onSubmit({ preventDefault() {} });
+      render();
+    },
+    status: () => text(nodes(tree).find((n) => n.props?.className === "inline-feedback")),
+  };
+}
+
+test("timetable: a blank ID opens Edit and saves exactly one existing course", () => {
+  const f = scheduleFixture();
+  f.edit();
+  assert.equal(text(nodes(f.tree()).find((n) => n.type === "h3")), "Edit class");
+  const submit = nodes(f.tree()).find((n) => n.props?.type === "submit");
+  assert.equal(text(submit), "Save changes");
+  f.submit();
+  assert.deepEqual(f.calls, [["update", ""]]);
+  assert.equal(f.state.buckets.uni.schedule.length, 1);
+  assert.equal(f.state.buckets.uni.schedule[0].id, "");
+  assert.equal(f.status(), "Timetable updated.");
+});
+
+test("timetable: blank-ID edits work at the cap and a vanished row is not a cap error", () => {
+  const f = scheduleFixture(40);
+  f.edit();
+  f.submit();
+  assert.deepEqual(f.calls, [["update", ""]]);
+  assert.equal(f.state.buckets.uni.schedule.length, 40);
+  assert.equal(f.status(), "Timetable updated.");
+  f.edit();
+  f.state.buckets.uni.schedule = f.state.buckets.uni.schedule.filter((row) => row.id !== "");
+  f.submit();
+  assert.deepEqual(f.calls, [
+    ["update", ""],
+    ["update", ""],
+  ]);
+  assert.equal(
+    f.status(),
+    "That class is no longer in your timetable, so nothing was saved. Add it again if you still need it.",
+  );
+  assert.equal(
+    nodes(f.tree()).some((n) => n.type === "form"),
+    false,
+  );
+});
+
+test("timetable: null editing state still adds a new course", () => {
+  const f = scheduleFixture();
+  f.add();
+  assert.equal(text(nodes(f.tree()).find((n) => n.type === "h3")), "Add a class");
+  f.submit();
+  assert.deepEqual(f.calls, [["add"]]);
+  assert.equal(f.state.buckets.uni.schedule.length, 2);
+  assert.equal(f.state.buckets.uni.schedule[1].title, "New course");
+});
