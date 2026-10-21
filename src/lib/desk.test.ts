@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   conflictingClassIds,
+  conflictingClasses,
   hasScheduleOverlap,
   nextClass,
   overlappingClasses,
@@ -324,6 +325,46 @@ test("existing overlapping courses are marked as conflicts", () => {
   assert.equal(ids.has("later"), false);
   assert.equal(ids.has("other"), false);
   assert.equal(conflictingClassIds(schedule).size, 0);
+});
+test("conflict markers follow row identity, not a shared id", () => {
+  const row = (id: string, start: string, end: string, title: string) => ({
+    id,
+    day: "mon" as const,
+    start,
+    end,
+    title,
+    place: "",
+    pinned: false,
+  });
+  const first = row("dup", "09:00", "10:00", "First");
+  const quiet = row("dup", "13:00", "14:00", "Quiet duplicate");
+  const clash = row("other", "09:30", "10:30", "Clash");
+  const rows = [first, quiet, clash];
+
+  const marked = conflictingClasses(rows);
+  assert.equal(marked.has(first), true);
+  assert.equal(marked.has(clash), true);
+  assert.equal(marked.has(quiet), false, "the quiet row shares an id with a conflict");
+
+  // The draft preview has the same rule: exclude the edited row by identity, then
+  // compare row objects instead of ids.
+  const draft = { ...first, start: "09:45", end: "10:45" };
+  const draftConflicts = overlappingClasses([quiet, clash], draft);
+  assert.deepEqual(draftConflicts, [clash]);
+  assert.equal(
+    overlappingClasses(
+      rows.filter((item) => item !== first),
+      draft,
+    ).some((item) => item === quiet),
+    false,
+  );
+  const week = readFileSync(
+    join(import.meta.dirname, "..", "components", "week-schedule.tsx"),
+    "utf8",
+  );
+  assert.match(week, /conflictRows\.has\(row\)/);
+  assert.match(week, /conflicts\.includes\(row\)/);
+  assert.doesNotMatch(week, /conflictIds\.has/);
 });
 
 function blankBucket() {

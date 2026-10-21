@@ -19,7 +19,7 @@ import { useDesk, useLang, WEEK_DAYS, type ScheduleBlock, type WeekDay } from "@
 import { useDeskReplaced } from "@/lib/desk-replaced";
 import { deskText as c, dayName, type DeskCopyKey } from "@/lib/desk-copy";
 import {
-  conflictingClassIds,
+  conflictingClasses,
   overlappingClasses,
   scheduleForDay,
   validScheduleTime,
@@ -77,7 +77,7 @@ function ScheduleEditor() {
     draft,
   );
   const overlap = conflicts.length > 0;
-  const conflictIds = conflictingClassIds(schedule);
+  const conflictRows = conflictingClasses(schedule);
 
   function startEdit(row?: ScheduleBlock) {
     setEditing(row ? refOf(schedule, row) : null);
@@ -339,8 +339,8 @@ function ScheduleEditor() {
           </div>
         ) : (
           rows.map((row) => {
-            const inConflict = conflictIds.has(row.id);
-            const conflictsDraft = open && overlap && conflicts.some((item) => item.id === row.id);
+            const inConflict = conflictRows.has(row);
+            const conflictsDraft = open && overlap && conflicts.includes(row);
             return (
               <div
                 className={`class-row${inConflict || conflictsDraft ? " class-row-conflict" : ""}`}

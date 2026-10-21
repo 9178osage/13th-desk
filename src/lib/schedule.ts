@@ -42,9 +42,9 @@ export function hasScheduleOverlap(
 ) {
   return overlappingClasses(schedule, row, exceptId).length > 0;
 }
-/** Ids of classes that overlap at least one other class in the same stage. */
-export function conflictingClassIds(schedule: ScheduleBlock[]): Set<string> {
-  const ids = new Set<string>();
+/** Classes that overlap at least one other class in the same stage, by row identity. */
+export function conflictingClasses(schedule: ScheduleBlock[]): Set<ScheduleBlock> {
+  const rows = new Set<ScheduleBlock>();
   for (let i = 0; i < schedule.length; i++) {
     const a = schedule[i];
     if (!validScheduleTime(a.start, a.end)) continue;
@@ -52,10 +52,17 @@ export function conflictingClassIds(schedule: ScheduleBlock[]): Set<string> {
       const b = schedule[j];
       if (a.day !== b.day || !validScheduleTime(b.start, b.end)) continue;
       if (a.start < b.end && b.start < a.end) {
-        ids.add(a.id);
-        ids.add(b.id);
+        // Identity, not id: duplicate/blank ids are accepted on import, and an id-only
+        // set would put the badge on every row that shares it.
+        rows.add(a);
+        rows.add(b);
       }
     }
   }
-  return ids;
+  return rows;
+}
+
+/** Ids of classes that overlap at least one other class in the same stage. */
+export function conflictingClassIds(schedule: ScheduleBlock[]): Set<string> {
+  return new Set([...conflictingClasses(schedule)].map((row) => row.id));
 }
