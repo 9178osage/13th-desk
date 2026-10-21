@@ -1334,8 +1334,15 @@
     min-width: 0;
   }
   .desk-preferences label > span:not(.sr-only) {
+    /* Keep the accessible name without squeezing long translated labels
+       into the select's share of a small phone screen. */
     display: block;
-    flex-shrink: 0;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    clip-path: inset(50%);
   }
   .desk-preferences select {
     width: 100%;
@@ -1458,11 +1465,13 @@
   .task-filters button {
     flex: 1;
     min-width: 0;
-    padding-inline: 0.25rem;
-    overflow-wrap: anywhere;
+    padding: 0.25rem 0;
+    white-space: nowrap;
   }
   .task-filters button span {
-    white-space: nowrap;
+    display: block;
+    margin-left: 0;
+    line-height: 1.2;
   }
   .backup-link,
   .district-toolbar button,

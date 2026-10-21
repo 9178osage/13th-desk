@@ -102,6 +102,19 @@ test("mobile preference controls share flexible columns and the compact search b
     expectDeclaration(".desk-preferences label", "min-width", "0", width);
     expectDeclaration(".desk-preferences select", "width", "100%", width);
     expectDeclaration(".desk-preferences select", "max-width", "none", width);
+    expectDeclaration(".desk-preferences label > span:not(.sr-only)", "display", "block", width);
+    expectDeclaration(
+      ".desk-preferences label > span:not(.sr-only)",
+      "position",
+      "absolute",
+      width,
+    );
+    expectDeclaration(
+      ".desk-preferences label > span:not(.sr-only)",
+      "clip-path",
+      "inset(50%)",
+      width,
+    );
     expectDeclaration(".palette-trigger-label", "display", "none", width);
   }
   expectDeclaration(".desk-preferences", "display", "flex", 768);
@@ -136,7 +149,14 @@ test("mobile content and focus scrolling reserve bottom navigation and landscape
     );
   }
   expectDeclaration(".task-filters button", "min-width", "0");
-  expectDeclaration(".task-filters button", "overflow-wrap", "anywhere");
+});
+
+test("mobile task filters keep whole labels with counts on their own line", () => {
+  expectDeclaration(".task-filters button", "flex", "1");
+  expectDeclaration(".task-filters button", "white-space", "nowrap");
+  expectDeclaration(".task-filters button span", "display", "block");
+  expectDeclaration(".task-filters button span", "margin-left", "0");
+  assert.equal(declaration(".task-filters button", "overflow-wrap"), undefined);
 });
 
 test("search results can shrink and scroll inside a dynamic-height dialog", () => {
