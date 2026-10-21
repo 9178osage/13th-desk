@@ -1121,6 +1121,33 @@ test("SSR function runs in a single region near Eugene (Hobby allows one)", () =
   assert.match(vite, /vercel: \{ functions: \{ regions: \["pdx1"\] \} \}/);
 });
 
+test("framing is limited to the desk itself and the Grok preview embedders", () => {
+  const repo = join(import.meta.dirname, "../..");
+  const vercel = JSON.parse(readFileSync(join(repo, "vercel.json"), "utf8")) as {
+    headers: { source: string; headers: { key: string; value: string }[] }[];
+  };
+  const all = vercel.headers.find((rule) => rule.source === "/(.*)")?.headers ?? [];
+  const csp = all.filter((h) => h.key.toLowerCase() === "content-security-policy");
+  assert.equal(csp.length, 1);
+  const directive = csp[0].value
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("frame-ancestors "));
+  assert.ok(directive, "frame-ancestors is set");
+  const sources = directive.split(/\s+/).slice(1);
+  assert.ok(sources.includes("'self'"));
+  assert.ok(!sources.includes("*"), "no wildcard embedding");
+  assert.ok(!sources.some((src) => /^(https?:|\*\.?)$/.test(src)), "no scheme-wide sources");
+  // Every allowed origin is one the preview bridge already trusts as a parent.
+  for (const src of sources.filter((item) => item !== "'self'")) {
+    const sample = src.replace("*.", "preview.").replace(":*", ":5173");
+    assert.ok(isGrokEmbedderOrigin(sample), src);
+  }
+  assert.ok(sources.includes("https://grok.com"));
+  // X-Frame-Options cannot list several origins and would override the allowlist.
+  assert.ok(!all.some((h) => h.key.toLowerCase() === "x-frame-options"));
+});
+
 test("preview bridge stays mounted but only loads when framed", () => {
   const src = join(import.meta.dirname, "..");
   const root = readFileSync(join(src, "routes/__root.tsx"), "utf8");
@@ -1742,8 +1769,8 @@ test("undo still restores when the list is back at its limit; only over-limit or
   assert.equal(canRestore(list(LIMITS.schedule), "gone", "schedule"), true);
   assert.equal(canRestore(list(LIMITS.schedule + 1), "gone", "schedule"), false);
   const store = readFileSync(join(import.meta.dirname, "store.ts"), "utf8");
-  assert.match(store, /canRestore\(bucket\.notes, note\.id, "notes"\)/);
-  assert.match(store, /canRestore\(bucket\.schedule, row\.id, "schedule"\)/);
+  assert.match(store, /canRestoreRow\(bucket\.notes, removed, "notes"\)/);
+  assert.match(store, /canRestoreRow\(bucket\.schedule, removed, "schedule"\)/);
   // Adding keeps the >= check.
   assert.match(store, /bucket\.notes\.length >= DESK_LIMITS\.notes/);
   assert.match(store, /bucket\.schedule\.length >= DESK_LIMITS\.schedule/);
@@ -1825,11 +1852,11 @@ test("GPA undo: a deleted class goes back where it was, within the same restore 
   assert.deepEqual(insertAt(["a"], "b", -1), ["b", "a"]);
   assert.deepEqual(insertAt(["a"], "b", Number.NaN), ["a", "b"]);
   const store = readFileSync(join(import.meta.dirname, "store.ts"), "utf8");
-  assert.match(store, /canRestore\(bucket\.grades, row\.id, "grades"\)/);
-  assert.match(store, /insertAt\(bucket\.grades, row, index\)/);
+  assert.match(store, /canRestoreRow\(bucket\.grades, removed, "grades"\)/);
+  assert.match(store, /insertAt\(bucket\.grades, removed\.row, removed\.index\)/);
   assert.match(store, /bucket\.grades\.length >= DESK_LIMITS\.grades/, "adding keeps >=");
   const page = readFileSync(join(import.meta.dirname, "../routes/gpa.tsx"), "utf8");
-  assert.match(page, /restoreGrade\(deleted\.row, deleted\.level, deleted\.index\)/);
+  assert.match(page, /restoreGrade\(deleted\.removed, deleted\.level\)/);
   assert.match(page, /setMessage\("undoFailed"\)/);
 });
 
@@ -1969,7 +1996,7 @@ test("editor state cannot outlive a replaced desk or point at the wrong slice", 
   // A cross-tab level change must close the clear dialog that describes the old list.
   assert.match(read("../routes/gpa.tsx"), /<AlertDialog\.Root key=\{level\}>/);
   // Undo reveals the restored class on its own weekday.
-  assert.match(read("../components/week-schedule.tsx"), /setDay\(deleted\.day\)/);
+  assert.match(read("../components/week-schedule.tsx"), /setDay\(deleted\.removed\.row\.day\)/);
   // Quick add under a completed filter must become visible.
   assert.match(read("../components/home-dashboard.tsx"), /setFilter\("all"\)/);
   // Acknowledging setup fills only choices that were never made.
@@ -1977,3 +2004,68 @@ test("editor state cannot outlive a replaced desk or point at the wrong slice", 
   assert.match(store, /if \(!cur\.langSet\) \{/);
   assert.match(store, /if \(!cur\.levelSet\) \{/);
 });
+
+import { canRestoreRow, refOf, removeRow, rowAt, updateRow, type RemovedRow } from "./row-ref.ts";
+test("duplicate and blank IDs: edits, toggles and deletes hit exactly one row", () => {
+  for (const id of ["", "dup"]) {
+    const rows = [
+      { id, text: "a", done: false },
+      { id, text: "b", done: false },
+      { id: "u", text: "c", done: false },
+    ];
+    const edited = updateRow(rows, { id, index: 0 }, (row) => ({ ...row, text: "A" }));
+    assert.deepEqual(
+      edited?.map((row) => row.text),
+      ["A", "b", "c"],
+      `${JSON.stringify(id)}: edit only the first`,
+    );
+    const toggled = updateRow(rows, { id, index: 1 }, (row) => ({ ...row, done: !row.done }));
+    assert.deepEqual(
+      toggled?.map((row) => row.done),
+      [false, true, false],
+      `${JSON.stringify(id)}: toggle only one`,
+    );
+    const result = removeRow(rows, { id, index: 1 });
+    assert.ok(result);
+    assert.deepEqual(
+      result.list.map((row) => row.text),
+      ["a", "c"],
+      `${JSON.stringify(id)}: delete only one`,
+    );
+    assert.deepEqual(result.removed, { row: rows[1], index: 1, shared: true });
+    // Undo restores the very row at its original position, even though a sibling
+    // still carries the same id; a second undo of the same row is refused.
+    assert.equal(canRestoreRow(result.list, result.removed, "notes"), true);
+    const back = insertAt(result.list, result.removed.row, result.removed.index);
+    assert.deepEqual(back, rows);
+    assert.equal(canRestoreRow(back, result.removed, "notes"), false);
+    // A stale position (the id there differs, or it is past the end) is a no-op.
+    assert.equal(
+      updateRow(rows, { id, index: 2 }, (row) => row),
+      null,
+    );
+    assert.equal(removeRow(rows, { id, index: 3 }), null);
+    assert.equal(rowAt(rows, { id, index: -1 }), null);
+    assert.equal(rowAt(rows, { id, index: 0.5 }), null);
+    assert.deepEqual(refOf(rows, rows[1]), { id, index: 1 });
+    assert.equal(refOf(rows, { ...rows[1] }), null, "refs follow identity, not equality");
+  }
+});
+
+test("unique IDs keep the old behavior: one row changes, undo refuses an id already back", () => {
+  const rows = [{ id: "a" }, { id: "b" }, { id: "c" }];
+  const result = removeRow(rows, { id: "b", index: 1 });
+  assert.ok(result);
+  assert.equal(result.removed.shared, false);
+  assert.deepEqual(result.list, [{ id: "a" }, { id: "c" }]);
+  assert.equal(canRestoreRow(result.list, result.removed, "grades"), true);
+  // Restored elsewhere (another tab) as a different object with the same unique id.
+  const elsewhere = [{ id: "b" }, ...result.list];
+  assert.equal(canRestoreRow(elsewhere, result.removed, "grades"), false);
+  const over: RemovedRow<{ id: string }> = { row: { id: "z" }, index: 0, shared: false };
+  const full = Array.from({ length: LIMITS.grades }, (_, i) => ({ id: `g${i}` }));
+  assert.equal(canRestoreRow(full, over, "grades"), true, "back at the limit still restores");
+  assert.equal(canRestoreRow([...full, { id: "x" }], over, "grades"), false);
+});
+
+import { isGrokEmbedderOrigin } from "./preview-embedder-origin.ts";

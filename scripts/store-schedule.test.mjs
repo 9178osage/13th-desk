@@ -73,6 +73,7 @@ test("real timetable edits preserve imported text without relaxing creation or s
       assert.equal(await replacePersistedDeskState(parsed.backup.state), true);
     }
     const row = () => useDesk.getState().buckets.uni.schedule[0];
+    const first = { id: "", index: 0 };
     const assertSaved = () =>
       assert.deepEqual(JSON.parse(data.get(key)).state.buckets, getPersistedDeskState().buckets);
 
@@ -81,7 +82,7 @@ test("real timetable edits preserve imported text without relaxing creation or s
       async () => {
         await importRows([legacy]);
         assert.equal(
-          useDesk.getState().updateScheduleBlock("", { ...row(), start: "9:30", day: "tue" }),
+          useDesk.getState().updateScheduleBlock(first, { ...row(), start: "9:30", day: "tue" }),
           true,
         );
         const expected = { ...legacy, start: "09:30", day: "tue" };
@@ -100,12 +101,12 @@ test("real timetable edits preserve imported text without relaxing creation or s
     await t.test("editing one text field does not shorten the other", async () => {
       await importRows([legacy]);
       assert.equal(
-        useDesk.getState().updateScheduleBlock("", { ...row(), title: "Updated course" }),
+        useDesk.getState().updateScheduleBlock(first, { ...row(), title: "Updated course" }),
         true,
       );
       assert.equal(row().title, "Updated course");
       assert.equal(row().place, legacy.place);
-      assert.equal(useDesk.getState().updateScheduleBlock("", { ...row(), place: "" }), true);
+      assert.equal(useDesk.getState().updateScheduleBlock(first, { ...row(), place: "" }), true);
       assert.equal(row().place, "");
       assertSaved();
     });
@@ -122,7 +123,10 @@ test("real timetable edits preserve imported text without relaxing creation or s
           { start: "25:00" },
           { end: "09:00" },
         ]) {
-          assert.equal(useDesk.getState().updateScheduleBlock("", { ...row(), ...patch }), false);
+          assert.equal(
+            useDesk.getState().updateScheduleBlock(first, { ...row(), ...patch }),
+            false,
+          );
           assert.equal(data.get(key), before);
           assert.deepEqual(row(), legacy);
         }
@@ -138,10 +142,54 @@ test("real timetable edits preserve imported text without relaxing creation or s
         })),
       ];
       await importRows(rows);
-      assert.equal(useDesk.getState().updateScheduleBlock("", { ...row(), start: "09:30" }), true);
+      assert.equal(
+        useDesk.getState().updateScheduleBlock(first, { ...row(), start: "09:30" }),
+        true,
+      );
       assert.equal(useDesk.getState().buckets.uni.schedule.length, DESK_LIMITS.schedule);
       assert.deepEqual(useDesk.getState().buckets.uni.schedule.slice(1), rows.slice(1));
       assert.equal(useDesk.getState().addScheduleBlock({ ...legacy, title: "No room" }), false);
+      assertSaved();
+    });
+
+    await t.test("duplicate and blank IDs: edit, pin, delete and undo touch one row", async () => {
+      const twin = {
+        ...legacy,
+        title: "Twin",
+        day: "wed",
+        start: "13:00",
+        end: "14:00",
+        place: "B",
+      };
+      const third = { ...legacy, id: "", title: "Third", pinned: false };
+      await importRows([legacy, twin, third]);
+      const api = () => useDesk.getState();
+      const rows = () => api().buckets.uni.schedule;
+      assert.equal(api().updateScheduleBlock(first, { ...legacy, title: "Edited" }), true);
+      assert.deepEqual(rows()[1], twin, "the second blank-ID row is untouched");
+      assert.deepEqual(rows()[2], third);
+      api().toggleSchedulePin({ id: "", index: 2 });
+      assert.equal(rows()[2].pinned, true);
+      assert.equal(rows()[0].pinned, legacy.pinned);
+      // A stale position (id no longer matches) does nothing.
+      assert.equal(
+        api().updateScheduleBlock({ id: "x", index: 1 }, { ...twin, title: "No" }),
+        false,
+      );
+      assert.equal(api().removeScheduleBlock({ id: "", index: 3 }), null);
+      const removed = api().removeScheduleBlock({ id: "", index: 1 });
+      assert.deepEqual(removed, { row: twin, index: 1, shared: true });
+      assert.deepEqual(
+        rows().map((row) => row.title),
+        ["Edited", "Third"],
+      );
+      assertSaved();
+      assert.equal(api().restoreScheduleBlock(removed, "uni"), true);
+      assert.deepEqual(
+        rows().map((row) => row.title),
+        ["Edited", "Twin", "Third"],
+      );
+      assert.equal(api().restoreScheduleBlock(removed, "uni"), false, "no double undo");
       assertSaved();
     });
 

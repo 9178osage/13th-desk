@@ -18,6 +18,7 @@ import {
   type GpaInput,
 } from "@/lib/gpa";
 import type { Level } from "@/lib/levels";
+import type { RemovedRow } from "@/lib/row-ref";
 import type { GradeRow } from "@/lib/store";
 import { useDesk, useLang } from "@/lib/store";
 import { useDeskReplaced } from "@/lib/desk-replaced";
@@ -104,7 +105,7 @@ function GpaPage() {
   const [whatIfCredits, setWhatIfCredits] = useState(defaultCredits(level));
   const [editing, setEditing] = useState<GradeDraft | null>(null);
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
-  const [deleted, setDeleted] = useState<{ row: GradeRow; index: number; level: Level } | null>(
+  const [deleted, setDeleted] = useState<{ removed: RemovedRow<GradeRow>; level: Level } | null>(
     null,
   );
 
@@ -125,8 +126,14 @@ function GpaPage() {
     setDeleted(null);
   }, [level]);
 
-  function startEdit(row: GradeRow) {
-    setEditing({ id: row.id, grade: row.grade, credits: String(row.credits), boost: row.boost });
+  function startEdit(row: GradeRow, index: number) {
+    setEditing({
+      id: row.id,
+      index,
+      grade: row.grade,
+      credits: String(row.credits),
+      boost: row.boost,
+    });
     setMessage(null);
     // The undo key belongs to an earlier delete, not to this edit.
     setDeleted(null);
@@ -135,19 +142,23 @@ function GpaPage() {
   function saveEdit(event: FormEvent) {
     event.preventDefault();
     if (!editing) return;
-    const saved = updateGrade(editing.id, {
-      grade: editing.grade,
-      credits: Number(editing.credits),
-      boost: editing.boost,
-    });
+    const saved = updateGrade(
+      { id: editing.id, index: editing.index },
+      {
+        grade: editing.grade,
+        credits: Number(editing.credits),
+        boost: editing.boost,
+      },
+    );
     setEditing(null);
     setMessage(saved ? "gradeSaved" : "gradeGone");
   }
 
   function remove(row: GradeRow, index: number) {
-    removeGrade(row.id);
-    if (editing?.id === row.id) setEditing(null);
-    setDeleted({ row, index, level });
+    const removed = removeGrade({ id: row.id, index });
+    if (!removed) return;
+    if (editing?.index === index) setEditing(null);
+    setDeleted({ removed, level });
     setMessage("deleted");
   }
 
@@ -630,8 +641,8 @@ function GpaPage() {
           {grades.length > 0 ? (
             <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card shadow-paper">
               {grades.map((row, index) =>
-                editing?.id === row.id ? (
-                  <li key={row.id} className="px-4 py-3">
+                editing?.index === index && editing.id === row.id ? (
+                  <li key={`${index}:${row.id}`} className="px-4 py-3">
                     <GradeEditor
                       lang={lang}
                       level={level}
@@ -643,7 +654,7 @@ function GpaPage() {
                     />
                   </li>
                 ) : (
-                  <li key={row.id} className="flex items-center gap-1 px-4 py-2">
+                  <li key={`${index}:${row.id}`} className="flex items-center gap-1 px-4 py-2">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-ink">{row.title || row.grade}</p>
                       <p className="text-sm text-muted">
@@ -666,7 +677,7 @@ function GpaPage() {
                       type="button"
                       disabled={!hydrated}
                       aria-label={`${c(lang, "edit")}: ${row.title || row.grade}`}
-                      onClick={() => startEdit(row)}
+                      onClick={() => startEdit(row, index)}
                       className="min-h-11 shrink-0 px-2 text-sm text-moss"
                     >
                       {c(lang, "edit")}
@@ -691,7 +702,7 @@ function GpaPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (restoreGrade(deleted.row, deleted.level, deleted.index)) {
+                  if (restoreGrade(deleted.removed, deleted.level)) {
                     setDeleted(null);
                     setMessage("restored");
                   } else setMessage("undoFailed");
@@ -837,7 +848,7 @@ const REMOVE: Copy = {
   ja: "削除",
 };
 
-type GradeDraft = { id: string; grade: string; credits: string; boost: boolean };
+type GradeDraft = { id: string; index: number; grade: string; credits: string; boost: boolean };
 
 const selectClass =
   "mt-1 min-h-11 w-full rounded-md border border-line bg-card px-3 font-normal shadow-sm";

@@ -21,6 +21,8 @@ import { releaseLine } from "@/data/k12";
 import { quickLinks } from "@/data/quick-links";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
 import { useDeskReplaced } from "@/lib/desk-replaced";
+import { refOf, type RemovedRow } from "@/lib/row-ref";
+import type { Level } from "@/lib/levels";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr } from "@/lib/text";
 import { dateFormatter } from "@/lib/date-formatters";
@@ -54,7 +56,7 @@ function TaskList() {
   const [draft, setDraft] = useState("");
   const [filter, setFilter] = useState<"all" | "pending" | "done">("all");
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
-  const [deleted, setDeleted] = useState<Note | null>(null);
+  const [deleted, setDeleted] = useState<{ removed: RemovedRow<Note>; level: Level } | null>(null);
   // An import or a newer desk from another tab replaces the notes this undo belongs to.
   useDeskReplaced(() => {
     setDeleted(null);
@@ -150,9 +152,16 @@ function TaskList() {
       ) : (
         <ul className="desk-tasks">
           {visible.map((note) => (
-            <li key={note.id} className={note.done ? "is-done" : ""}>
+            <li key={`${notes.indexOf(note)}:${note.id}`} className={note.done ? "is-done" : ""}>
               <label className="task-check">
-                <input type="checkbox" checked={note.done} onChange={() => toggle(note.id)} />
+                <input
+                  type="checkbox"
+                  checked={note.done}
+                  onChange={() => {
+                    const ref = refOf(notes, note);
+                    if (ref) toggle(ref);
+                  }}
+                />
                 <span className="check-visual" aria-hidden="true">
                   {note.done && <Check size={14} />}
                 </span>
@@ -163,8 +172,10 @@ function TaskList() {
                 className="icon-button"
                 aria-label={c(lang, "delete") + ": " + note.text}
                 onClick={() => {
-                  remove(note.id);
-                  setDeleted(note);
+                  const ref = refOf(notes, note);
+                  const removed = ref ? remove(ref) : null;
+                  if (!removed) return;
+                  setDeleted({ removed, level });
                   setMessage("deleted");
                 }}
               >
@@ -179,7 +190,7 @@ function TaskList() {
         {deleted && (
           <button
             onClick={() => {
-              if (restore(deleted, level)) {
+              if (restore(deleted.removed, deleted.level)) {
                 setDeleted(null);
                 setMessage("restored");
               } else setMessage("undoFailed");

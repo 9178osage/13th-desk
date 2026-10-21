@@ -331,6 +331,10 @@ test("unsupported geolocation feedback also follows all six languages", () => {
   assert.equal(f.locateButton().props.disabled, false);
 });
 
+const rowRef = load("src/lib/row-ref.ts", {
+  "./desk-limits.ts": load("src/lib/desk-limits.ts"),
+});
+
 function gpaFixture(count = 0) {
   const runner = hookRunner();
   let lang = "en";
@@ -356,20 +360,25 @@ function gpaFixture(count = 0) {
     ),
     hydrated: true,
     addGrade: (row) => added.push(row),
-    removeGrade(id) {
+    removeGrade(ref) {
       const bucket = state.buckets[state.level];
-      bucket.grades = bucket.grades.filter((row) => row.id !== id);
+      const result = rowRef.removeRow(bucket.grades, ref);
+      if (!result) return null;
+      bucket.grades = result.list;
+      return result.removed;
     },
-    restoreGrade(row, level, index) {
+    restoreGrade(removed, level) {
       const bucket = state.buckets[level];
-      if (bucket.grades.some((item) => item.id === row.id)) return false;
+      if (!rowRef.canRestoreRow(bucket.grades, removed, "grades")) return false;
+      const { row, index } = removed;
       bucket.grades = [...bucket.grades.slice(0, index), row, ...bucket.grades.slice(index)];
       return true;
     },
-    updateGrade(id, patch) {
+    updateGrade(ref, patch) {
       const bucket = state.buckets[state.level];
-      if (!bucket.grades.some((row) => row.id === id)) return false;
-      bucket.grades = bucket.grades.map((row) => (row.id === id ? { ...row, ...patch } : row));
+      const next = rowRef.updateRow(bucket.grades, ref, (row) => ({ ...row, ...patch }));
+      if (!next) return false;
+      bucket.grades = next;
       return true;
     },
     clearGrades() {},
@@ -521,7 +530,10 @@ test("GPA rows: inline edit saves grade and credits, and a vanished row says so"
   f.click("Edit: Class");
   const editor = f.editor();
   assert.ok(editor, "the first row turned into the editor");
-  assert.deepEqual({ ...editor.props.draft }, { id: "0", grade: "A", credits: "4", boost: false });
+  assert.deepEqual(
+    { ...editor.props.draft },
+    { id: "0", index: 0, grade: "A", credits: "4", boost: false },
+  );
   editor.props.onChange({ ...editor.props.draft, grade: "B+", credits: "3" });
   f.render();
   f.editor().props.onSubmit({ preventDefault() {} });
@@ -586,14 +598,22 @@ function scheduleFixture(count = 1) {
       state.buckets.uni.schedule.push({ ...row, id: "new", pinned: false });
       return true;
     },
-    updateScheduleBlock(id, patch) {
-      calls.push(["update", id]);
-      const rows = state.buckets.uni.schedule;
-      if (!rows.some((row) => row.id === id)) return false;
-      state.buckets.uni.schedule = rows.map((row) => (row.id === id ? { ...row, ...patch } : row));
+    updateScheduleBlock(ref, patch) {
+      calls.push(["update", ref.id]);
+      const next = rowRef.updateRow(state.buckets.uni.schedule, ref, (row) => ({
+        ...row,
+        ...patch,
+      }));
+      if (!next) return false;
+      state.buckets.uni.schedule = next;
       return true;
     },
-    removeScheduleBlock() {},
+    removeScheduleBlock(ref) {
+      const result = rowRef.removeRow(state.buckets.uni.schedule, ref);
+      if (!result) return null;
+      state.buckets.uni.schedule = result.list;
+      return result.removed;
+    },
     restoreScheduleBlock() {},
     toggleSchedulePin() {},
   };
@@ -624,6 +644,7 @@ function scheduleFixture(count = 1) {
     "@/lib/desk-replaced": { useDeskReplaced: () => {} },
     "@/lib/desk-copy": deskCopy,
     "@/lib/schedule": load("src/lib/schedule.ts"),
+    "@/lib/row-ref": rowRef,
   });
   // Render the real inner editor; the wrapper only keys it by school level.
   const Component = WeekSchedule().type;
@@ -710,4 +731,68 @@ test("timetable: null editing state still adds a new course", () => {
   assert.deepEqual(f.calls, [["add"]]);
   assert.equal(f.state.buckets.uni.schedule.length, 2);
   assert.equal(f.state.buckets.uni.schedule[1].title, "New course");
+});
+
+test("timetable: with two blank-ID courses, Edit and Delete touch only the chosen row", () => {
+  const f = scheduleFixture();
+  const twin = {
+    ...f.state.buckets.uni.schedule[0],
+    title: "Blank twin",
+    day: "mon",
+    start: "11:00",
+    end: "12:00",
+    place: "Room 2",
+  };
+  f.state.buckets.uni.schedule.push(twin);
+  f.render();
+  f.edit();
+  nodes(f.tree())
+    .find((n) => n.type === "Input" && n.props.required && n.props.maxLength === 60)
+    .props.onChange({ target: { value: "Edited first" } });
+  f.render();
+  f.submit();
+  assert.deepEqual(
+    f.state.buckets.uni.schedule.map((row) => [row.id, row.title, row.start, row.place]),
+    [
+      ["", "Edited first", "09:00", ""],
+      ["", "Blank twin", "11:00", "Room 2"],
+    ],
+  );
+  nodes(f.tree())
+    .find((n) => n.props?.["aria-label"] === "Delete: Blank twin")
+    .props.onClick();
+  f.render();
+  assert.deepEqual(
+    f.state.buckets.uni.schedule.map((row) => row.title),
+    ["Edited first"],
+  );
+});
+
+test("GPA rows: duplicate IDs edit and remove only the chosen row, and undo puts it back", () => {
+  const f = gpaFixture(3);
+  f.state.buckets.uni.grades = f.state.buckets.uni.grades.map((row, i) => ({
+    ...row,
+    id: "dup",
+    title: `Class ${i}`,
+  }));
+  f.render();
+  f.click("Remove: Class 1");
+  assert.deepEqual(
+    f.state.buckets.uni.grades.map((row) => row.title),
+    ["Class 0", "Class 2"],
+  );
+  f.undo();
+  assert.deepEqual(
+    f.state.buckets.uni.grades.map((row) => row.title),
+    ["Class 0", "Class 1", "Class 2"],
+  );
+  f.click("Edit: Class 0");
+  f.editor().props.onChange({ ...f.editor().props.draft, grade: "C" });
+  f.render();
+  f.editor().props.onSubmit({ preventDefault() {} });
+  f.render();
+  assert.deepEqual(
+    f.state.buckets.uni.grades.map((row) => row.grade),
+    ["C", "A", "A"],
+  );
 });

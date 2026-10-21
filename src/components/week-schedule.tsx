@@ -10,7 +10,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { LEVELS } from "@/lib/levels";
+import { LEVELS, type Level } from "@/lib/levels";
+import { refOf, rowAt, type RemovedRow, type RowRef } from "@/lib/row-ref";
 import { tr } from "@/lib/text";
 import { sampleSlots } from "@/lib/schedule-samples";
 import { Button, Input } from "@/components/ui";
@@ -50,11 +51,14 @@ function ScheduleEditor() {
   const pin = useDesk((s) => s.toggleSchedulePin);
   const [day, setDay] = useState<WeekDay>("mon");
   const [draft, setDraft] = useState<ScheduleDraft>(emptyDraft("mon"));
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<RowRef | null>(null);
   const isEditing = editing !== null;
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
-  const [deleted, setDeleted] = useState<ScheduleBlock | null>(null);
+  const [deleted, setDeleted] = useState<{
+    removed: RemovedRow<ScheduleBlock>;
+    level: Level;
+  } | null>(null);
   const [awaitConfirm, setAwaitConfirm] = useState(false);
   // Undo and the open form are bound to the schedule that was on screen.
   useDeskReplaced(() => {
@@ -66,12 +70,17 @@ function ScheduleEditor() {
   });
   const rows = scheduleForDay(schedule, day);
   const invalid = !validScheduleTime(draft.start, draft.end);
-  const conflicts = overlappingClasses(schedule, draft, editing ?? undefined);
+  // The row being edited is excluded by identity: an id may be shared by several rows.
+  const editingRow = rowAt(schedule, editing);
+  const conflicts = overlappingClasses(
+    editingRow ? schedule.filter((item) => item !== editingRow) : schedule,
+    draft,
+  );
   const overlap = conflicts.length > 0;
   const conflictIds = conflictingClassIds(schedule);
 
   function startEdit(row?: ScheduleBlock) {
-    setEditing(row?.id ?? null);
+    setEditing(row ? refOf(schedule, row) : null);
     setDraft(row ? { ...row } : emptyDraft(day));
     setOpen(true);
     setMessage(null);
@@ -85,7 +94,7 @@ function ScheduleEditor() {
     // add() can fail on the 40-class cap or on stale/blank input; update() only
     // fails when the row is gone (deleted in another tab) or the input is stale,
     // so never report the cap for an edit — close the form and say what happened.
-    const saved = isEditing ? update(editing, draft) : add(draft);
+    const saved = editing !== null ? update(editing, draft) : add(draft);
     if (!saved) {
       setMessage(isEditing ? "classGone" : "classLimit");
       setAwaitConfirm(false);
@@ -335,7 +344,7 @@ function ScheduleEditor() {
             return (
               <div
                 className={`class-row${inConflict || conflictsDraft ? " class-row-conflict" : ""}`}
-                key={row.id}
+                key={`${schedule.indexOf(row)}:${row.id}`}
               >
                 <div className="class-time">
                   <strong>{row.start}</strong>
@@ -369,7 +378,10 @@ function ScheduleEditor() {
                     className="icon-button"
                     aria-pressed={row.pinned}
                     aria-label={c(lang, row.pinned ? "unpin" : "pin") + ": " + row.title}
-                    onClick={() => pin(row.id)}
+                    onClick={() => {
+                      const ref = refOf(schedule, row);
+                      if (ref) pin(ref);
+                    }}
                   >
                     <Star size={17} fill={row.pinned ? "currentColor" : "none"} />
                   </button>
@@ -384,10 +396,13 @@ function ScheduleEditor() {
                     className="icon-button"
                     aria-label={c(lang, "delete") + ": " + row.title}
                     onClick={() => {
-                      remove(row.id);
-                      setDeleted(row);
+                      const ref = refOf(schedule, row);
+                      const removed = ref ? remove(ref) : null;
+                      if (!removed) return;
+                      setDeleted({ removed, level });
                       setMessage("deleted");
-                      if (editing === row.id) {
+                      if (editingRow === row) {
+                        setEditing(null);
                         setOpen(false);
                         setAwaitConfirm(false);
                       }
@@ -407,10 +422,10 @@ function ScheduleEditor() {
           <button
             type="button"
             onClick={() => {
-              if (restore(deleted, level)) {
+              if (restore(deleted.removed, deleted.level)) {
                 // The row went back to its own weekday; show it instead of leaving the
                 // visitor on an unrelated day with an empty list and a "restored" note.
-                setDay(deleted.day);
+                setDay(deleted.removed.row.day);
                 setDeleted(null);
                 setMessage("restored");
               } else setMessage("undoFailed");

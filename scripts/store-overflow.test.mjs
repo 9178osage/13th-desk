@@ -114,13 +114,16 @@ test("real store preserves merged overflow through edits, reload, export and res
       if (kind === "favs") useDesk.getState().toggleFav("blocked");
       if (kind === "checks") useDesk.getState().toggleCheck("blocked");
       if (kind === "notes")
-        useDesk.getState().toggleNote(getPersistedDeskState().buckets.uni.notes[0].id);
+        useDesk
+          .getState()
+          .toggleNote({ id: getPersistedDeskState().buckets.uni.notes[0].id, index: 0 });
       assert.equal(getPersistedDeskState().buckets.uni[kind].length, DESK_LIMITS[kind] + 1);
       for (const item of getPersistedDeskState().buckets.uni[kind].slice(0, 2)) {
         const api = useDesk.getState();
-        if (kind === "notes") api.removeNote(item.id);
-        if (kind === "grades") api.removeGrade(item.id);
-        if (kind === "schedule") api.removeScheduleBlock(item.id);
+        // Each pass removes the current head row.
+        if (kind === "notes") api.removeNote({ id: item.id, index: 0 });
+        if (kind === "grades") api.removeGrade({ id: item.id, index: 0 });
+        if (kind === "schedule") api.removeScheduleBlock({ id: item.id, index: 0 });
         if (kind === "favs") api.toggleFav(item);
         if (kind === "checks") api.toggleCheck(item);
       }

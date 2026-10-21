@@ -2,7 +2,8 @@ import { createContext, useContext, useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist, type StorageValue } from "zustand/middleware";
 import { createDeskStorage, DESK_STORAGE_VERSION, type SaveStatus } from "@/lib/desk-storage";
-import { DESK_LIMITS, canRestore } from "@/lib/desk-limits";
+import { DESK_LIMITS } from "@/lib/desk-limits";
+import { canRestoreRow, removeRow, updateRow, type RemovedRow, type RowRef } from "./row-ref.ts";
 import { createTabPresence } from "@/lib/tab-presence";
 import { LEVEL_IDS, isLevel, type Level } from "@/lib/levels";
 import { isDistrict, type DistrictId } from "@/data/districts";
@@ -79,21 +80,21 @@ type DeskState = {
   setDistrict: (id: DistrictId | null) => void;
   toggleFav: (id: string) => void;
   addNote: (text: string) => boolean;
-  restoreNote: (note: Note, level: Level) => boolean;
-  toggleNote: (id: string) => void;
-  removeNote: (id: string) => void;
+  restoreNote: (removed: RemovedRow<Note>, level: Level) => boolean;
+  toggleNote: (ref: RowRef) => void;
+  removeNote: (ref: RowRef) => RemovedRow<Note> | null;
   toggleCheck: (id: string) => void;
   addGrade: (row: { title: string; credits: number; grade: string; boost: boolean }) => void;
-  removeGrade: (id: string) => void;
-  restoreGrade: (row: GradeRow, level: Level, index: number) => boolean;
-  updateGrade: (id: string, patch: { grade: string; credits: number; boost: boolean }) => boolean;
+  removeGrade: (ref: RowRef) => RemovedRow<GradeRow> | null;
+  restoreGrade: (removed: RemovedRow<GradeRow>, level: Level) => boolean;
+  updateGrade: (ref: RowRef, patch: { grade: string; credits: number; boost: boolean }) => boolean;
   clearGrades: () => void;
   setGpaPrior: (patch: { gpa?: string; weighted?: string; credits?: string }) => void;
   addScheduleBlock: (row: ScheduleDraft) => boolean;
-  updateScheduleBlock: (id: string, row: ScheduleDraft) => boolean;
-  restoreScheduleBlock: (row: ScheduleBlock, level: Level) => boolean;
-  removeScheduleBlock: (id: string) => void;
-  toggleSchedulePin: (id: string) => void;
+  updateScheduleBlock: (ref: RowRef, row: ScheduleDraft) => boolean;
+  restoreScheduleBlock: (removed: RemovedRow<ScheduleBlock>, level: Level) => boolean;
+  removeScheduleBlock: (ref: RowRef) => RemovedRow<ScheduleBlock> | null;
+  toggleSchedulePin: (ref: RowRef) => void;
 };
 
 export const WEEK_DAYS: { id: WeekDay; en: string; zh: string }[] = [
@@ -256,37 +257,28 @@ const deskStore = create<DeskState>()(
         });
         return true;
       },
-      restoreNote: (note, level) => {
+      restoreNote: (removed, level) => {
         const { buckets } = get();
         const bucket = buckets[level];
-        if (!canRestore(bucket.notes, note.id, "notes")) return false;
-        set({ buckets: { ...buckets, [level]: { ...bucket, notes: [note, ...bucket.notes] } } });
+        if (!canRestoreRow(bucket.notes, removed, "notes")) return false;
+        const notes = insertAt(bucket.notes, removed.row, removed.index);
+        set({ buckets: { ...buckets, [level]: { ...bucket, notes } } });
         return true;
       },
-      toggleNote: (id) => {
+      toggleNote: (ref) => {
         const { level, buckets } = get();
         const bucket = buckets[level];
-        set({
-          buckets: {
-            ...buckets,
-            [level]: {
-              ...bucket,
-              notes: bucket.notes.map((note) =>
-                note.id === id ? { ...note, done: !note.done } : note,
-              ),
-            },
-          },
-        });
+        const notes = updateRow(bucket.notes, ref, (note) => ({ ...note, done: !note.done }));
+        if (!notes) return;
+        set({ buckets: { ...buckets, [level]: { ...bucket, notes } } });
       },
-      removeNote: (id) => {
+      removeNote: (ref) => {
         const { level, buckets } = get();
         const bucket = buckets[level];
-        set({
-          buckets: {
-            ...buckets,
-            [level]: { ...bucket, notes: bucket.notes.filter((note) => note.id !== id) },
-          },
-        });
+        const result = removeRow(bucket.notes, ref);
+        if (!result) return null;
+        set({ buckets: { ...buckets, [level]: { ...bucket, notes: result.list } } });
+        return result.removed;
       },
       toggleCheck: (id) => {
         const { level, buckets } = get();
@@ -316,43 +308,28 @@ const deskStore = create<DeskState>()(
           },
         });
       },
-      removeGrade: (id) => {
+      removeGrade: (ref) => {
         const { level, buckets } = get();
         const bucket = buckets[level];
-        set({
-          buckets: {
-            ...buckets,
-            [level]: { ...bucket, grades: bucket.grades.filter((item) => item.id !== id) },
-          },
-        });
+        const result = removeRow(bucket.grades, ref);
+        if (!result) return null;
+        set({ buckets: { ...buckets, [level]: { ...bucket, grades: result.list } } });
+        return result.removed;
       },
-      restoreGrade: (row, level, index) => {
+      restoreGrade: (removed, level) => {
         const { buckets } = get();
         const bucket = buckets[level];
-        if (!canRestore(bucket.grades, row.id, "grades")) return false;
-        set({
-          buckets: {
-            ...buckets,
-            [level]: { ...bucket, grades: insertAt(bucket.grades, row, index) },
-          },
-        });
+        if (!canRestoreRow(bucket.grades, removed, "grades")) return false;
+        const grades = insertAt(bucket.grades, removed.row, removed.index);
+        set({ buckets: { ...buckets, [level]: { ...bucket, grades } } });
         return true;
       },
-      updateGrade: (id, patch) => {
+      updateGrade: (ref, patch) => {
         const { level, buckets } = get();
         const bucket = buckets[level];
-        const current = bucket.grades.find((item) => item.id === id);
-        const next = current ? editedGrade(current, patch, level) : null;
-        if (!next) return false;
-        set({
-          buckets: {
-            ...buckets,
-            [level]: {
-              ...bucket,
-              grades: bucket.grades.map((item) => (item.id === id ? next : item)),
-            },
-          },
-        });
+        const grades = updateRow(bucket.grades, ref, (row) => editedGrade(row, patch, level));
+        if (!grades) return false;
+        set({ buckets: { ...buckets, [level]: { ...bucket, grades } } });
         return true;
       },
       clearGrades: () => {
@@ -409,7 +386,7 @@ const deskStore = create<DeskState>()(
         });
         return true;
       },
-      updateScheduleBlock: (id, row) => {
+      updateScheduleBlock: (ref, row) => {
         // Editor caps apply to new classes, not text already accepted from a save.
         // Keep imported contents verbatim when changing a time or another field.
         const title = asText(row.title);
@@ -428,46 +405,43 @@ const deskStore = create<DeskState>()(
           return false;
         const { level, buckets } = get();
         const bucket = buckets[level];
-        if (!bucket.schedule.some((item) => item.id === id)) return false;
-        const schedule = bucket.schedule.map((item) =>
-          item.id === id ? { ...item, day: row.day, title, start, end, place } : item,
-        );
+        const schedule = updateRow(bucket.schedule, ref, (item) => ({
+          ...item,
+          day: row.day,
+          title,
+          start,
+          end,
+          place,
+        }));
+        if (!schedule) return false;
         set({ buckets: { ...buckets, [level]: { ...bucket, schedule } } });
         return true;
       },
-      restoreScheduleBlock: (row, level) => {
+      restoreScheduleBlock: (removed, level) => {
         const { buckets } = get();
         const bucket = buckets[level];
-        if (!canRestore(bucket.schedule, row.id, "schedule")) return false;
-        set({
-          buckets: { ...buckets, [level]: { ...bucket, schedule: [...bucket.schedule, row] } },
-        });
+        if (!canRestoreRow(bucket.schedule, removed, "schedule")) return false;
+        const schedule = insertAt(bucket.schedule, removed.row, removed.index);
+        set({ buckets: { ...buckets, [level]: { ...bucket, schedule } } });
         return true;
       },
-      removeScheduleBlock: (id) => {
+      removeScheduleBlock: (ref) => {
         const { level, buckets } = get();
         const bucket = buckets[level];
-        set({
-          buckets: {
-            ...buckets,
-            [level]: { ...bucket, schedule: bucket.schedule.filter((item) => item.id !== id) },
-          },
-        });
+        const result = removeRow(bucket.schedule, ref);
+        if (!result) return null;
+        set({ buckets: { ...buckets, [level]: { ...bucket, schedule: result.list } } });
+        return result.removed;
       },
-      toggleSchedulePin: (id) => {
+      toggleSchedulePin: (ref) => {
         const { level, buckets } = get();
         const bucket = buckets[level];
-        set({
-          buckets: {
-            ...buckets,
-            [level]: {
-              ...bucket,
-              schedule: bucket.schedule.map((item) =>
-                item.id === id ? { ...item, pinned: !item.pinned } : item,
-              ),
-            },
-          },
-        });
+        const schedule = updateRow(bucket.schedule, ref, (item) => ({
+          ...item,
+          pinned: !item.pinned,
+        }));
+        if (!schedule) return;
+        set({ buckets: { ...buckets, [level]: { ...bucket, schedule } } });
       },
     }),
     {
