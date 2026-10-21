@@ -2,7 +2,7 @@ import { Command } from "cmdk";
 import { useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight, CalendarDays, Compass, Languages, MapPin, Search } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Compass, Languages, MapPin, Search, X } from "lucide-react";
 import { places, forLevel, areaName } from "@/data/places";
 import { ALL_QUICK_LINKS } from "@/data/quick-links";
 import { LEVELS } from "@/lib/levels";
@@ -84,6 +84,15 @@ export default function CommandPalette({
             <div className="palette-input">
               <Search size={18} aria-hidden="true" />
               <Command.Input placeholder={c(lang, "palettePlaceholder")} />
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className="icon-button palette-close"
+                  aria-label={c(lang, "cancel")}
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </Dialog.Close>
             </div>
             <Command.List className="palette-list">
               <Command.Empty className="palette-empty">{c(lang, "paletteEmpty")}</Command.Empty>

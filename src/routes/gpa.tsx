@@ -237,7 +237,7 @@ function GpaPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="gpa-page flex flex-col gap-8">
       <header className="border-b border-ink/80 pb-4">
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">GPA</p>
         <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">
@@ -299,6 +299,7 @@ function GpaPage() {
         />
       ) : (
         <EmptyState
+          className="gpa-empty-state"
           title={tr(lang, { en: "No classes yet", zh: "还没有添加课程" })}
           body={tr(lang, {
             en: "Add a class and the number shows up here.",
@@ -434,8 +435,8 @@ function GpaPage() {
 
       <form onSubmit={submit}>
         <SectionHeader className="mb-3" title={tr(lang, { en: "Add a class", zh: "添加课程" })} />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block text-sm font-medium text-ink sm:col-span-2">
+        <div className="grid grid-cols-2 gap-3">
+          <label className="col-span-2 block text-sm font-medium text-ink">
             {tr(lang, {
               en: "Class name (optional)",
               zh: "课程名称（选填）",
@@ -452,7 +453,7 @@ function GpaPage() {
             />
           </label>
           {level === "elem" ? (
-            <p className="text-sm text-muted sm:col-span-2">
+            <p className="col-span-2 text-sm text-muted">
               {tr(lang, {
                 en: "Each class counts as 1.",
                 zh: "每门课按 1 个学分算。",
@@ -496,7 +497,9 @@ function GpaPage() {
               </span>
             </label>
           )}
-          <label className="block text-sm font-medium text-ink">
+          <label
+            className={`block text-sm font-medium text-ink${level === "elem" ? " col-span-2" : ""}`}
+          >
             {tr(lang, { en: "Grade", zh: "成绩", es: "Nota", ko: "성적", vi: "Điểm", ja: "成績" })}
             <select
               value={grade}
@@ -540,7 +543,7 @@ function GpaPage() {
           </p>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="submit" disabled={!hydrated}>
+          <Button type="submit" disabled={!hydrated} className="gpa-add-submit">
             {tr(lang, { en: "Add", zh: "添加", es: "Agregar", ko: "추가", vi: "Thêm", ja: "追加" })}
           </Button>
           {grades.length > 0 ? (
