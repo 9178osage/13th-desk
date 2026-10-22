@@ -159,6 +159,46 @@ test("mobile task filters keep whole labels with counts on their own line", () =
   assert.equal(declaration(".task-filters button", "overflow-wrap"), undefined);
 });
 
+test("overview cards and quick links remain bounded at phone and desktop widths", () => {
+  for (const width of [320, 390, 767, 768, 1280]) {
+    expectDeclaration(".overview-strip", "display", "grid", width);
+    expectDeclaration(
+      ".overview-strip",
+      "grid-template-columns",
+      "repeat(3, minmax(0, 1fr))",
+      width,
+    );
+    expectDeclaration(".overview-strip > a", "min-width", "0", width);
+    expectDeclaration(".overview-strip > a", "background", "var(--color-card)", width);
+    expectDeclaration(".quick-links ul", "flex-wrap", width <= 767 ? "nowrap" : "wrap", width);
+    expectDeclaration(".quick-links a", "min-height", "2.75rem", width);
+    expectDeclaration(".quick-links a", "position", "relative", width);
+    if (width <= 767) {
+      expectDeclaration(".quick-links ul", "overflow-x", "auto", width);
+      expectDeclaration(".quick-links ul", "max-width", "100%", width);
+      expectDeclaration(".quick-links ul", "padding", "0.25rem", width);
+    }
+  }
+});
+
+test("place search and categories stay within one responsive toolbar", () => {
+  expectDeclaration(".place-controls", "display", "grid");
+  expectDeclaration(".place-controls", "min-width", "0");
+  expectDeclaration(".place-categories", "min-width", "0");
+  expectDeclaration(".place-categories", "flex-wrap", "nowrap");
+  expectDeclaration(".place-categories", "overflow-x", "auto");
+  expectDeclaration(".place-categories", "padding", "0.25rem");
+  expectDeclaration(".place-categories", "flex-wrap", "wrap", 768);
+  assert.equal(declaration(".place-categories", "overflow-x", 768), undefined);
+});
+
+test("compact onboarding retains flexible text and a non-shrinking action", () => {
+  expectDeclaration(".welcome-note > div", "min-width", "0");
+  expectDeclaration(".welcome-note button", "flex-shrink", "0");
+  expectDeclaration(".welcome-note", "align-items", "flex-start");
+  assert.equal(declaration(".welcome-note", "flex-wrap"), undefined);
+});
+
 test("search results can shrink and scroll inside a dynamic-height dialog", () => {
   expectDeclaration(".palette-content", "display", "flex");
   expectDeclaration(".palette-content", "overflow", "hidden");
@@ -251,6 +291,11 @@ test("the real GPA add form pairs credits and grade while keeping the name full-
     }
     return null;
   }
+  function text(node) {
+    if (typeof node === "string" || typeof node === "number") return String(node);
+    if (Array.isArray(node)) return node.map(text).join(" ");
+    return node && typeof node === "object" ? text(node.props?.children) : "";
+  }
   for (const level of ["elem", "mid", "high", "uni"]) {
     fixture.desk.level = level;
     fixture.desk.buckets[level] = {
@@ -262,6 +307,17 @@ test("the real GPA add form pairs credits and grade while keeping the name full-
     for (const lang of ["en", "zh", "es", "ko", "vi", "ja"]) {
       fixture.lang = lang;
       const tree = module.exports.Route.component();
+      const introduction = text(find(tree, (node) => node.type === "header"));
+      if (level === "uni") {
+        for (const term of ["4.3", "F", "0"]) assert.ok(introduction.includes(term));
+      } else {
+        for (const term of ["A=4", "F=0"]) assert.ok(introduction.includes(term));
+        if (level === "high") {
+          for (const term of ["AP", "IB", "College Now", "Honors"]) {
+            assert.ok(introduction.includes(term));
+          }
+        }
+      }
       const form = find(tree, (node) => node.type === "form");
       assert.ok(form, `${level}/${lang}: add form`);
       const fields = find(form, (node) => node.props?.className === "grid grid-cols-2 gap-3");

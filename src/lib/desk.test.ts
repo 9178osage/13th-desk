@@ -246,6 +246,44 @@ test("new controls and weekday names exist in all six languages", () => {
     assert.ok(deskText(lang, "importPreview", { notes: 1, classes: 2, grades: 3 }).length > 0);
   }
 });
+test("home guidance has direct translations and preserves browser-only backup advice", () => {
+  for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+    for (const key of [
+      "intro",
+      "setup",
+      "setupHint",
+      "taskHint",
+      "noTasks",
+      "noFiltered",
+      "noDay",
+      "noClassHint",
+      "privacy",
+      "otherTabOpen",
+    ] as const) {
+      const text = deskText(lang, key);
+      assert.ok(text.trim(), `${lang}/${key}: non-empty guidance`);
+      assert.doesNotMatch(text, /\{\w+\}/, `${lang}/${key}: no unfilled placeholders`);
+      if (lang !== "en") assert.notEqual(text, deskText("en", key));
+    }
+  }
+  assert.match(deskText("en", "privacy"), /this browser, not the cloud/);
+  assert.match(deskText("en", "privacy"), /Export a backup before switching devices/);
+  assert.match(deskText("zh", "setupHint"), /各学段的数据分别保存/);
+});
+test("place counts use singular English and Spanish without changing other count formats", () => {
+  for (const n of [1, "1"]) {
+    assert.equal(deskText("en", "results", { n }), "1 place");
+    assert.equal(deskText("es", "results", { n }), "1 lugar");
+  }
+  for (const n of [0, 2, 12]) {
+    assert.equal(deskText("en", "results", { n }), `${n} places`);
+    assert.equal(deskText("es", "results", { n }), `${n} lugares`);
+  }
+  for (const lang of ["zh", "ko", "vi", "ja"] as const) {
+    for (const n of [0, 1, 2]) assert.ok(deskText(lang, "results", { n }).includes(String(n)));
+  }
+  assert.equal(deskText("en", "inMinutes", { n: 1 }), "In 1 min");
+});
 test("missing routes render a branded, translated 404 instead of bare Not Found", () => {
   for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
     for (const key of ["notFoundTitle", "notFoundBody", "notFoundHome"] as const) {

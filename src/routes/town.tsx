@@ -31,9 +31,9 @@ export const Route = createFileRoute("/town")({
 
 const TOWN_LABELS: Record<ReturnType<typeof placeCategories>[number], Copy> = {
   coffee: { en: "Coffee", zh: "咖啡" },
-  eat: { en: "Eat", zh: "吃" },
-  out: { en: "Outside", zh: "出门" },
-  errand: { en: "Errands", zh: "办事" },
+  eat: { en: "Eat", zh: "餐饮" },
+  out: { en: "Outside", zh: "户外" },
+  errand: { en: "Errands", zh: "生活服务" },
   saved: { en: "Pinned", zh: "收藏" },
   study: { en: "Study", zh: "自习" },
   dining: { en: "Dining", zh: "餐饮" },
@@ -60,16 +60,16 @@ function TownPage() {
           : { en: "Eugene, off the clock", zh: "校园外面的尤金" }
       }
       title={{
-        en: "A little more Eugene.",
+        en: "Explore Eugene.",
         zh: "课余，逛逛尤金。",
-        es: "Un poco más de Eugene.",
-        ko: "유진을 더 가까이.",
-        vi: "Khám phá thêm về Eugene.",
-        ja: "ユージンを、もう少し。",
+        es: "Explora Eugene.",
+        ko: "유진 둘러보기",
+        vi: "Khám phá Eugene.",
+        ja: "ユージンを楽しもう。",
       }}
       lead={{
         en: "Find a place for lunch, a walk, or your everyday errands. Save a few favorites for later.",
-        zh: "找一顿午餐、一条散步路线，或日常办事的去处。喜欢的地点可以先收藏，下次再去。",
+        zh: "吃午餐、散散步，或办点日常事务。把喜欢的地点收藏起来，下次更好找。",
         es: "Encuentra dónde comer, pasear o hacer recados. Guarda tus favoritos para después.",
         ko: "점심 먹을 곳, 산책로, 일상에 필요한 장소를 찾아보세요. 마음에 드는 곳은 저장해 두세요.",
         vi: "Tìm nơi ăn trưa, đi dạo hoặc làm việc thường ngày. Lưu các địa điểm yêu thích để ghé sau.",

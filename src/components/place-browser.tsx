@@ -102,7 +102,7 @@ export function PlaceBrowser({
         <p className="mt-3 max-w-2xl text-muted">{tr(lang, lead)}</p>
       </header>
 
-      <div className="mb-4">
+      <div className="place-controls">
         <label className="relative block min-w-0">
           <span className="sr-only">{tr(lang, { en: "Search places", zh: "搜索地点" })}</span>
           <Search
@@ -116,19 +116,18 @@ export function PlaceBrowser({
             className="pl-10"
           />
         </label>
-      </div>
-
-      <div className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
-        {cats.map((item) => (
-          <Chip
-            key={item.id}
-            active={cat === item.id}
-            pressed={cat === item.id}
-            onClick={() => onCategoryChange(item.id)}
-          >
-            {tr(lang, item.label)}
-          </Chip>
-        ))}
+        <div className="place-categories">
+          {cats.map((item) => (
+            <Chip
+              key={item.id}
+              active={cat === item.id}
+              pressed={cat === item.id}
+              onClick={() => onCategoryChange(item.id)}
+            >
+              {tr(lang, item.label)}
+            </Chip>
+          ))}
+        </div>
       </div>
 
       <div className="search-results">
@@ -157,7 +156,7 @@ export function PlaceBrowser({
                   const saved = favs.includes(place.id);
                   return (
                     <li key={place.id}>
-                      <Card className="lift-hover flex h-full flex-col gap-3">
+                      <Card className="place-card lift-hover flex h-full flex-col gap-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="mb-1.5 flex flex-wrap gap-1.5">

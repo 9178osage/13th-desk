@@ -41,9 +41,7 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
     <div className="flex flex-col gap-12">
       <header className="border-b border-ink pb-4">
         <p className="text-xs uppercase tracking-widest text-muted">{name ? tr(lang, name) : ""}</p>
-        <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">
-          {tr(lang, { en: "The year", zh: "学年指南" })}
-        </h1>
+        <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">{c(lang, "guide")}</h1>
         <p className="mt-3 max-w-2xl text-muted">
           {tr(lang, {
             en: "Personal checklist stays in this browser. Calendar rows are only stored for districts we have verified dates for.",

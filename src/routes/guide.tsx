@@ -57,9 +57,7 @@ function UniGuide() {
         <p className="text-xs uppercase tracking-widest text-muted">
           {tr(lang, { en: "For students in Eugene", zh: "尤金学生生活指南" })}
         </p>
-        <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">
-          {tr(lang, { en: "The guide", zh: "学生指南" })}
-        </h1>
+        <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">{c(lang, "guide")}</h1>
         <p className="mt-3 max-w-2xl text-muted">
           {tr(lang, {
             en: "School dates, a new-student checklist, and everyday resources. The dates below cover the UO term shown here; check your school's calendar for updates. Your checklist is saved in this browser.",
