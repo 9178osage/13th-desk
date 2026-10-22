@@ -17,6 +17,7 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { describeError, outcomeFromAttempts } from "./link-outcome.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const argv = process.argv.slice(2);
@@ -112,11 +113,7 @@ async function probe(entry) {
       if (status === 401) return { ...entry, status, outcome: "warn", note: "needs sign-in" };
       return { ...entry, status, outcome: "fail" };
     } catch (error) {
-      attempts.push(
-        error.name === "TimeoutError" || error.name === "AbortError"
-          ? "timeout"
-          : String(error.cause?.code ?? error.message),
-      );
+      attempts.push(describeError(error));
       if (attempt === 0) await new Promise((done) => setTimeout(done, 1500));
     }
   }
@@ -124,7 +121,7 @@ async function probe(entry) {
   return {
     ...entry,
     status: null,
-    outcome: why.includes("timeout") ? "timeout" : "fail",
+    outcome: outcomeFromAttempts(attempts),
     note: why,
   };
 }
