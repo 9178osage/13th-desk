@@ -404,6 +404,7 @@ function gpaFixture(count = 0) {
       ["Button", "Card", "EmptyState", "Input", "SectionHeader", "Stat"].map((key) => [key, key]),
     ),
     "@/lib/gpa": gpa,
+    "@/lib/row-ref": rowRef,
     "@/lib/store": { useLang: () => lang, useDesk: (select) => select(state) },
     "@/lib/text": { tr },
     "@/lib/desk-copy": deskCopy,
@@ -614,7 +615,15 @@ function scheduleFixture(count = 1) {
       state.buckets.uni.schedule = result.list;
       return result.removed;
     },
-    restoreScheduleBlock() {},
+    restoreScheduleBlock(removed) {
+      const list = state.buckets.uni.schedule;
+      state.buckets.uni.schedule = [
+        ...list.slice(0, removed.index),
+        removed.row,
+        ...list.slice(removed.index),
+      ];
+      return true;
+    },
     toggleSchedulePin() {},
   };
   const { WeekSchedule } = load("src/components/week-schedule.tsx", {
@@ -796,3 +805,74 @@ test("GPA rows: duplicate IDs edit and remove only the chosen row, and undo puts
     ["C", "A", "A"],
   );
 });
+
+for (const ids of [
+  ["a", "b", "c"],
+  ["dup", "dup", "dup"],
+  ["", "", ""],
+]) {
+  test(`GPA rows (${JSON.stringify(ids)}): the open editor stays on its row when another row is deleted or restored`, () => {
+    const f = gpaFixture(3);
+    f.state.buckets.uni.grades = f.state.buckets.uni.grades.map((row, i) => ({
+      ...row,
+      id: ids[i],
+      title: `Class ${i}`,
+    }));
+    f.render();
+    f.click("Edit: Class 1");
+    f.click("Remove: Class 0");
+    assert.ok(f.editor(), "editor must stay open on Class 1");
+    f.undo();
+    assert.ok(f.editor(), "editor must stay open after undo");
+    f.click("Remove: Class 0");
+    f.editor().props.onChange({ ...f.editor().props.draft, grade: "C" });
+    f.render();
+    f.editor().props.onSubmit({ preventDefault() {} });
+    f.render();
+    assert.deepEqual(
+      f.state.buckets.uni.grades.map((row) => [row.title, row.grade]),
+      [
+        ["Class 1", "C"],
+        ["Class 2", "A"],
+      ],
+    );
+    assert.match(f.status(), /saved|updated/i);
+  });
+
+  test(`timetable (${JSON.stringify(ids)}): editing one class while another is deleted and restored saves that class`, () => {
+    const f = scheduleFixture(3);
+    f.state.buckets.uni.schedule = f.state.buckets.uni.schedule.map((row, i) => ({
+      ...row,
+      id: ids[i],
+      title: `Course ${i}`,
+      day: "mon",
+    }));
+    f.state.buckets.uni.schedule.forEach((row, i) => {
+      row.start = ["08:00", "10:00", "12:00"][i];
+      row.end = ["09:00", "11:00", "13:00"][i];
+    });
+    f.render();
+    const click = (label) => {
+      nodes(f.tree())
+        .find((n) => n.props?.["aria-label"] === label)
+        .props.onClick();
+      f.render();
+    };
+    click("Edit: Course 1");
+    click("Delete: Course 0");
+    nodes(f.tree())
+      .find((n) => n.props?.className === "inline-feedback")
+      .props.children.flat()
+      .find((n) => n?.type === "button")
+      .props.onClick();
+    f.render();
+    click("Delete: Course 0");
+    f.submit();
+    assert.deepEqual(f.calls.at(-1), ["update", ids[1]]);
+    assert.deepEqual(
+      f.state.buckets.uni.schedule.map((row) => row.title),
+      ["Course 1", "Course 2"],
+    );
+    assert.equal(f.status(), "Timetable updated.");
+  });
+}

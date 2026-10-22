@@ -67,3 +67,25 @@ export function canRestoreRow<T extends WithId>(
   if (list.length > DESK_LIMITS[key] || list.includes(removed.row)) return false;
   return removed.shared || !list.some((item) => item.id === removed.row.id);
 }
+
+/**
+ * Keeps an open editor on its own row after another row at `removedIndex` was deleted.
+ * Returns null when the deleted row is the one being edited (close the editor).
+ */
+export function shiftRefAfterRemove<R extends RowRef>(
+  ref: R | null,
+  removedIndex: number,
+): R | null {
+  if (!ref) return null;
+  if (removedIndex === ref.index) return null;
+  return removedIndex < ref.index ? { ...ref, index: ref.index - 1 } : ref;
+}
+
+/** Keeps an open editor on its own row after undo put a row back at `insertedIndex`. */
+export function shiftRefAfterInsert<R extends RowRef>(
+  ref: R | null,
+  insertedIndex: number,
+): R | null {
+  if (!ref) return null;
+  return insertedIndex <= ref.index ? { ...ref, index: ref.index + 1 } : ref;
+}

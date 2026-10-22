@@ -2115,3 +2115,46 @@ test("unique IDs keep the old behavior: one row changes, undo refuses an id alre
 });
 
 import { isGrokEmbedderOrigin } from "./preview-embedder-origin.ts";
+
+test("open editor follows its row when another row is deleted or restored", async () => {
+  const { refOf, rowAt, removeRow, shiftRefAfterRemove, shiftRefAfterInsert } =
+    await import("./row-ref.ts");
+  const { insertAt } = await import("./desk-records.ts");
+  for (const ids of [
+    ["a", "b", "c"],
+    ["x", "x", "x"],
+    ["", "", ""],
+  ]) {
+    const list = ids.map((id, n) => ({ id, n }));
+    const editing = refOf(list, list[1])!;
+    // Delete row 0: the editor moves up with row 1 and still points at it.
+    const out = removeRow(list, { id: list[0].id, index: 0 })!;
+    const moved = shiftRefAfterRemove(editing, out.removed.index)!;
+    assert.equal(rowAt(out.list, moved), list[1]);
+    // Undo puts row 0 back: the editor shifts down again.
+    const back = insertAt(out.list, out.removed.row, out.removed.index);
+    assert.equal(rowAt(back, shiftRefAfterInsert(moved, out.removed.index)), list[1]);
+    // A later row going away or coming back leaves the editor alone.
+    assert.equal(shiftRefAfterRemove(editing, 2), editing);
+    assert.equal(shiftRefAfterInsert(editing, 2), editing);
+    // Deleting the edited row closes the editor.
+    assert.equal(shiftRefAfterRemove(editing, 1), null);
+  }
+  assert.equal(shiftRefAfterRemove(null, 0), null);
+  assert.equal(shiftRefAfterInsert(null, 0), null);
+  // Extra editor fields (the GPA draft) survive the shift.
+  assert.deepEqual(shiftRefAfterRemove({ id: "", index: 3, grade: "A" }, 0), {
+    id: "",
+    index: 2,
+    grade: "A",
+  });
+});
+
+test("today's agenda marks the next class by row, not by id", () => {
+  const src = readFileSync(
+    join(import.meta.dirname, "..", "components", "home-dashboard.tsx"),
+    "utf8",
+  );
+  assert.ok(!src.includes("next?.id === row.id"));
+  assert.ok(src.includes('className={next === row ? "current" : ""}'));
+});

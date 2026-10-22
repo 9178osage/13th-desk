@@ -11,7 +11,14 @@ import {
   X,
 } from "lucide-react";
 import { LEVELS, type Level } from "@/lib/levels";
-import { refOf, rowAt, type RemovedRow, type RowRef } from "@/lib/row-ref";
+import {
+  refOf,
+  rowAt,
+  shiftRefAfterInsert,
+  shiftRefAfterRemove,
+  type RemovedRow,
+  type RowRef,
+} from "@/lib/row-ref";
 import { tr } from "@/lib/text";
 import { sampleSlots } from "@/lib/schedule-samples";
 import { Button, Input } from "@/components/ui";
@@ -405,6 +412,9 @@ function ScheduleEditor() {
                         setEditing(null);
                         setOpen(false);
                         setAwaitConfirm(false);
+                      } else {
+                        // Another row went away: keep the open editor on its own row.
+                        setEditing((current) => shiftRefAfterRemove(current, removed.index));
                       }
                     }}
                   >
@@ -423,6 +433,8 @@ function ScheduleEditor() {
             type="button"
             onClick={() => {
               if (restore(deleted.removed, deleted.level)) {
+                const at = deleted.removed.index;
+                setEditing((current) => shiftRefAfterInsert(current, at));
                 // The row went back to its own weekday; show it instead of leaving the
                 // visitor on an unrelated day with an empty list and a "restored" note.
                 setDay(deleted.removed.row.day);

@@ -18,7 +18,7 @@ import {
   type GpaInput,
 } from "@/lib/gpa";
 import type { Level } from "@/lib/levels";
-import type { RemovedRow } from "@/lib/row-ref";
+import { shiftRefAfterInsert, shiftRefAfterRemove, type RemovedRow } from "@/lib/row-ref";
 import type { GradeRow } from "@/lib/store";
 import { useDesk, useLang } from "@/lib/store";
 import { useDeskReplaced } from "@/lib/desk-replaced";
@@ -161,7 +161,7 @@ function GpaPage() {
   function remove(row: GradeRow, index: number) {
     const removed = removeGrade({ id: row.id, index });
     if (!removed) return;
-    if (editing?.index === index) setEditing(null);
+    setEditing((current) => shiftRefAfterRemove(current, removed.index));
     setDeleted({ removed, level });
     setMessage("deleted");
   }
@@ -707,6 +707,8 @@ function GpaPage() {
                 type="button"
                 onClick={() => {
                   if (restoreGrade(deleted.removed, deleted.level)) {
+                    const at = deleted.removed.index;
+                    setEditing((current) => shiftRefAfterInsert(current, at));
                     setDeleted(null);
                     setMessage("restored");
                   } else setMessage("undoFailed");

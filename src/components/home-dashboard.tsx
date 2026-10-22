@@ -352,8 +352,8 @@ export function HomeDashboard() {
                 <h2>{c(lang, "classes")}</h2>
               </div>
               <ol>
-                {classes.map((row) => (
-                  <li key={row.id} className={next?.id === row.id ? "current" : ""}>
+                {classes.map((row, i) => (
+                  <li key={`${i}:${row.id}`} className={next === row ? "current" : ""}>
                     <time>{row.start}</time>
                     <div>
                       <strong>
