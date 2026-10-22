@@ -876,3 +876,53 @@ for (const ids of [
     assert.equal(f.status(), "Timetable updated.");
   });
 }
+
+const undoButton = (tree) =>
+  nodes(tree)
+    .find((n) => n.props?.className === "inline-feedback")
+    .props.children.flat()
+    .find((n) => n?.type === "button");
+
+test("GPA: a failed save after a delete does not leave the old Undo beside the new notice", () => {
+  const f = gpaFixture(2);
+  f.state.buckets.uni.grades = f.state.buckets.uni.grades.map((row, i) => ({
+    ...row,
+    id: String(i),
+    title: `Class ${i}`,
+  }));
+  f.render();
+  f.click("Edit: Class 1");
+  f.click("Remove: Class 0");
+  assert.ok(undoButton(f.tree()), "delete offers undo");
+  f.state.buckets.uni.grades = [];
+  f.editor().props.onSubmit({ preventDefault() {} });
+  f.render();
+  assert.equal(f.status(), "That class is no longer in your list, so nothing was saved.");
+  assert.equal(undoButton(f.tree()), undefined);
+});
+
+test("timetable: classGone after a delete does not leave the old Undo beside it", () => {
+  const f = scheduleFixture(3);
+  f.state.buckets.uni.schedule = f.state.buckets.uni.schedule.map((row, i) => ({
+    ...row,
+    id: String(i),
+    title: `Course ${i}`,
+    day: "mon",
+    start: ["08:00", "10:00", "12:00"][i],
+    end: ["09:00", "11:00", "13:00"][i],
+  }));
+  f.render();
+  const click = (label) => {
+    nodes(f.tree())
+      .find((n) => n.props?.["aria-label"] === label)
+      .props.onClick();
+    f.render();
+  };
+  click("Edit: Course 1");
+  click("Delete: Course 0");
+  assert.ok(undoButton(f.tree()), "delete offers undo");
+  f.state.buckets.uni.schedule = [];
+  f.submit();
+  assert.match(f.status(), /^That class is no longer in your timetable/);
+  assert.equal(undoButton(f.tree()), undefined);
+});

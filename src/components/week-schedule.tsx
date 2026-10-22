@@ -104,6 +104,7 @@ function ScheduleEditor() {
     const saved = editing !== null ? update(editing, draft) : add(draft);
     if (!saved) {
       setMessage(isEditing ? "classGone" : "classLimit");
+      setDeleted(null);
       setAwaitConfirm(false);
       if (isEditing) {
         setOpen(false);
@@ -123,6 +124,7 @@ function ScheduleEditor() {
     e.preventDefault();
     if (invalid) {
       setMessage("invalidTime");
+      setDeleted(null);
       setAwaitConfirm(false);
       return;
     }
@@ -148,7 +150,7 @@ function ScheduleEditor() {
     }
     setDay(sampleSlots(level)[0]?.day ?? "mon");
     setMessage(added ? "sampleHint" : "classLimit");
-    if (added) setDeleted(null);
+    setDeleted(null);
   }
 
   const [exporting, setExporting] = useState(false);
@@ -174,6 +176,7 @@ function ScheduleEditor() {
       setDeleted(null);
     } catch {
       setMessage("lockImageFailed");
+      setDeleted(null);
     } finally {
       setExporting(false);
     }
@@ -428,7 +431,8 @@ function ScheduleEditor() {
       </div>
       <div className="inline-feedback" role="status">
         {message && c(lang, message)}
-        {deleted && (
+        {/* Undo belongs to the "deleted" notice only, never beside another message. */}
+        {deleted && message === "deleted" && (
           <button
             type="button"
             onClick={() => {

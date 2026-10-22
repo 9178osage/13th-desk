@@ -156,6 +156,7 @@ function GpaPage() {
     );
     setEditing(null);
     setMessage(saved ? "gradeSaved" : "gradeGone");
+    setDeleted(null);
   }
 
   function remove(row: GradeRow, index: number) {
@@ -702,7 +703,8 @@ function GpaPage() {
           ) : null}
           <div className="inline-feedback" role="status">
             {message && c(lang, message)}
-            {deleted && (
+            {/* Undo belongs to the "deleted" notice only, never beside another message. */}
+            {deleted && message === "deleted" && (
               <button
                 type="button"
                 onClick={() => {
