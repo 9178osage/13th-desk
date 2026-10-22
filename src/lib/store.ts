@@ -558,7 +558,6 @@ export function useLang(): Lang {
   useSyncExternalStore(subscribeLangPacks, langPackVersion, langPackVersion);
   if (isLangReady(lang)) {
     // Module state is shared across SSR requests: only remember it in the browser.
-    if (typeof window !== "undefined") shownLang = lang;
     return lang;
   }
   // On the server, do not fall back through module state: it belongs to whichever
@@ -568,7 +567,16 @@ export function useLang(): Lang {
   return isLangReady(shownLang) ? shownLang : DEFAULT_LANG;
 }
 
+/** Browser only: remember the chosen language once its pack is ready (pick or pack load). */
+function rememberShownLang() {
+  const lang = deskStore.getState().lang;
+  if (isLangReady(lang)) shownLang = lang;
+}
+
 if (typeof window !== "undefined") {
+  rememberShownLang();
+  deskStore.subscribe(rememberShownLang);
+  subscribeLangPacks(rememberShownLang);
   deskStore.subscribe((state, prev) => {
     // Fetch the pack whenever the language changes (picker, import, undo).
     if (state.lang !== prev.lang) void loadLangPack(state.lang).catch(() => {});

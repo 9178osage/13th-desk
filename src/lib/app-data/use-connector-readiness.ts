@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { isFramed } from "./login.ts";
 import { getConnectorReadiness } from "./readiness.ts";
 import {
@@ -40,13 +40,18 @@ async function isConnectorReady(): Promise<boolean> {
  * no `ancestorOrigins`): the token comes through the preview proxy, and the
  * bridge event is only the faster signal.
  */
+const noSubscribe = () => () => {};
+const assumeFramed = () => true;
+
 export function useRefetchWhenConnectorReady(
   waiting: boolean,
   refetch: () => unknown,
 ): ConnectorWaitStatus {
   const refetchRef = useRef(refetch);
   const [timedOut, setTimedOut] = useState(false);
-  const [notEmbedded, setNotEmbedded] = useState(false);
+  // Framing never changes for a page. The server snapshot says "framed" so SSR and
+  // hydration render "waiting"; the client snapshot then settles the real answer.
+  const framed = useSyncExternalStore(noSubscribe, isFramed, assumeFramed);
 
   useEffect(() => {
     refetchRef.current = refetch;
@@ -54,10 +59,7 @@ export function useRefetchWhenConnectorReady(
 
   useEffect(() => {
     if (!waiting) return;
-    if (!isFramed()) {
-      setNotEmbedded(true);
-      return () => setNotEmbedded(false);
-    }
+    if (!framed) return;
     let cancelled = false;
     let refetching = false;
     let attempt = 0;
@@ -105,9 +107,9 @@ export function useRefetchWhenConnectorReady(
       window.removeEventListener(CONNECTOR_TOKEN_READY_EVENT, onTokenReady);
       setTimedOut(false);
     };
-  }, [waiting]);
+  }, [waiting, framed]);
 
   if (!waiting) return "idle";
-  if (notEmbedded) return "not_embedded";
+  if (!framed) return "not_embedded";
   return timedOut ? "timed_out" : "waiting";
 }

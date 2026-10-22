@@ -69,7 +69,6 @@ export function WeatherCard() {
     // Back on a page within the cache window: keep the forecast, skip the request.
     // "Try again" (attempt > 0) always goes to the network.
     if (attempt === 0 && cachedForecast()) return;
-    setFailed(false);
     const ctrl = new AbortController();
     let gone = false;
     const timer = setTimeout(() => ctrl.abort(), 8000);
@@ -112,7 +111,14 @@ export function WeatherCard() {
               ja: "現在、天気情報を取得できません。",
             })}
           </p>
-          <Button className="mt-3" variant="quiet" onClick={() => setAttempt((n) => n + 1)}>
+          <Button
+            className="mt-3"
+            variant="quiet"
+            onClick={() => {
+              setFailed(false);
+              setAttempt((n) => n + 1);
+            }}
+          >
             {tr(lang, {
               en: "Try again",
               zh: "重试",

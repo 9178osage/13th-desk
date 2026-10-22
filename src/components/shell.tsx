@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { homeAliasPath } from "@/lib/channels";
 import {
@@ -37,6 +37,11 @@ const NAV = [
   icon: typeof House;
 }[];
 
+const noSubscribe = () => () => {};
+const serverShortcut = () => "Ctrl K";
+const clientShortcut = () =>
+  /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘K" : "Ctrl K";
+
 export function Shell({ children }: { children: ReactNode }) {
   const lang = useLang();
   // The picker reflects the choice at once, even while its language pack loads.
@@ -49,9 +54,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const otherTabs = useStorageStatus((s) => s.otherTabs);
   // Dismissed until the other pages close; a later second tab shows it again.
   const [tabNoticeDismissed, setTabNoticeDismissed] = useState(false);
-  useEffect(() => {
-    if (!otherTabs) setTabNoticeDismissed(false);
-  }, [otherTabs]);
+  // Re-arm once the other pages close (adjusted during render, not in an effect).
+  if (!otherTabs && tabNoticeDismissed) setTabNoticeDismissed(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const path = homeAliasPath(pathname.replace(/\/$/, "") || "/");
   const current = NAV.find((item) => item.to === path);
@@ -71,13 +75,13 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteUsed, setPaletteUsed] = useState(false);
-  const [shortcut, setShortcut] = useState("Ctrl K");
+  // Server and hydration render "Ctrl K"; the client snapshot then picks ⌘K on Apple devices.
+  const shortcut = useSyncExternalStore(noSubscribe, clientShortcut, serverShortcut);
   const openPalette = () => {
     setPaletteUsed(true);
     setPaletteOpen(true);
   };
   useEffect(() => {
-    if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) setShortcut("⌘K");
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "k") {
         event.preventDefault();

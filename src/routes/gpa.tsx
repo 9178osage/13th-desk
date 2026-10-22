@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
+import { lazy, Suspense, useMemo, useState, type FormEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { Button, Card, EmptyState, Input, SectionHeader, Stat } from "@/components/ui";
@@ -116,7 +116,11 @@ function GpaPage() {
     setDeleted(null);
   });
 
-  useEffect(() => {
+  // A level switch resets the form to that level's defaults. Adjusted during render
+  // (React's "storing information from previous renders"), not in an effect.
+  const [formLevel, setFormLevel] = useState(level);
+  if (formLevel !== level) {
+    setFormLevel(level);
     setCredits(defaultCredits(level));
     setWhatIfCredits(defaultCredits(level));
     setBoost(false);
@@ -124,7 +128,7 @@ function GpaPage() {
     setEditing(null);
     setMessage(null);
     setDeleted(null);
-  }, [level]);
+  }
 
   function startEdit(row: GradeRow, index: number) {
     setEditing({

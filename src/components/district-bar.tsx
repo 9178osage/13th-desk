@@ -19,9 +19,16 @@ export function DistrictBar() {
   const [open, setOpen] = useState(false);
   const lookupVersion = useRef(0);
 
-  useEffect(() => {
+  // A level switch drops the previous level's lookup state. Adjusted during render
+  // (React's "storing information from previous renders"), not in an effect.
+  const [shownLevel, setShownLevel] = useState(level);
+  if (shownLevel !== level) {
+    setShownLevel(level);
     setBusy(false);
     setNote(null);
+  }
+
+  useEffect(() => {
     return () => {
       // Geolocation cannot be cancelled; ignore callbacks from a previous level or mount.
       lookupVersion.current += 1;

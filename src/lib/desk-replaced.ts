@@ -11,7 +11,10 @@ import { DESK_PRE_IMPORT_EVENT } from "./desk-backup.ts";
  */
 export function useDeskReplaced(onReplaced: () => void) {
   const callback = useRef(onReplaced);
-  callback.current = onReplaced;
+  // Synced after commit (not during render); the events only fire after effects run.
+  useEffect(() => {
+    callback.current = onReplaced;
+  });
   useEffect(() => {
     const run = () => callback.current();
     const onStorage = (event: StorageEvent) => {
