@@ -38,7 +38,7 @@ import {
 } from "@/lib/prefs-cookie";
 
 /** Chinese-first portal: the language used until a visitor picks one. */
-export const DEFAULT_LANG: Lang = "zh";
+export const DEFAULT_LANG: Lang = "en";
 export const DEFAULT_LEVEL: Level = "uni";
 
 /**

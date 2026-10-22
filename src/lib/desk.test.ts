@@ -1068,12 +1068,17 @@ test("bundle guards: language packs and Recharts stay code-split", () => {
   assert.match(gpa, /lazy\(\(\) => import\("@\/components\/gpa-chart"\)\)/);
 });
 
-test("a never-chosen language falls back to the Chinese-first default, not English", () => {
+test("a never-chosen language falls back to English (new visitors see English)", () => {
   const store = readFileSync(join(import.meta.dirname, "store.ts"), "utf8");
-  assert.match(store, /export const DEFAULT_LANG: Lang = "zh";/);
+  assert.match(store, /export const DEFAULT_LANG: Lang = "en";/);
+  // No Accept-Language sniffing: without a cookie or saved choice, SSR and the
+  // client both land on DEFAULT_LANG, so hydration cannot disagree.
+  assert.doesNotMatch(store, /accept-language|navigator\.languages?/i);
+  const root = readFileSync(join(import.meta.dirname, "..", "routes/__root.tsx"), "utf8");
+  assert.match(root, /hint\.lang \?\? DEFAULT_LANG/);
+  assert.doesNotMatch(root, /accept-language/i);
   const merge = store.slice(store.indexOf("merge: (persisted, current)"));
   assert.match(merge, /langSet && isLang\(raw\.lang\)\s*\?\s*raw\.lang\s*:\s*DEFAULT_LANG/);
-  assert.doesNotMatch(merge.slice(0, 900), /raw\.lang\s*:\s*"en"/);
   // levelSet: false with the default level must stay unset (only legacy saves fall back).
   assert.match(merge, /typeof raw\.levelSet !== "boolean" && isLevel\(raw\.level\)/);
 });
