@@ -73,10 +73,8 @@ function parseState(value: unknown): PersistedDeskLike | null {
   if (!isLang(raw.lang) || typeof raw.langSet !== "boolean") return null;
   if (!isLevel(raw.level) || typeof raw.levelSet !== "boolean") return null;
   if (typeof raw.earlyStart !== "boolean") return null;
-  let district: DistrictId | null = null;
-  if (raw.district === null) district = null;
-  else if (isDistrict(raw.district)) district = raw.district;
-  else return null;
+  if (raw.district !== null && !isDistrict(raw.district)) return null;
+  const district: DistrictId | null = raw.district;
   if (!raw.buckets || typeof raw.buckets !== "object") return null;
   const stored = raw.buckets as Record<string, unknown>;
   const buckets = {} as Record<Level, Bucket>;
