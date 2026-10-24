@@ -2232,16 +2232,16 @@ test("today's agenda marks the next class by row, not by id", () => {
 });
 
 test(".ics URL lines are valid RFC 5545 URIs: no TEXT escaping, no injected lines, folded", () => {
-  assert.equal(icsUri("https://example.org/a?b=1,2;c"), "https://example.org/a?b=1,2;c");
-  assert.equal(icsUri("https://example.org/a b"), "https://example.org/a%20b");
-  assert.equal(icsUri("https://example.org/\r\nATTENDEE:x"), "https://example.org/ATTENDEE:x");
+  assert.equal(icsUri("https://example.com/a?b=1,2;c"), "https://example.com/a?b=1,2;c");
+  assert.equal(icsUri("https://example.com/a b"), "https://example.com/a%20b");
+  assert.equal(icsUri("https://example.com/\r\nATTENDEE:x"), "https://example.com/ATTENDEE:x");
   assert.equal(icsUri("javascript:alert(1)"), null);
   assert.equal(icsUri("not a url"), null);
-  const long = `https://example.org/${"x".repeat(200)}`;
+  const long = `https://example.com/${"x".repeat(200)}`;
   const text = buildIcs(
     [
       { id: "a", ymd: "2026-10-24", title: "T, ok; \\ \nnext", detail: "d,e", url: long },
-      { id: "b", ymd: "2026-10-24", title: "Bad", url: "https://x.org/\nEND:VCALENDAR" },
+      { id: "b", ymd: "2026-10-24", title: "Bad", url: "https://bad.example.com/\nEND:VCALENDAR" },
       { id: "c", ymd: "2026-10-24", title: "Bad", url: "data:text/html,hi" },
     ],
     new Date("2026-10-24T00:00:00Z"),
