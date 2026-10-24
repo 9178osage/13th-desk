@@ -653,6 +653,22 @@ const copy = {
     "Đóng hoàn tác",
     "取り消しを閉じる",
   ],
+  exportPlainNote: [
+    "Backup files are not encrypted. Don't leave them on shared computers.",
+    "备份文件没有加密，别留在公用电脑上。",
+    "Las copias no están cifradas. No las dejes en computadoras compartidas.",
+    "백업 파일은 암호화되지 않아요. 공용 컴퓨터에 남겨 두지 마세요.",
+    "Tệp sao lưu không được mã hóa. Đừng để lại trên máy dùng chung.",
+    "バックアップは暗号化されていません。共用のパソコンに残さないでください。",
+  ],
+  importTooLarge: [
+    "That file is larger than 5 MB, so it can't be a desk backup. Nothing was changed.",
+    "这个文件超过 5 MB，不像书桌备份，当前数据未改动。",
+    "Ese archivo supera 5 MB y no puede ser una copia. No se cambió nada.",
+    "5MB가 넘는 파일이라 백업으로 볼 수 없어요. 데이터는 그대로예요.",
+    "Tệp lớn hơn 5 MB nên không phải bản sao lưu. Chưa thay đổi gì.",
+    "5 MB を超えるファイルはバックアップとして読み込めません。データは変更していません。",
+  ],
   importBadJson: [
     "That file is not readable JSON. Nothing was changed.",
     "这个文件不是可读的 JSON，当前数据未改动。",

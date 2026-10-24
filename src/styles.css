@@ -961,6 +961,12 @@
   align-items: center;
   gap: 0.35rem 0.75rem;
 }
+.backup-note {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
 .backup-feedback {
   display: flex;
   flex-wrap: wrap;

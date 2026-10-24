@@ -24,6 +24,8 @@ import {
   beforeImportFileName,
   DESK_PRE_IMPORT_KEY,
   importUndoOffered,
+  backupFileTooLarge,
+  MAX_BACKUP_BYTES,
   parseDeskBackup,
   serializeDeskBackup,
   summarizeDeskState,
@@ -1205,31 +1207,63 @@ test("SSR function runs in a single region near Eugene (Hobby allows one)", () =
   assert.match(vite, /vercel: \{ functions: \{ regions: \["pdx1"\] \} \}/);
 });
 
-test("framing is limited to the desk itself and the Grok preview embedders", () => {
+test("framing: production allows only itself; previews keep the Grok embedders", () => {
   const repo = join(import.meta.dirname, "../..");
-  const vercel = JSON.parse(readFileSync(join(repo, "vercel.json"), "utf8")) as {
-    headers: { source: string; headers: { key: string; value: string }[] }[];
+  type Rule = {
+    source: string;
+    has?: { type: string; value: string }[];
+    missing?: { type: string; value: string }[];
+    headers: { key: string; value: string }[];
   };
-  const all = vercel.headers.find((rule) => rule.source === "/(.*)")?.headers ?? [];
-  const csp = all.filter((h) => h.key.toLowerCase() === "content-security-policy");
-  assert.equal(csp.length, 1);
-  const directive = csp[0].value
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith("frame-ancestors "));
-  assert.ok(directive, "frame-ancestors is set");
-  const sources = directive.split(/\s+/).slice(1);
+  const vercel = JSON.parse(readFileSync(join(repo, "vercel.json"), "utf8")) as { headers: Rule[] };
+  const cspOf = (rule: Rule) =>
+    rule.headers.filter((h) => h.key.toLowerCase() === "content-security-policy");
+  const withCsp = vercel.headers.filter((rule) => cspOf(rule).length > 0);
+  assert.equal(withCsp.length, 2);
+  const prodHost = "eugene-desk.vercel.app";
+  const prod = withCsp.find((r) => r.has?.some((c) => c.type === "host" && c.value === prodHost));
+  const preview = withCsp.find((r) =>
+    r.missing?.some((c) => c.type === "host" && c.value === prodHost),
+  );
+  assert.ok(prod && preview, "split by production host");
+  const sourcesOf = (rule: Rule) => {
+    const directive = cspOf(rule)[0]
+      .value.split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("frame-ancestors "));
+    assert.ok(directive, "frame-ancestors is set");
+    return directive.split(/\s+/).slice(1);
+  };
+  assert.deepEqual(sourcesOf(prod), ["'self'"]);
+  const sources = sourcesOf(preview);
   assert.ok(sources.includes("'self'"));
   assert.ok(!sources.includes("*"), "no wildcard embedding");
   assert.ok(!sources.some((src) => /^(https?:|\*\.?)$/.test(src)), "no scheme-wide sources");
-  // Every allowed origin is one the preview bridge already trusts as a parent.
   for (const src of sources.filter((item) => item !== "'self'")) {
     const sample = src.replace("*.", "preview.").replace(":*", ":5173");
     assert.ok(isGrokEmbedderOrigin(sample), src);
   }
   assert.ok(sources.includes("https://grok.com"));
-  // X-Frame-Options cannot list several origins and would override the allowlist.
+  const all = vercel.headers.flatMap((rule) => rule.headers);
   assert.ok(!all.some((h) => h.key.toLowerCase() === "x-frame-options"));
+});
+
+test("import refuses files over 5 MB before reading; export warns backups are plain text", () => {
+  assert.equal(MAX_BACKUP_BYTES, 5 * 1024 * 1024);
+  assert.equal(backupFileTooLarge(0), false);
+  assert.equal(backupFileTooLarge(MAX_BACKUP_BYTES), false);
+  assert.equal(backupFileTooLarge(MAX_BACKUP_BYTES + 1), true);
+  assert.equal(backupFileTooLarge(Number.NaN), true);
+  for (const key of ["importTooLarge", "exportPlainNote"] as const) {
+    const lines = (["en", "zh", "es", "ko", "vi", "ja"] as const).map((l) => deskText(l, key));
+    assert.equal(new Set(lines).size, 6, key);
+    assert.ok(
+      lines.every((line) => line.length > 0 && !line.includes(key)),
+      key,
+    );
+  }
+  const ui = readFileSync(join(import.meta.dirname, "../components/desk-backup.tsx"), "utf8");
+  assert.ok(ui.indexOf("backupFileTooLarge(file.size)") < ui.indexOf("new FileReader()"));
 });
 
 test("preview bridge stays mounted but only loads when framed", () => {

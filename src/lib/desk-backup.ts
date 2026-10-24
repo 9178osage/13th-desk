@@ -217,6 +217,13 @@ export function parseDeskBackup(raw: string): BackupParseResult {
 }
 
 /** Undo stays offered while a pre-import snapshot exists; later status messages do not hide it. */
+/** Real backups are a few KB; anything above this is refused before reading. */
+export const MAX_BACKUP_BYTES = 5 * 1024 * 1024;
+
+export function backupFileTooLarge(size: number): boolean {
+  return !Number.isFinite(size) || size > MAX_BACKUP_BYTES;
+}
+
 export function importUndoOffered(hasSnapshot: boolean): boolean {
   return hasSnapshot;
 }

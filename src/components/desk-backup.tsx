@@ -3,6 +3,7 @@ import { Download, Upload, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui";
 import {
   backupFileName,
+  backupFileTooLarge,
   beforeImportFileName,
   clearPreImportSnapshot,
   downloadDeskBackupFile,
@@ -103,6 +104,11 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    if (backupFileTooLarge(file.size)) {
+      setPending(null);
+      setMessage("importTooLarge");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === "string" ? reader.result : "";
@@ -196,6 +202,7 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
           onChange={onPickFile}
         />
       </div>
+      <p className="backup-note">{c(lang, "exportPlainNote")}</p>
       {pending && (
         <div className="backup-overlay" role="presentation">
           <div
