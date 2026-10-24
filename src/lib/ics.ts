@@ -48,6 +48,25 @@ export function icsEscape(value: string): string {
     .replace(/\r\n|\r|\n/g, "\\n");
 }
 
+/**
+ * URI values (RFC 5545 §3.3.13) are not TEXT, so backslash escaping would
+ * corrupt them. Accept only absolute http(s) URLs, serialized by the URL
+ * parser (percent-encodes spaces, quotes and non-ASCII), and drop anything
+ * that still carries control characters. Folding happens in buildIcs.
+ */
+export function icsUri(value: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(value.trim());
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+  const out = parsed.href;
+  // eslint-disable-next-line no-control-regex
+  return /[\u0000-\u001f\u007f]/.test(out) ? null : out;
+}
+
 /** Fold a content line to at most 75 UTF-8 octets per physical line. */
 export function icsFold(line: string): string {
   const encoder = new TextEncoder();
@@ -123,7 +142,8 @@ export function buildIcs(events: IcsEvent[], now = new Date()): string {
     }
     lines.push(`SUMMARY:${icsEscape(event.title)}`);
     if (event.detail) lines.push(`DESCRIPTION:${icsEscape(event.detail)}`);
-    if (event.url) lines.push(`URL:${event.url}`);
+    const url = event.url ? icsUri(event.url) : null;
+    if (url) lines.push(`URL:${url}`);
     lines.push("TRANSP:TRANSPARENT");
     lines.push("END:VEVENT");
   }

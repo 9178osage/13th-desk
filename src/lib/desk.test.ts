@@ -1283,7 +1283,7 @@ test("SSR, boot script and client agree on <html lang> for every language", () =
 });
 
 // ---- 2026-10-14 upgrade: palette, quick links, weather line, starters, .ics, lock screen ----
-import { buildIcs, icsEscape, icsFold, ICS_FILENAME } from "./ics.ts";
+import { buildIcs, icsEscape, icsFold, icsUri, ICS_FILENAME } from "./ics.ts";
 import { skyAdvice } from "./sky-advice.ts";
 import { sampleSlots } from "./schedule-samples.ts";
 import { quickLinks, ALL_QUICK_LINKS } from "../data/quick-links.ts";
@@ -2229,4 +2229,31 @@ test("today's agenda marks the next class by row, not by id", () => {
   );
   assert.ok(!src.includes("next?.id === row.id"));
   assert.ok(src.includes('className={next === row ? "current" : ""}'));
+});
+
+test(".ics URL lines are valid RFC 5545 URIs: no TEXT escaping, no injected lines, folded", () => {
+  assert.equal(icsUri("https://example.org/a?b=1,2;c"), "https://example.org/a?b=1,2;c");
+  assert.equal(icsUri("https://example.org/a b"), "https://example.org/a%20b");
+  assert.equal(icsUri("https://example.org/\r\nATTENDEE:x"), "https://example.org/ATTENDEE:x");
+  assert.equal(icsUri("javascript:alert(1)"), null);
+  assert.equal(icsUri("not a url"), null);
+  const long = `https://example.org/${"x".repeat(200)}`;
+  const text = buildIcs(
+    [
+      { id: "a", ymd: "2026-10-24", title: "T, ok; \\ \nnext", detail: "d,e", url: long },
+      { id: "b", ymd: "2026-10-24", title: "Bad", url: "https://x.org/\nEND:VCALENDAR" },
+      { id: "c", ymd: "2026-10-24", title: "Bad", url: "data:text/html,hi" },
+    ],
+    new Date("2026-10-24T00:00:00Z"),
+  );
+  const physical = text.split("\r\n");
+  assert.ok(physical.every((line) => new TextEncoder().encode(line).length <= 75));
+  assert.ok(!/\r(?!\n)|(?<!\r)\n/.test(text), "only CRLF line breaks");
+  const unfolded = text.replace(/\r\n /g, "");
+  assert.ok(unfolded.includes(`URL:${long}\r\n`));
+  assert.ok(unfolded.includes("SUMMARY:T\\, ok\\; \\\\ \\nnext\r\n"));
+  assert.ok(unfolded.includes("DESCRIPTION:d\\,e\r\n"));
+  assert.equal(unfolded.match(/^END:VCALENDAR$/gm)?.length, 1);
+  assert.ok(!unfolded.includes("data:text"));
+  assert.equal(unfolded.match(/^URL:/gm)?.length, 2);
 });
