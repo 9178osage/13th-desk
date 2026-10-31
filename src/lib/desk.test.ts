@@ -34,7 +34,9 @@ import {
   clearPreImportSnapshot,
   type PersistedDeskLike,
 } from "./desk-backup.ts";
+import { sameOriginAppPath } from "./same-origin-path.ts";
 import { asHm, parseBucket, MAX_READ_TEXT } from "./desk-records.ts";
+import { DESK_LIMITS, DESK_READ_CAP } from "./desk-limits.ts";
 import { asForecast } from "./forecast.ts";
 import {
   k12CalendarSourceMeta,
@@ -1235,6 +1237,24 @@ test("framing: production allows only itself; previews keep the Grok embedders",
     return directive.split(/\s+/).slice(1);
   };
   assert.deepEqual(sourcesOf(prod), ["'self'"]);
+  const directive = (rule: Rule, name: string) => {
+    const found = cspOf(rule)[0]
+      .value.split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${name} `) || part === name);
+    assert.ok(found, name);
+    return found;
+  };
+  for (const rule of [prod, preview]) {
+    assert.match(directive(rule, "script-src"), /'self'/);
+    assert.match(directive(rule, "script-src"), /'unsafe-inline'/);
+    assert.match(directive(rule, "script-src"), /https:\/\/grok\.com/);
+    assert.equal(directive(rule, "object-src"), "object-src 'none'");
+    assert.equal(directive(rule, "base-uri"), "base-uri 'self'");
+    assert.match(directive(rule, "connect-src"), /https:\/\/api\.open-meteo\.com/);
+    assert.match(directive(rule, "connect-src"), /https:\/\/grok\.com/);
+    assert.doesNotMatch(directive(rule, "script-src"), /\*/);
+  }
   const sources = sourcesOf(preview);
   assert.ok(sources.includes("'self'"));
   assert.ok(!sources.includes("*"), "no wildcard embedding");
@@ -1246,6 +1266,38 @@ test("framing: production allows only itself; previews keep the Grok embedders",
   assert.ok(sources.includes("https://grok.com"));
   const all = vercel.headers.flatMap((rule) => rule.headers);
   assert.ok(!all.some((h) => h.key.toLowerCase() === "x-frame-options"));
+});
+
+test("sign-in and sign-out only navigate to a same-origin path", () => {
+  const origin = "https://eugene-desk.vercel.app";
+  assert.equal(sameOriginAppPath("/guide?q=1#week", origin), "/guide?q=1#week");
+  assert.equal(sameOriginAppPath("https://eugene-desk.vercel.app/gpa", origin), "/gpa");
+  assert.equal(sameOriginAppPath("https://evil.example/gpa", origin), null);
+  assert.equal(sameOriginAppPath("//evil.example/gpa", origin), null);
+  assert.equal(sameOriginAppPath("javascript:alert(1)", origin), null);
+  assert.equal(sameOriginAppPath("/\\evil.example", origin), null);
+  assert.equal(sameOriginAppPath("", origin), null);
+});
+
+test("a list past the read cap is refused; a merged overflow still round-trips", () => {
+  const notes = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({ id: `n${i}`, text: "x", done: false }));
+  const overCap = sampleState();
+  overCap.buckets.uni.notes = notes(DESK_READ_CAP + 1);
+  assert.deepEqual(parseDeskBackup(JSON.stringify(serializeDeskBackup(overCap))), {
+    ok: false,
+    error: "overflow",
+  });
+  assert.equal(parseBucket({ notes: notes(DESK_READ_CAP + 1) }).lossy, true);
+  const merged = sampleState();
+  merged.buckets.uni.notes = notes(DESK_LIMITS.notes + 1);
+  const parsed = parseDeskBackup(JSON.stringify(serializeDeskBackup(merged)));
+  assert.equal(parsed.ok, true);
+  assert.equal(parseBucket({ notes: notes(DESK_LIMITS.notes + 1) }).lossy, false);
+  for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+    const line = deskText(lang, "importTooMany");
+    assert.ok(line.length > 0 && !line.includes("importTooMany"), lang);
+  }
 });
 
 test("import refuses files over 5 MB before reading; export warns backups are plain text", () => {

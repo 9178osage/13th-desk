@@ -669,6 +669,14 @@ const copy = {
     "Tệp lớn hơn 5 MB nên không phải bản sao lưu. Chưa thay đổi gì.",
     "5 MB を超えるファイルはバックアップとして読み込めません。データは変更していません。",
   ],
+  importTooMany: [
+    "That backup has more items than this desk can open. Nothing was changed.",
+    "这份备份里的条目太多，书桌打不开。当前数据未改动。",
+    "Esa copia tiene demasiados elementos para abrirla. No se cambió nada.",
+    "백업에 항목이 너무 많아 열 수 없어요. 데이터는 그대로예요.",
+    "Bản sao lưu có quá nhiều mục nên không mở được. Chưa thay đổi gì.",
+    "バックアップの項目が多すぎて開けません。データは変更していません。",
+  ],
   importBadJson: [
     "That file is not readable JSON. Nothing was changed.",
     "这个文件不是可读的 JSON，当前数据未改动。",

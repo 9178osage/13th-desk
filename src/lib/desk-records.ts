@@ -13,6 +13,7 @@
  * clock values make the read lossy so callers protect the original. Anything needing
  * judgement (an inverted time range, a blank id) is surfaced in the UI rather than dropped.
  */
+import { DESK_READ_CAP } from "./desk-limits.ts";
 import { asStoredCredits, cleanDecimal, isLetter, type Letter } from "./gpa.ts";
 
 export type WeekDay = "mon" | "tue" | "wed" | "thu" | "fri";
@@ -174,7 +175,9 @@ export function parseBucket(value: unknown): { bucket: Bucket; lossy: boolean } 
   let lossy = !isRecord;
   const list = <T>(field: unknown, parse: (item: unknown) => T | null): T[] => {
     if (field === undefined) return [];
-    if (!Array.isArray(field)) {
+    if (!Array.isArray(field) || field.length > DESK_READ_CAP) {
+      // Over the cap is unusable, same as a non-array: callers hold the original
+      // instead of rendering a bomb. Check length before walking the items.
       lossy = true;
       return [];
     }

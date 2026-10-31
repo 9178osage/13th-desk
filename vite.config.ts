@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Plugin } from "vite";
 import { defineConfig } from "vite";
@@ -142,30 +142,14 @@ function authPopupPlugin(): Plugin {
   };
 }
 
-function securityHeadersPlugin(): Plugin {
-  const apply = (server: {
-    middlewares: {
-      use: (
-        fn: (
-          req: unknown,
-          res: { setHeader: (k: string, v: string) => void },
-          next: () => void,
-        ) => void,
-      ) => void;
-    };
-  }) => {
-    server.middlewares.use((_req, res, next) => {
-      for (const [key, value] of Object.entries(securityHeaders)) res.setHeader(key, value);
-      next();
-    });
-  };
+function securityHeadersPlugin(headers: Record<string, string>): Plugin {
   return {
     name: "app-builder:security-headers",
     configureServer(server) {
-      apply(server);
-    },
-    configurePreviewServer(server) {
-      apply(server);
+      server.middlewares.use((_req, res, next) => {
+        for (const [key, value] of Object.entries(headers)) res.setHeader(key, value);
+        next();
+      });
     },
   };
 }
@@ -180,6 +164,25 @@ const securityHeaders = {
   "X-Permitted-Cross-Domain-Policies": "none",
 };
 
+/** Production policy from vercel.json, so `vite preview` matches the deployed site. */
+function productionContentSecurityPolicy(): string | undefined {
+  const vercel = JSON.parse(readFileSync(new URL("./vercel.json", import.meta.url), "utf8")) as {
+    headers: {
+      has?: { type: string; value: string }[];
+      headers: { key: string; value: string }[];
+    }[];
+  };
+  const rule = vercel.headers.find((item) =>
+    item.has?.some((cond) => cond.type === "host" && cond.value === "eugene-desk.vercel.app"),
+  );
+  return rule?.headers.find((header) => header.key === "Content-Security-Policy")?.value;
+}
+
+const previewSecurityHeaders = {
+  ...securityHeaders,
+  "Content-Security-Policy": productionContentSecurityPolicy() ?? "frame-ancestors 'self'",
+};
+
 export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: "0.0.0.0",
@@ -191,11 +194,22 @@ export default defineConfig(({ command, isPreview }) => ({
     host: "127.0.0.1",
     port: 8081,
     strictPort: true,
-    headers: securityHeaders,
+    headers: previewSecurityHeaders,
   },
   resolve: { tsconfigPaths: true },
   plugins: [
-    securityHeadersPlugin(),
+    securityHeadersPlugin(securityHeaders),
+    {
+      name: "app-builder:preview-security-headers",
+      configurePreviewServer(server) {
+        server.middlewares.use((_req, res, next) => {
+          for (const [key, value] of Object.entries(previewSecurityHeaders)) {
+            res.setHeader(key, value);
+          }
+          next();
+        });
+      },
+    },
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
     authPopupPlugin(),

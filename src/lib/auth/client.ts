@@ -1,6 +1,7 @@
 import { genericOAuthClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { runPreSignInSignOut, runSignOut } from "../../../scripts/sign-out-plan.mjs";
+import { sameOriginAppPath } from "@/lib/same-origin-path";
 import { GROK_PROVIDERS } from "./providers";
 
 /**
@@ -93,12 +94,18 @@ type PopupMessage = { source: "grok-auth-popup"; token: string | null; error?: s
  * Either way it clears any existing local session FIRST so switching providers
  * actually switches identity.
  */
+/** Same-origin return path, or `/` when the caller passed another site. */
+function safeAppPath(value: string | undefined): string {
+  if (typeof window === "undefined") return "/";
+  return sameOriginAppPath(value ?? "/", window.location.origin) ?? "/";
+}
+
 export async function signIn(
   providerId: string,
   opts: { callbackURL?: string; errorCallbackURL?: string } = {},
 ): Promise<void> {
-  const callbackURL = opts.callbackURL ?? "/";
-  const errorCallbackURL = opts.errorCallbackURL ?? "/";
+  const callbackURL = safeAppPath(opts.callbackURL);
+  const errorCallbackURL = safeAppPath(opts.errorCallbackURL);
 
   // Open the popup SYNCHRONOUSLY on the user gesture — before any await
   // (including signOut). Awaiting first drops user-gesture privilege in some
@@ -131,15 +138,9 @@ export async function signIn(
       /* session store will recover on next useSession fetch */
     }
     if (typeof window !== "undefined") {
-      const dest = new URL(callbackURL, window.location.origin);
-      const here = window.location;
-      if (
-        dest.origin !== here.origin ||
-        dest.pathname !== here.pathname ||
-        dest.search !== here.search
-      ) {
-        window.location.href = callbackURL;
-      }
+      const here = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      // callbackURL is already a same-origin path. Never assign the caller's raw string.
+      if (callbackURL !== here) window.location.assign(callbackURL);
     }
     return;
   }
@@ -231,7 +232,7 @@ export async function signOut(redirectTo = "/"): Promise<void> {
     },
     clearToken: () => setBearerToken(null),
     redirect: () => {
-      window.location.href = redirectTo;
+      window.location.assign(safeAppPath(redirectTo));
     },
   });
 }

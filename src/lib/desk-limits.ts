@@ -1,6 +1,13 @@
 /** Creation limits, not read/merge limits: never discard already saved items. */
 export const DESK_LIMITS = { notes: 20, grades: 40, schedule: 40, favs: 80, checks: 40 } as const;
 
+/**
+ * Ceiling for a list read from storage or a backup. Above every creation limit
+ * (a two-tab merge can land at limit + 1, and that desk must still open), and
+ * far below a multi-megabyte file of throwaway rows that would freeze the page.
+ */
+export const DESK_READ_CAP = 200;
+
 export function hasDeskOverflow(
   buckets: Record<string, Record<keyof typeof DESK_LIMITS, unknown[]>>,
 ): boolean {

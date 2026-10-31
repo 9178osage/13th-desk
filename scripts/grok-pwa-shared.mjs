@@ -127,6 +127,8 @@ export function isInstallQuery(url) {
 /** Paths that can carry an app document (vs assets / API / internals). */
 export function isDocumentPath(pathname) {
   const path = String(pathname ?? "");
+  // A protocol-relative path (`//evil.example/foo`) is not an app document.
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) return false;
   return (
     !path.startsWith("/__grok/") &&
     !path.startsWith("/api/") &&
@@ -151,10 +153,34 @@ export function stripInstallParams(url) {
   return rest ? `${path}?${rest}` : path;
 }
 
+/**
+ * Path for the install page's "open the app" link. Only a same-document path:
+ * protocol-relative (`//host`), backslash, and absolute URLs become `/`.
+ */
+export function installAppUrl(url) {
+  const stripped = stripInstallParams(url);
+  if (
+    !stripped.startsWith("/") ||
+    stripped.startsWith("//") ||
+    stripped.includes("\\") ||
+    stripped.includes("://")
+  ) {
+    return "/";
+  }
+  try {
+    const resolved = new URL(stripped, "https://install.invalid");
+    if (resolved.origin !== "https://install.invalid") return "/";
+    if (!resolved.pathname.startsWith("/") || resolved.pathname.startsWith("//")) return "/";
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch {
+    return "/";
+  }
+}
+
 export function renderInstallPageHtml(template, { host, url } = {}) {
   return String(template)
     .replaceAll("{{APP_NAME}}", escapeHtml(appNameFromHost(host)))
-    .replaceAll("{{APP_URL}}", escapeHtml(stripInstallParams(url)));
+    .replaceAll("{{APP_URL}}", escapeHtml(installAppUrl(url)));
 }
 
 export function renderWebManifest(hostHeader) {

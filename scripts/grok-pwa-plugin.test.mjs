@@ -9,6 +9,7 @@ import {
   createHeadInjector,
   grokXCreatorHeadTags,
   injectGrokPwaHead,
+  installAppUrl,
   isDocumentPath,
   isInstallQuery,
   publicAppHost,
@@ -436,11 +437,27 @@ test("filters non-document paths", () => {
   assert.equal(isDocumentPath("/api/thing"), false);
   assert.equal(isDocumentPath("/__grok/install/styles.css"), false);
   assert.equal(isDocumentPath("/logo.png"), false);
+  assert.equal(isDocumentPath("//example.com/foo"), false);
+  assert.equal(isDocumentPath("/\\example.com"), false);
 });
 
 test("strips install params from the app link", () => {
   assert.equal(stripInstallParams("/?install=1&platform=ios"), "/");
   assert.equal(stripInstallParams("/app?install=1&platform=ios&tab=2"), "/app?tab=2");
+});
+
+test("install app link cannot leave this site", () => {
+  assert.equal(installAppUrl("/?install=1&platform=ios"), "/");
+  assert.equal(installAppUrl("/guide?install=1&platform=ios&tab=2"), "/guide?tab=2");
+  assert.equal(installAppUrl("//example.com/foo?install=1&platform=ios"), "/");
+  assert.equal(installAppUrl("/\\example.com?install=1&platform=ios"), "/");
+  assert.equal(installAppUrl("https://example.com/?install=1&platform=ios"), "/");
+  const html = renderInstallPage(
+    "eugene-desk.vercel.app",
+    "//example.com/foo?install=1&platform=ios",
+  );
+  assert.match(html, /href="\/"/);
+  assert.equal(html.includes("example.com"), false);
 });
 
 test("names the install page from host slug", () => {

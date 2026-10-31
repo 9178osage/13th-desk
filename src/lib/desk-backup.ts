@@ -1,6 +1,7 @@
 import { asStoredCredits, isLetter } from "./gpa.ts";
 import type { Bucket } from "./desk-records.ts";
 import { asHm, parseBucket as parseBucketShared } from "./desk-records.ts";
+import { DESK_READ_CAP } from "./desk-limits.ts";
 import { LEVEL_IDS as LEVELS, isLevel, type Level } from "./levels.ts";
 import { isDistrict, type DistrictId } from "../data/districts.ts";
 import { isLang, type Lang } from "./text.ts";
@@ -47,7 +48,8 @@ export type BackupSummary = {
   totalGrades: number;
 };
 
-export type BackupParseError = "json" | "shape" | "version" | "stages" | "times" | "grades";
+export type BackupParseError =
+  "json" | "shape" | "version" | "stages" | "times" | "grades" | "overflow";
 
 export type BackupParseResult =
   | { ok: true; backup: DeskBackupFile; summary: BackupSummary }
@@ -145,6 +147,21 @@ export function backupFileName(date = new Date()): string {
   return `eugene-desk-backup-${y}-${m}-${d}.json`;
 }
 
+const READ_LISTS = ["notes", "schedule", "grades", "favs", "checks"] as const;
+
+/** True when any saved list is past the read cap. Checked before row scans so a bomb is refused, not mislabeled as a bad time. */
+function bucketsOverReadCap(buckets: object): boolean {
+  for (const bucket of Object.values(buckets)) {
+    if (!bucket || typeof bucket !== "object" || Array.isArray(bucket)) continue;
+    const record = bucket as Record<string, unknown>;
+    for (const key of READ_LISTS) {
+      const list = record[key];
+      if (Array.isArray(list) && list.length > DESK_READ_CAP) return true;
+    }
+  }
+  return false;
+}
+
 export function parseDeskBackup(raw: string): BackupParseResult {
   let parsed: unknown;
   try {
@@ -173,6 +190,7 @@ export function parseDeskBackup(raw: string): BackupParseResult {
     for (const id of LEVELS) {
       if (!(id in (buckets as object))) return { ok: false, error: "stages" };
     }
+    if (bucketsOverReadCap(buckets)) return { ok: false, error: "overflow" };
     for (const id of LEVELS) {
       const bucket = (buckets as Record<string, unknown>)[id];
       if (!bucket || typeof bucket !== "object" || Array.isArray(bucket))

@@ -28,6 +28,7 @@ const ERROR_COPY: Record<BackupParseError, DeskCopyKey> = {
   stages: "importBadStages",
   times: "importBadTimes",
   grades: "importBadGrades",
+  overflow: "importTooMany",
 };
 
 type PendingImport = {
