@@ -5,7 +5,10 @@
  * URL, which can't be pre-registered per app. The broker instead exposes ONE
  * shared "preview" client that accepts any
  * `https://*.grok-sandbox.com/api/auth/oauth2/callback/*`
- * (broker: `app-builder-deployer/auth/src/preview-oauth.ts`). Supplying it via env lets
+ * (broker: `app-builder-deployer/auth/src/preview-oauth.ts`). Better Auth 1.7
+ * redirects to `/api/auth/callback/:id` instead, so preview sign-in also needs
+ * that path on the allowlist. Eugene Desk does not mount sign-in in production.
+ * Supplying the secret via env lets
  * the live preview do REAL sign-in — no demo/mock users — with no platform
  * injection. When deployed the deployer injects a per-app
  * `GROK_AUTH_*` that overrides these (see `server.ts`).
