@@ -1272,8 +1272,8 @@ test("sign-in and sign-out only navigate to a same-origin path", () => {
   const origin = "https://eugene-desk.vercel.app";
   assert.equal(sameOriginAppPath("/guide?q=1#week", origin), "/guide?q=1#week");
   assert.equal(sameOriginAppPath("https://eugene-desk.vercel.app/gpa", origin), "/gpa");
-  assert.equal(sameOriginAppPath("https://evil.example/gpa", origin), null);
-  assert.equal(sameOriginAppPath("//evil.example/gpa", origin), null);
+  assert.equal(sameOriginAppPath("https://example.com/gpa", origin), null);
+  assert.equal(sameOriginAppPath("//example.com/gpa", origin), null);
   assert.equal(sameOriginAppPath("javascript:alert(1)", origin), null);
   assert.equal(sameOriginAppPath("/\\evil.example", origin), null);
   assert.equal(sameOriginAppPath("", origin), null);
