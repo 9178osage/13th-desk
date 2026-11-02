@@ -45,6 +45,7 @@ import {
   UO_VALID_THROUGH,
 } from "./calendar-meta.ts";
 import { deadlines as uniDeadlines } from "../data/guide.ts";
+import { isDeskReplacedStorageEvent } from "./desk-replaced.ts";
 import {
   deadlinesFor,
   fourJEarlyReleaseToday,
@@ -2174,7 +2175,14 @@ test("editor state cannot outlive a replaced desk or point at the wrong slice", 
   const read = (path: string) => readFileSync(join(import.meta.dirname, path), "utf8");
   const hook = read("desk-replaced.ts");
   assert.match(hook, /DESK_PRE_IMPORT_EVENT/);
-  assert.match(hook, /event\.key === "13th-desk-v1"/);
+  assert.match(hook, /isDeskReplacedStorageEvent\(event\.key\)/);
+  assert.equal(isDeskReplacedStorageEvent("13th-desk-v1:pre-import"), true);
+  assert.equal(isDeskReplacedStorageEvent(null), true);
+  // An ordinary save in another tab must not close this tab's open editors.
+  assert.equal(isDeskReplacedStorageEvent("13th-desk-v1"), false);
+  for (const path of ["../components/week-schedule.tsx", "../routes/gpa.tsx"]) {
+    assert.match(read(path), /if \(editing && !rowAt\((schedule|grades), editing\)\)/, path);
+  }
   for (const path of [
     "../components/home-dashboard.tsx",
     "../components/week-schedule.tsx",

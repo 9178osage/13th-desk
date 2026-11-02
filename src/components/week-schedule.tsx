@@ -75,6 +75,11 @@ function ScheduleEditor() {
     setAwaitConfirm(false);
     setMessage(null);
   });
+  // Another tab's save keeps the editor open unless the class it edits is gone.
+  if (editing && !rowAt(schedule, editing)) {
+    setEditing(null);
+    setOpen(false);
+  }
   const rows = scheduleForDay(schedule, day);
   const invalid = !validScheduleTime(draft.start, draft.end);
   // The row being edited is excluded by identity: an id may be shared by several rows.

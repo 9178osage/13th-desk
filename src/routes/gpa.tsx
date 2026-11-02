@@ -18,7 +18,7 @@ import {
   type GpaInput,
 } from "@/lib/gpa";
 import type { Level } from "@/lib/levels";
-import { shiftRefAfterInsert, shiftRefAfterRemove, type RemovedRow } from "@/lib/row-ref";
+import { rowAt, shiftRefAfterInsert, shiftRefAfterRemove, type RemovedRow } from "@/lib/row-ref";
 import type { GradeRow } from "@/lib/store";
 import { useDesk, useLang } from "@/lib/store";
 import { useDeskReplaced } from "@/lib/desk-replaced";
@@ -115,6 +115,9 @@ function GpaPage() {
     setMessage(null);
     setDeleted(null);
   });
+
+  // Another tab's save keeps the editor open unless the class it edits is gone.
+  if (editing && !rowAt(grades, editing)) setEditing(null);
 
   // A level switch resets the form to that level's defaults. Adjusted during render
   // (React's "storing information from previous renders"), not in an effect.
