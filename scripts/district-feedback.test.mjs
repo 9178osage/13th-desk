@@ -118,6 +118,7 @@ function text(tree) {
 
 const tr = (lang, copy) => copy[lang] || copy.en;
 const districts = load("src/data/districts.ts");
+const districtShapes = load("src/data/district-shapes.ts", { "./districts.ts": districts });
 const gpa = load("src/lib/gpa.ts");
 const deskCopy = load("src/lib/desk-copy.ts", {
   "./date-formatters.ts": load("src/lib/date-formatters.ts", {
@@ -154,6 +155,7 @@ function districtFixture({ supported = true } = {}) {
     {
       react: runner.hooks,
       "@/data/districts": districts,
+      "@/data/district-shapes": districtShapes,
       "@/lib/store": { useLang: () => lang, useDesk: (select) => select(state) },
       "@/lib/text": { tr },
       "@/lib/cn": { cn: (...parts) => parts.filter(Boolean).join(" ") },
@@ -162,7 +164,9 @@ function districtFixture({ supported = true } = {}) {
       navigator: supported
         ? {
             geolocation: {
-              getCurrentPosition: (success, error) => requests.push({ success, error }),
+              // The polygons load lazily, so success settles after a dynamic import.
+              getCurrentPosition: (success, error) =>
+                requests.push({ success: async (pos) => await success(pos), error }),
             },
           }
         : {},
@@ -203,18 +207,18 @@ function districtFixture({ supported = true } = {}) {
   };
 }
 
-test("manual district selection, including unset, invalidates pending success and error callbacks", () => {
+test("manual district selection, including unset, invalidates pending success and error callbacks", async () => {
   for (const selection of ["bethel", ""]) {
     for (const finish of [
-      (r) => r.success(position),
-      (r) => r.success(outside),
-      (r) => r.error(),
+      async (r) => r.success(position),
+      async (r) => r.success(outside),
+      async (r) => r.error(),
     ]) {
       const f = districtFixture();
       const request = f.locate();
       f.select(selection);
       const writes = f.runner.writes;
-      finish(request);
+      await finish(request);
       f.render();
       assert.equal(f.state.district, selection || null);
       assert.deepEqual(f.choices, [selection || null]);
@@ -226,32 +230,36 @@ test("manual district selection, including unset, invalidates pending success an
   }
 });
 
-test("level changes and unmount invalidate both geolocation callbacks", () => {
+test("level changes and unmount invalidate both geolocation callbacks", async () => {
   for (const level of ["high", "uni"]) {
-    for (const finish of [(r) => r.success(position), (r) => r.error()]) {
+    for (const finish of [async (r) => r.success(position), async (r) => r.error()]) {
       const f = districtFixture();
       const request = f.locate();
       f.state.level = level;
       f.render();
       const writes = f.runner.writes;
-      finish(request);
+      await finish(request);
       assert.equal(f.runner.writes, writes);
       assert.deepEqual(f.choices, []);
       if (level === "high") assert.equal(f.locateButton().props.disabled, false);
     }
   }
-  for (const finish of [(r) => r.success(position), (r) => r.success(outside), (r) => r.error()]) {
+  for (const finish of [
+    async (r) => r.success(position),
+    async (r) => r.success(outside),
+    async (r) => r.error(),
+  ]) {
     const f = districtFixture();
     const request = f.locate();
     f.runner.unmount();
     const writes = f.runner.writes;
-    finish(request);
+    await finish(request);
     assert.equal(f.runner.writes, writes);
     assert.deepEqual(f.choices, []);
   }
 });
 
-test("a stale error cannot clear a newer lookup's busy state or successful feedback", () => {
+test("a stale error cannot clear a newer lookup's busy state or successful feedback", async () => {
   const f = districtFixture();
   const old = f.locate();
   f.select("bethel");
@@ -260,23 +268,23 @@ test("a stale error cannot clear a newer lookup's busy state or successful feedb
   f.render();
   assert.equal(f.locateButton().props.disabled, true);
   assert.equal(f.state.district, "bethel");
-  current.success(position);
+  await current.success(position);
   f.render();
   const note = f.note();
   assert.ok(note.startsWith("This is where you are standing: Eugene 4J."));
   old.error();
-  old.success(outside);
+  await old.success(outside);
   f.render();
   assert.equal(f.note(), note);
   assert.equal(f.locateButton().props.disabled, false);
   assert.deepEqual(f.choices, ["bethel", "4j"]);
 });
 
-test("district feedback uses the current language during and after each lookup outcome", () => {
+test("district feedback uses the current language during and after each lookup outcome", async () => {
   const cases = [
-    { finish: (r) => r.error(), expected: failedNotes },
+    { finish: async (r) => r.error(), expected: failedNotes },
     {
-      finish: (r) => r.success(position),
+      finish: async (r) => r.success(position),
       expected: [
         "This is where you are standing: Eugene 4J.",
         "根据当前位置，可能属于尤金 4J 学区。",
@@ -287,7 +295,7 @@ test("district feedback uses the current language during and after each lookup o
       ],
     },
     {
-      finish: (r) => r.success(outside),
+      finish: async (r) => r.success(outside),
       expected: [
         "That spot is outside the districts around Eugene.",
         "当前位置不在已收录的学区范围内，",
@@ -302,7 +310,7 @@ test("district feedback uses the current language during and after each lookup o
     const f = districtFixture();
     const request = f.locate();
     f.language("es");
-    finish(request);
+    await finish(request);
     f.render();
     assert.ok(f.note().startsWith(expected[2]));
     langs.forEach((lang, i) => {

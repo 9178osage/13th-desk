@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { DISTRICTS, districtAt, districtCopy, isDistrict } from "@/data/districts";
+import { DISTRICTS, districtCopy, isDistrict } from "@/data/districts";
 import { useDesk, useLang } from "@/lib/store";
 import { tr, type Copy } from "@/lib/text";
 import { cn } from "@/lib/cn";
@@ -52,8 +52,17 @@ export function DistrictBar() {
     }
     setBusy(true);
     setNote(null);
+    // Boundary polygons load only now, in parallel with the location prompt.
+    const shapes = import("@/data/district-shapes");
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
+        let districtAt: (typeof import("@/data/district-shapes"))["districtAt"];
+        try {
+          ({ districtAt } = await shapes);
+        } catch {
+          if (version === lookupVersion.current) setBusy(false);
+          return;
+        }
         if (version !== lookupVersion.current) return;
         setBusy(false);
         const hit = districtAt(pos.coords.longitude, pos.coords.latitude);

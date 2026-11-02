@@ -2084,7 +2084,8 @@ test("guides share one past-deadline rule and filter expired checklist items ali
   assert.doesNotMatch(read("time.ts"), /WEEKDAY_INDEX/);
 });
 
-import { DISTRICTS, districtAt, isDistrict as isDistrictId } from "../data/districts.ts";
+import { DISTRICTS, isDistrict as isDistrictId } from "../data/districts.ts";
+import { DISTRICT_POLYGONS, districtAt } from "../data/district-shapes.ts";
 import { checklist } from "../data/guide.ts";
 test("district and language ids have one source; backup validation reads it", () => {
   // The 14 ids the backup importer used to keep as its own copy.
@@ -2110,6 +2111,14 @@ test("district and language ids have one source; backup validation reads it", ()
   assert.equal(isDistrictId("4j"), true);
   assert.equal(isDistrictId("nope"), false);
   assert.equal(isDistrictId(4), false);
+  // Polygons live in their own lazily loaded module, one entry per district.
+  assert.deepEqual(
+    Object.keys(DISTRICT_POLYGONS),
+    DISTRICTS.map((item) => item.id),
+  );
+  const bar = readFileSync(join(import.meta.dirname, "../components/district-bar.tsx"), "utf8");
+  assert.match(bar, /import\("@\/data\/district-shapes"\)/);
+  assert.doesNotMatch(bar, /from "@\/data\/district-shapes"/);
   const backup = readFileSync(join(import.meta.dirname, "desk-backup.ts"), "utf8");
   assert.doesNotMatch(backup, /const DISTRICT_IDS|function isDistrict|function isLang/);
   assert.match(backup, /import \{ isDistrict, type DistrictId \} from "\.\.\/data\/districts\.ts"/);
