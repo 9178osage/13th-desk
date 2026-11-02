@@ -144,6 +144,60 @@ export const deadlines: Deadline[] = [
       zh: "UO 春假是 3 月 20 日到 28 日，春季学期 3 月 29 日开课。",
     },
   },
+  {
+    id: "s-drop",
+    ymd: "2027-04-03",
+    title: { en: "Drop with no W", zh: "退课不记 W" },
+    detail: {
+      en: "Last day to drop spring classes with no W on the transcript.",
+      zh: "春季学期退课且成绩单不记 W 的最后一天。",
+    },
+  },
+  {
+    id: "s-add",
+    ymd: "2027-04-05",
+    title: { en: "Last day to add", zh: "加课截止" },
+    detail: {
+      en: "Last day to register or add spring classes.",
+      zh: "注册或加春季课的最后一天。",
+    },
+  },
+  {
+    id: "s-memorial",
+    ymd: "2027-05-31",
+    title: { en: "Memorial Day", zh: "阵亡将士纪念日" },
+    detail: {
+      en: "No classes.",
+      zh: "停课。",
+    },
+  },
+  {
+    id: "s-finals",
+    ymd: "2027-06-07",
+    title: { en: "Finals begin", zh: "期末开始" },
+    detail: {
+      en: "Spring exams run June 7–11. Check DuckWeb for each exam time.",
+      zh: "春季学期考试是 6 月 7 日到 11 日，每门考试时间去 DuckWeb 核对。",
+    },
+  },
+  {
+    id: "s-finalsend",
+    ymd: "2027-06-11",
+    title: { en: "Finals end", zh: "期末结束" },
+    detail: {
+      en: "Spring term ends. Summer session classes begin June 21.",
+      zh: "春季学期结束。暑期课程 6 月 21 日开课。",
+    },
+  },
+  {
+    id: "s-commence",
+    ymd: "2027-06-14",
+    title: { en: "Commencement", zh: "毕业典礼" },
+    detail: {
+      en: "The UO commencement ceremony is June 14.",
+      zh: "UO 毕业典礼在 6 月 14 日。",
+    },
+  },
 ];
 
 /**
