@@ -52,10 +52,10 @@
 git clone https://github.com/9178osage/13th-desk.git
 cd 13th-desk
 npm install
-npm run dev
+npm run dev:local
 ```
 
-打开 [http://localhost:8080](http://localhost:8080)。
+打开 [http://localhost:8080](http://localhost:8080)。`dev:local` 只监听 127.0.0.1；`npm run dev` 监听 0.0.0.0，给预览沙盒用，在公共 Wi‑Fi 上别用它。
 
 常用命令：
 

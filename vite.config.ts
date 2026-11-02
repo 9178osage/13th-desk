@@ -189,6 +189,23 @@ export default defineConfig(({ command, isPreview }) => ({
     port: 8080,
     strictPort: true,
     headers: securityHeaders,
+    fs: {
+      // The dev server can listen on 0.0.0.0. Never serve private or repo-internal
+      // files from the project root to the network (Vite's defaults are kept first).
+      deny: [
+        ".env",
+        ".env.*",
+        "*.{crt,pem}",
+        "**/.git/**",
+        "**/申请材料/**",
+        "**/attachments/**",
+        "**/.grok/**",
+        "**/.app-builder/**",
+        "**/AGENTS.md",
+        "**/*.md",
+        "**/package-lock.json",
+      ],
+    },
   },
   preview: {
     host: "127.0.0.1",
