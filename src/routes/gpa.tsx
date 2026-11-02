@@ -25,7 +25,7 @@ import { useDeskReplaced } from "@/lib/desk-replaced";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr, type Copy, type Lang } from "@/lib/text";
 
-// Recharts is heavy; it only downloads once there is something to chart.
+// The chart only downloads once there is something to chart.
 const GpaChart = lazy(() => import("@/components/gpa-chart"));
 
 export const Route = createFileRoute("/gpa")({

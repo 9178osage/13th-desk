@@ -45,6 +45,7 @@ import {
   UO_VALID_THROUGH,
 } from "./calendar-meta.ts";
 import { deadlines as uniDeadlines } from "../data/guide.ts";
+import { chartTicks } from "./chart-ticks.ts";
 import { isDeskReplacedStorageEvent } from "./desk-replaced.ts";
 import {
   deadlinesFor,
@@ -1126,7 +1127,12 @@ test("bundle guards: language packs and Recharts stay code-split", () => {
     }
   };
   walk(src);
-  assert.deepEqual(rechartsUsers, ["components/gpa-chart.tsx"]);
+  // The GPA chart is plain SVG now; no chart library ships to the client.
+  assert.deepEqual(rechartsUsers, []);
+  const pkg = JSON.parse(readFileSync(join(src, "../package.json"), "utf8")) as {
+    dependencies: Record<string, string>;
+  };
+  assert.equal(pkg.dependencies.recharts, undefined);
   const gpa = readFileSync(join(src, "routes/gpa.tsx"), "utf8");
   assert.match(gpa, /lazy\(\(\) => import\("@\/components\/gpa-chart"\)\)/);
 });
@@ -2354,5 +2360,17 @@ test("4J early release only shows on Wednesdays with school", () => {
       const weekday = new Date(`${item.ymd}T12:00:00Z`).getUTCDay();
       assert.equal(isFourJSchoolDay(item.ymd, weekday, level), false, `${level} ${item.id}`);
     }
+  }
+});
+
+test("GPA chart y-axis ticks are round and cover the tallest bar", () => {
+  assert.deepEqual(chartTicks(0), [0, 1]);
+  assert.deepEqual(chartTicks(4), [0, 1, 2, 3, 4]);
+  assert.deepEqual(chartTicks(12), [0, 5, 10, 15]);
+  assert.deepEqual(chartTicks(7.5), [0, 2, 4, 6, 8]);
+  for (const max of [1, 3, 9, 17, 48, 120]) {
+    const ticks = chartTicks(max);
+    assert.ok(ticks.at(-1)! >= max, String(max));
+    assert.ok(ticks.length >= 2 && ticks.length <= 6, String(max));
   }
 });

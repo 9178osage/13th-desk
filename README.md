@@ -39,7 +39,7 @@
 - **TanStack** Router / Start / Query
 - **Tailwind CSS 4**
 - **zustand**（persist → `13th-desk-v1`）
-- **Recharts**（GPA 图）
+- 手写 SVG（GPA 图，不用图表库）
 - 字体：Fraunces（标题）+ Outfit（界面）
 
 视觉：奶油纸底 + 海军墨色 + 电蓝点缀；辅色苔绿与金色。
@@ -137,7 +137,7 @@ Brand assets live in `public/brand/` (logo, mark, favicon, and related files).
 - **TanStack** Router / Start / Query
 - **Tailwind CSS 4**
 - **zustand** for persisted state (`13th-desk-v1`)
-- **Recharts** for the GPA chart
+- Hand-drawn SVG for the GPA chart (no chart library)
 - **Fonts:** Fraunces for headings and Outfit for the interface
 
 The visual system uses a cream paper background, navy ink, electric-blue accents, and moss-green and gold supporting colors.
@@ -221,7 +221,7 @@ Los recursos de marca están en `public/brand/` (logo, mark, favicon y archivos 
 - **TanStack** Router / Start / Query
 - **Tailwind CSS 4**
 - **zustand** para el estado persistente (`13th-desk-v1`)
-- **Recharts** para el gráfico de GPA
+- SVG propio para el gráfico de GPA (sin librería de gráficos)
 - **Fuentes:** Fraunces en títulos y Outfit en la interfaz
 
 La imagen visual usa fondo de papel crema, tinta navy, acentos azul eléctrico, y verdes musgo y dorado de apoyo.
@@ -305,7 +305,7 @@ Debes estar autenticado y vinculado al mismo proyecto de Vercel.
 - **TanStack** Router / Start / Query
 - **Tailwind CSS 4**
 - **zustand** (persist → `13th-desk-v1`)
-- **Recharts** (GPA 차트)
+- 직접 그린 SVG (GPA 차트, 차트 라이브러리 없음)
 - **폰트:** 제목 Fraunces, UI Outfit
 
 비주얼은 크림색 종이 배경, 네이비 잉크, 일렉트릭 블루 액센트, 보조색으로 이끼 초록과 골드입니다.
@@ -389,7 +389,7 @@ Tài nguyên thương hiệu nằm trong `public/brand/` (logo, mark, favicon…
 - **TanStack** Router / Start / Query
 - **Tailwind CSS 4**
 - **zustand** (persist → `13th-desk-v1`)
-- **Recharts** (biểu đồ GPA)
+- SVG tự vẽ (biểu đồ GPA, không dùng thư viện biểu đồ)
 - **Font:** Fraunces cho tiêu đề, Outfit cho giao diện
 
 Giao diện dùng nền giấy kem, mực navy, điểm nhấn xanh điện, cùng xanh rêu và vàng hỗ trợ.
@@ -473,7 +473,7 @@ Bạn cần đã đăng nhập và liên kết cùng một dự án Vercel.
 - **TanStack** Router / Start / Query
 - **Tailwind CSS 4**
 - **zustand**（persist → `13th-desk-v1`）
-- **Recharts**（GPA チャート）
+- 手書き SVG（GPA チャート、グラフライブラリなし）
 - **フォント:** 見出し Fraunces、UI Outfit
 
 ビジュアルはクリーム紙の背景、ネイビーのインク、エレクトリックブルーのアクセント、補助色に苔緑とゴールドです。
