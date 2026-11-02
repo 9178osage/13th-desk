@@ -54,6 +54,14 @@ const copy = {
     "Không cần đăng nhập. Dữ liệu chỉ lưu trong trình duyệt này, không lên đám mây. Hãy xuất bản sao lưu trước khi đổi thiết bị.",
     "ログイン不要。データはクラウドではなく、このブラウザにだけ保存されます。端末を変える前にバックアップを出力してください。",
   ],
+  hostScript: [
+    "The site loads one script from grok.com, its app platform, for install and preview features. It does not read your desk data.",
+    "本站会从 grok.com（应用平台）加载一个脚本，用于安装和预览功能；它不会读取你的桌面数据。",
+    "El sitio carga un script de grok.com, su plataforma, para instalar y previsualizar. No lee los datos de tu escritorio.",
+    "이 사이트는 설치와 미리보기 기능을 위해 앱 플랫폼인 grok.com에서 스크립트 하나를 불러와요. 내 데스크 데이터는 읽지 않아요.",
+    "Trang web tải một tập lệnh từ grok.com, nền tảng ứng dụng, cho tính năng cài đặt và xem trước. Nó không đọc dữ liệu của bạn.",
+    "このサイトはインストールとプレビューのため、アプリ基盤の grok.com からスクリプトを1つ読み込みます。デスクのデータは読み取りません。",
+  ],
   stats: [
     "Page stats are anonymous: no cookies, no personal data.",
     "访问统计是匿名的：不用 cookie，不收集个人信息。",

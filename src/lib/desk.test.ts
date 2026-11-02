@@ -270,6 +270,7 @@ test("home guidance has direct translations and preserves browser-only backup ad
       "noDay",
       "noClassHint",
       "privacy",
+      "hostScript",
       "otherTabOpen",
     ] as const) {
       const text = deskText(lang, key);
@@ -279,6 +280,8 @@ test("home guidance has direct translations and preserves browser-only backup ad
     }
   }
   assert.match(deskText("en", "privacy"), /this browser, not the cloud/);
+  for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const)
+    assert.match(deskText(lang, "hostScript"), /grok\.com/);
   assert.match(deskText("en", "privacy"), /Export a backup before switching devices/);
   assert.match(deskText("zh", "setupHint"), /各学段的数据分别保存/);
 });

@@ -245,7 +245,9 @@ export function Shell({ children }: { children: ReactNode }) {
             {c(lang, "local")} · Eugene, OR
             <DeskBackup compact />
           </span>
-          <span className="footer-stats">{c(lang, "stats")}</span>
+          <span className="footer-stats">
+            {c(lang, "stats")} {c(lang, "hostScript")}
+          </span>
         </footer>
       </div>
       {paletteUsed && (
