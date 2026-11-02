@@ -413,6 +413,7 @@ function gpaFixture(count = 0) {
     ),
     "@/lib/gpa": gpa,
     "@/lib/row-ref": rowRef,
+    "@/lib/site": load("src/lib/site.ts"),
     "@/lib/store": { useLang: () => lang, useDesk: (select) => select(state) },
     "@/lib/text": { tr },
     "@/lib/desk-copy": deskCopy,
@@ -662,6 +663,7 @@ function scheduleFixture(count = 1) {
     "@/lib/desk-copy": deskCopy,
     "@/lib/schedule": load("src/lib/schedule.ts"),
     "@/lib/row-ref": rowRef,
+    "@/lib/site": load("src/lib/site.ts"),
   });
   // Render the real inner editor; the wrapper only keys it by school level.
   const Component = WeekSchedule().type;

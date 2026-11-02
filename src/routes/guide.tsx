@@ -1,4 +1,5 @@
 import { useClock } from "@/lib/use-clock";
+import { canonicalLink } from "@/lib/site";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, ExternalLink } from "lucide-react";
 import {
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/guide")({
           "Eugene student guide: upcoming school dates and deadlines, plus official calendar links for UO, Lane, and local K-12 districts.",
       },
     ],
+    links: [canonicalLink("/guide")],
   }),
   component: GuidePage,
 });

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useMemo, useState, type FormEvent } from "react";
+import { canonicalLink } from "@/lib/site";
 import { createFileRoute } from "@tanstack/react-router";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { Button, Card, EmptyState, Input, SectionHeader, Stat } from "@/components/ui";
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/gpa")({
           "Free GPA calculator for UO, Lane Community College, and Oregon high school grades — add classes, combine with your current GPA, and try a target.",
       },
     ],
+    links: [canonicalLink("/gpa")],
   }),
   component: GpaPage,
 });

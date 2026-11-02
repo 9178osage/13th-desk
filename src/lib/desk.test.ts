@@ -2374,3 +2374,29 @@ test("GPA chart y-axis ticks are round and cover the tallest bar", () => {
     assert.ok(ticks.length >= 2 && ticks.length <= 6, String(max));
   }
 });
+
+test("robots.txt, sitemap and canonical links agree on the public pages", async () => {
+  const { SITE_ORIGIN, SITE_PAGES } = await import("./site.ts");
+  const repo = join(import.meta.dirname, "../..");
+  const sitemap = readFileSync(join(repo, "public/sitemap.xml"), "utf8");
+  const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  assert.deepEqual(
+    locs,
+    SITE_PAGES.map((path) => `${SITE_ORIGIN}${path}`),
+  );
+  const robots = readFileSync(join(repo, "public/robots.txt"), "utf8");
+  assert.match(robots, new RegExp(`Sitemap: ${SITE_ORIGIN}/sitemap\\.xml`));
+  const routes: Record<string, string> = {
+    "/": "index.tsx",
+    "/guide": "guide.tsx",
+    "/campus": "campus.tsx",
+    "/town": "town.tsx",
+    "/gpa": "gpa.tsx",
+  };
+  for (const path of SITE_PAGES) {
+    const src = readFileSync(join(repo, "src/routes", routes[path]), "utf8");
+    assert.ok(src.includes(`canonicalLink("${path}")`), path);
+  }
+  const channel = readFileSync(join(repo, "src/routes/$channel.tsx"), "utf8");
+  assert.ok(channel.includes('canonicalLink("/")'), "channel entries canonicalize to home");
+});

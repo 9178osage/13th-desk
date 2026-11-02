@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { canonicalLink } from "@/lib/site";
 import { PlaceBrowser } from "@/components/place-browser";
 import {
   usePlaceQueryWriter,
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/town")({
           "Libraries, parks, cafés, and quiet places to study or take a break around Eugene, Oregon.",
       },
     ],
+    links: [canonicalLink("/town")],
   }),
   component: TownPage,
 });

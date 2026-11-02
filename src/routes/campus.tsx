@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { canonicalLink } from "@/lib/site";
 import { K12Campus } from "@/components/k12-campus";
 import { PlaceBrowser } from "@/components/place-browser";
 import {
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/campus")({
           "Campus shortcuts for University of Oregon and Lane Community College students, plus school info for Eugene-area K-12 families.",
       },
     ],
+    links: [canonicalLink("/campus")],
   }),
   component: CampusPage,
 });
