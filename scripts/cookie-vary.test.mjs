@@ -22,12 +22,22 @@ import { readFileSync } from "node:fs";
 
 const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
 
-test("every response varies on Cookie, including 404/500", () => {
+test("every HTML response varies on Cookie, including 404/500", () => {
   const rules = vercel.headers ?? [];
-  const catchAll = rules.find((rule) => rule.source === "/(.*)");
-  assert.ok(catchAll, "vercel.json needs a catch-all header rule");
-  const vary = catchAll.headers.find((header) => header.key.toLowerCase() === "vary");
-  assert.ok(vary, "the catch-all rule must set Vary");
+  // Fingerprinted /assets/* never depend on the cookie, so they skip Vary and stay
+  // cacheable across a language or level switch. A missing asset still renders the
+  // app document, but that 404 ships with \`Cache-Control: private, no-cache\`.
+  const rule = rules.find((item) =>
+    item.headers.some((header) => header.key.toLowerCase() === "vary"),
+  );
+  assert.ok(rule, "vercel.json needs a Vary rule");
+  assert.equal(rule.source, "/((?!assets/).*)");
+  const pattern = new RegExp(`^${rule.source}$`);
+  for (const path of ["/", "/guide", "/nope", "/assetsx", "/brand/x.svg"]) {
+    assert.ok(pattern.test(path), path);
+  }
+  assert.ok(!pattern.test("/assets/index-abc.js"));
+  const vary = rule.headers.find((header) => header.key.toLowerCase() === "vary");
   assert.match(
     vary.value,
     /(^|,)\s*Cookie\s*(,|$)/,

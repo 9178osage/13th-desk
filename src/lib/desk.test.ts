@@ -1230,35 +1230,24 @@ test("SSR function runs in a single region near Eugene (Hobby allows one)", () =
   assert.match(vite, /vercel: \{ functions: \{ regions: \["pdx1"\] \} \}/);
 });
 
-test("framing: production allows only itself; previews keep the Grok embedders", () => {
+test("framing: one strict CSP for every host, no host-based relaxing", () => {
   const repo = join(import.meta.dirname, "../..");
   type Rule = {
     source: string;
-    has?: { type: string; value: string }[];
-    missing?: { type: string; value: string }[];
+    has?: unknown[];
+    missing?: unknown[];
     headers: { key: string; value: string }[];
   };
   const vercel = JSON.parse(readFileSync(join(repo, "vercel.json"), "utf8")) as { headers: Rule[] };
   const cspOf = (rule: Rule) =>
     rule.headers.filter((h) => h.key.toLowerCase() === "content-security-policy");
   const withCsp = vercel.headers.filter((rule) => cspOf(rule).length > 0);
-  assert.equal(withCsp.length, 2);
-  const prodHost = "eugene-desk.vercel.app";
-  const prod = withCsp.find((r) => r.has?.some((c) => c.type === "host" && c.value === prodHost));
-  const preview = withCsp.find((r) =>
-    r.missing?.some((c) => c.type === "host" && c.value === prodHost),
-  );
-  assert.ok(prod && preview, "split by production host");
-  const sourcesOf = (rule: Rule) => {
-    const directive = cspOf(rule)[0]
-      .value.split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("frame-ancestors "));
-    assert.ok(directive, "frame-ancestors is set");
-    return directive.split(/\s+/).slice(1);
-  };
-  assert.deepEqual(sourcesOf(prod), ["'self'"]);
-  const directive = (rule: Rule, name: string) => {
+  assert.equal(withCsp.length, 1);
+  const [rule] = withCsp;
+  assert.equal(rule.source, "/(.*)");
+  assert.equal(rule.has, undefined, "no host condition: a new domain gets the strict policy");
+  assert.equal(rule.missing, undefined);
+  const directive = (name: string) => {
     const found = cspOf(rule)[0]
       .value.split(";")
       .map((part) => part.trim())
@@ -1266,26 +1255,16 @@ test("framing: production allows only itself; previews keep the Grok embedders",
     assert.ok(found, name);
     return found;
   };
-  for (const rule of [prod, preview]) {
-    assert.match(directive(rule, "script-src"), /'self'/);
-    assert.match(directive(rule, "script-src"), /'unsafe-inline'/);
-    assert.match(directive(rule, "script-src"), /https:\/\/grok\.com/);
-    assert.equal(directive(rule, "object-src"), "object-src 'none'");
-    assert.equal(directive(rule, "base-uri"), "base-uri 'self'");
-    assert.match(directive(rule, "connect-src"), /https:\/\/api\.open-meteo\.com/);
-    assert.match(directive(rule, "connect-src"), /https:\/\/grok\.com/);
-    assert.doesNotMatch(directive(rule, "script-src"), /\*/);
-  }
-  const sources = sourcesOf(preview);
-  assert.ok(sources.includes("'self'"));
-  assert.ok(!sources.includes("*"), "no wildcard embedding");
-  assert.ok(!sources.some((src) => /^(https?:|\*\.?)$/.test(src)), "no scheme-wide sources");
-  for (const src of sources.filter((item) => item !== "'self'")) {
-    const sample = src.replace("*.", "preview.").replace(":*", ":5173");
-    assert.ok(isGrokEmbedderOrigin(sample), src);
-  }
-  assert.ok(sources.includes("https://grok.com"));
-  const all = vercel.headers.flatMap((rule) => rule.headers);
+  assert.equal(directive("frame-ancestors"), "frame-ancestors 'self'");
+  assert.match(directive("script-src"), /'self'/);
+  assert.match(directive("script-src"), /https:\/\/grok\.com/);
+  // Production analytics load same-origin from /_vercel/insights; the debug CDN is dev-only.
+  assert.doesNotMatch(directive("script-src"), /va\.vercel-scripts\.com/);
+  assert.doesNotMatch(directive("script-src"), /\*/);
+  assert.equal(directive("object-src"), "object-src 'none'");
+  assert.equal(directive("base-uri"), "base-uri 'self'");
+  assert.match(directive("connect-src"), /https:\/\/api\.open-meteo\.com/);
+  const all = vercel.headers.flatMap((item) => item.headers);
   assert.ok(!all.some((h) => h.key.toLowerCase() === "x-frame-options"));
 });
 
@@ -2265,8 +2244,6 @@ test("unique IDs keep the old behavior: one row changes, undo refuses an id alre
   assert.equal(canRestoreRow(full, over, "grades"), true, "back at the limit still restores");
   assert.equal(canRestoreRow([...full, { id: "x" }], over, "grades"), false);
 });
-
-import { isGrokEmbedderOrigin } from "./preview-embedder-origin.ts";
 
 test("open editor follows its row when another row is deleted or restored", async () => {
   const { refOf, rowAt, removeRow, shiftRefAfterRemove, shiftRefAfterInsert } =

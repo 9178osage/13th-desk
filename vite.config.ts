@@ -172,8 +172,9 @@ function productionContentSecurityPolicy(): string | undefined {
       headers: { key: string; value: string }[];
     }[];
   };
+  // One CSP for every host: strict by default (S5). Preview reuses the same policy.
   const rule = vercel.headers.find((item) =>
-    item.has?.some((cond) => cond.type === "host" && cond.value === "eugene-desk.vercel.app"),
+    item.headers.some((header) => header.key === "Content-Security-Policy"),
   );
   return rule?.headers.find((header) => header.key === "Content-Security-Policy")?.value;
 }

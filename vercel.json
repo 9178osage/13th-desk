@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --omit=dev --no-audit --no-fund",
+  "installCommand": "npm ci --omit=dev --ignore-scripts --no-audit --no-fund",
   "regions": ["pdx1"],
   "headers": [
     {
@@ -20,7 +20,12 @@
         {
           "key": "X-Permitted-Cross-Domain-Policies",
           "value": "none"
-        },
+        }
+      ]
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "headers": [
         {
           "key": "Vary",
           "value": "Cookie"
@@ -29,31 +34,10 @@
     },
     {
       "source": "/(.*)",
-      "missing": [
-        {
-          "type": "host",
-          "value": "eugene-desk.vercel.app"
-        }
-      ],
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://grok.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.open-meteo.com https://grok.com https://*.grok.com; form-action 'self'; frame-ancestors 'self' https://grok.com https://*.grok.com http://localhost:* http://127.0.0.1:*; upgrade-insecure-requests"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "eugene-desk.vercel.app"
-        }
-      ],
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://grok.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.open-meteo.com https://grok.com https://*.grok.com; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' https://grok.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://api.open-meteo.com https://grok.com https://*.grok.com; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
         }
       ]
     }
