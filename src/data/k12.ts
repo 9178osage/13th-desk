@@ -594,6 +594,51 @@ const seniorDate: Deadline = {
   },
 };
 
+/**
+ * Eugene 4J 2026–27 school year, from the board-adopted PDF (revised June 3, 2026):
+ * https://files.smartsites.parentsquare.com/3396/final_2026-27.pdf
+ * First day is Sept 8 (K, 6, 9; everyone Sept 9); last day is the June 16 half day.
+ */
+export const FOURJ_YEAR = { start: "2026-09-08", end: "2027-06-16" } as const;
+
+/** Inclusive [from, to] weekday ranges with no school for any 4J grade. */
+export const FOURJ_NO_SCHOOL: readonly (readonly [string, string])[] = [
+  ["2026-10-09", "2026-10-09"],
+  ["2026-11-06", "2026-11-06"],
+  ["2026-11-11", "2026-11-11"],
+  ["2026-11-23", "2026-11-27"],
+  ["2026-12-21", "2027-01-04"],
+  ["2027-01-18", "2027-01-18"],
+  ["2027-02-01", "2027-02-02"],
+  ["2027-02-15", "2027-02-15"],
+  ["2027-03-22", "2027-03-29"],
+  ["2027-04-16", "2027-04-16"],
+  ["2027-05-31", "2027-05-31"],
+];
+
+/** No school for elementary only (grading day). */
+export const FOURJ_ELEM_NO_SCHOOL: readonly string[] = ["2027-06-11"];
+
+/**
+ * True when 4J students at `level` have class on this Eugene date.
+ * `weekday` is 0 (Sunday) … 6 (Saturday). Outside the stored year it is always false.
+ */
+export function isFourJSchoolDay(ymd: string, weekday: number, level: Level): boolean {
+  if (weekday === 0 || weekday === 6) return false;
+  if (ymd < FOURJ_YEAR.start || ymd > FOURJ_YEAR.end) return false;
+  if (FOURJ_NO_SCHOOL.some(([from, to]) => ymd >= from && ymd <= to)) return false;
+  if (level === "elem" && FOURJ_ELEM_NO_SCHOOL.includes(ymd)) return false;
+  return true;
+}
+
+/** Wednesday early release only happens on a Wednesday 4J actually has school. */
+export function fourJEarlyReleaseToday(
+  clock: { ymd: string; weekday: number } | null,
+  level: Level,
+): boolean {
+  return !!clock && clock.weekday === 3 && isFourJSchoolDay(clock.ymd, clock.weekday, level);
+}
+
 export function deadlinesFor(level: Level): Deadline[] {
   const list = [...sharedDates];
   if (level === "elem") list.push(elementaryDate);

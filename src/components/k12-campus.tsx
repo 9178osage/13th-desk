@@ -5,6 +5,7 @@ import {
   elemSchools,
   highSchoolCards,
   midSchools,
+  fourJEarlyReleaseToday,
   releaseLine,
   type SchoolCard,
 } from "@/data/k12";
@@ -85,7 +86,7 @@ export function K12Campus({ level }: { level: Exclude<Level, "uni"> }) {
         <h1 className="mt-1 font-display text-4xl text-ink md:text-5xl">{label}</h1>
         <p className="mt-3 max-w-2xl text-muted">
           {fourJ ? (
-            tr(lang, releaseLine(level, clock?.weekday === 3))
+            tr(lang, releaseLine(level, fourJEarlyReleaseToday(clock, level)))
           ) : (
             <>
               {c(lang, "districtBellHint")}{" "}

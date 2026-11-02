@@ -17,7 +17,7 @@ import { Button, Input } from "@/components/ui";
 import { WeekSchedule } from "@/components/week-schedule";
 import { WeatherCard } from "@/components/weather";
 import { deadlines } from "@/data/guide";
-import { releaseLine } from "@/data/k12";
+import { fourJEarlyReleaseToday, releaseLine } from "@/data/k12";
 import { quickLinks } from "@/data/quick-links";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
 import { useDeskReplaced } from "@/lib/desk-replaced";
@@ -300,13 +300,19 @@ export function HomeDashboard() {
       </nav>
       <div className="today-layout">
         <div className="today-primary">
-          {level !== "uni" && (district === null || district === "4j") && clock?.weekday === 3 && (
-            <aside className="release-banner" role="note" aria-label={c(lang, "wednesdayRelease")}>
-              <Megaphone size={20} aria-hidden="true" />
-              {/* releaseLine(…, true) already opens with "Today is the early release." */}
-              <p>{tr(lang, releaseLine(level, true))}</p>
-            </aside>
-          )}
+          {level !== "uni" &&
+            (district === null || district === "4j") &&
+            fourJEarlyReleaseToday(clock, level) && (
+              <aside
+                className="release-banner"
+                role="note"
+                aria-label={c(lang, "wednesdayRelease")}
+              >
+                <Megaphone size={20} aria-hidden="true" />
+                {/* releaseLine(…, true) already opens with "Today is the early release." */}
+                <p>{tr(lang, releaseLine(level, true))}</p>
+              </aside>
+            )}
           <TaskList key={level} />
           <WeekSchedule />
         </div>

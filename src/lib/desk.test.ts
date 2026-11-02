@@ -45,7 +45,12 @@ import {
   UO_VALID_THROUGH,
 } from "./calendar-meta.ts";
 import { deadlines as uniDeadlines } from "../data/guide.ts";
-import { deadlinesFor, releaseLine } from "../data/k12.ts";
+import {
+  deadlinesFor,
+  fourJEarlyReleaseToday,
+  isFourJSchoolDay,
+  releaseLine,
+} from "../data/k12.ts";
 import { deskBootScript, BOOT_HTML_LANG, BOOT_LEVELS } from "./boot-script.ts";
 import { LEVEL_IDS, LEVELS, isLevel } from "./levels.ts";
 import { DESK_STORAGE_VERSION } from "./desk-storage.ts";
@@ -322,7 +327,7 @@ test("campus bell copy follows the selected district", () => {
   );
   assert.match(campus, /district === null \|\| district === "4j"/);
   assert.match(campus, /c\(lang, "districtBellHint"\)/);
-  assert.match(campus, /releaseLine\(level, clock\?\.weekday === 3\)/);
+  assert.match(campus, /releaseLine\(level, fourJEarlyReleaseToday\(clock, level\)\)/);
   assert.match(campus, /k12CalendarSource\(district\)/);
 });
 test("overlap detection lists conflicting classes and ignores adjacent times", () => {
@@ -2323,4 +2328,37 @@ test(".ics URL lines are valid RFC 5545 URIs: no TEXT escaping, no injected line
   assert.equal(unfolded.match(/^END:VCALENDAR$/gm)?.length, 1);
   assert.ok(!unfolded.includes("data:text"));
   assert.equal(unfolded.match(/^URL:/gm)?.length, 2);
+});
+
+test("4J early release only shows on Wednesdays with school", () => {
+  const wed = (ymd: string) => fourJEarlyReleaseToday({ ymd, weekday: 3 }, "high");
+  assert.equal(wed("2026-11-04"), true);
+  for (const ymd of [
+    "2026-11-11",
+    "2026-11-25",
+    "2026-12-23",
+    "2026-12-30",
+    "2027-03-24",
+    "2027-07-07",
+    "2026-09-02",
+  ]) {
+    assert.equal(wed(ymd), false, ymd);
+  }
+  assert.equal(wed("2027-06-16"), true);
+  assert.equal(fourJEarlyReleaseToday({ ymd: "2026-11-05", weekday: 4 }, "high"), false);
+  assert.equal(isFourJSchoolDay("2027-06-11", 5, "elem"), false);
+  assert.equal(isFourJSchoolDay("2027-06-11", 5, "mid"), true);
+  // Every stored 4J no-school row is also a non-school day in the structured list.
+  for (const level of ["elem", "mid", "high"] as const) {
+    for (const item of deadlinesFor(level)) {
+      if (
+        !/^k-(oct9|midterm|veterans|conf|winter|mlk|semester|transition|presidents|spring|apr|memorial|jun-grading|elem-grading)$/.test(
+          item.id,
+        )
+      )
+        continue;
+      const weekday = new Date(`${item.ymd}T12:00:00Z`).getUTCDay();
+      assert.equal(isFourJSchoolDay(item.ymd, weekday, level), false, `${level} ${item.id}`);
+    }
+  }
 });
