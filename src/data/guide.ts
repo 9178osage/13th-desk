@@ -81,6 +81,69 @@ export const deadlines: Deadline[] = [
       zh: "之后放假到 1 月 3 日。",
     },
   },
+  {
+    id: "w-begin",
+    ymd: "2027-01-04",
+    title: { en: "Winter classes begin", zh: "冬季学期开学" },
+    detail: {
+      en: "Winter 2027 classes start January 4.",
+      zh: "2027 冬季学期 1 月 4 日开始上课。",
+    },
+  },
+  {
+    id: "w-drop",
+    ymd: "2027-01-09",
+    title: { en: "Drop with no W", zh: "退课不记 W" },
+    detail: {
+      en: "Last day to drop winter classes with no W on the transcript.",
+      zh: "冬季学期退课且成绩单不记 W 的最后一天。",
+    },
+  },
+  {
+    id: "w-add",
+    ymd: "2027-01-11",
+    title: { en: "Last day to add", zh: "加课截止" },
+    detail: {
+      en: "Last day to register or add winter classes.",
+      zh: "注册或加冬季课的最后一天。",
+    },
+  },
+  {
+    id: "w-mlk",
+    ymd: "2027-01-18",
+    title: { en: "MLK Day", zh: "马丁·路德·金日" },
+    detail: {
+      en: "No classes.",
+      zh: "停课。",
+    },
+  },
+  {
+    id: "w-springreg",
+    ymd: "2027-02-22",
+    title: { en: "Spring registration opens", zh: "春季选课开始" },
+    detail: {
+      en: "Initial spring 2027 registration runs February 22 – March 3, per the catalog.",
+      zh: "按校历，2027 春季学期初次选课是 2 月 22 日至 3 月 3 日。",
+    },
+  },
+  {
+    id: "w-finals",
+    ymd: "2027-03-15",
+    title: { en: "Finals begin", zh: "期末开始" },
+    detail: {
+      en: "Winter exams run March 15–19. Check DuckWeb for each exam time.",
+      zh: "冬季学期考试是 3 月 15 日到 19 日，每门考试时间去 DuckWeb 核对。",
+    },
+  },
+  {
+    id: "w-spring",
+    ymd: "2027-03-20",
+    title: { en: "Spring break", zh: "春假" },
+    detail: {
+      en: "UO spring vacation runs March 20–28. Spring classes begin March 29.",
+      zh: "UO 春假是 3 月 20 日到 28 日，春季学期 3 月 29 日开课。",
+    },
+  },
 ];
 
 /**
@@ -276,7 +339,7 @@ export const helpLinks: { href: string; label: Bilingual; note: Bilingual }[] = 
   {
     href: "https://catalog.uoregon.edu/calendar/",
     label: { en: "Catalog calendar", zh: "校历" },
-    note: { en: "Fall 2026 and the terms after it.", zh: "2026 秋季，以及后面几个学期。" },
+    note: { en: "Fall 2026 through fall 2027.", zh: "2026 秋季到 2027 秋季。" },
   },
   {
     href: "https://map.uoregon.edu/",

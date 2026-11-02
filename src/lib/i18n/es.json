@@ -120,7 +120,6 @@
   "FAFSA": "FAFSA",
   "FAFSA and Oregon Student Aid are this fall’s paperwork, not a spring surprise.": "FAFSA y la ayuda del estado de Oregón se llenan este otoño. No lo dejes para la primavera.",
   "Fall 2026": "Otoño 2026",
-  "Fall 2026 and the terms after it.": "Otoño de 2026 y los trimestres que siguen.",
   "Fall 2026 waitlists close at 9 a.m. After that you need an add, not a waitlist.": "Las listas de espera de otoño 2026 cierran a las 9 a. m. Después tienes que agregar la clase: ya no hay lista de espera.",
   "Fall classes start September 28 — {n} days out.": "Las clases de otoño empiezan el 28 de septiembre — faltan {n} días.",
   "Fall dates come from the UO 2026–27 catalog and the registrar. Bus rules, library hours, and market days change. Check the official site before you bet a grade on a card.": "Las fechas de otoño salen del catálogo UO 2026–27 y de registro. Autobús, biblioteca y mercado cambian. Mira el sitio oficial antes de apostar una nota a una tarjeta.",
@@ -419,5 +418,14 @@
   "Who to ask": "A quién preguntar",
   "Winter break": "Vacaciones de invierno",
   "Winter break runs through January 3.": "Las vacaciones de invierno siguen hasta el 3 de enero.",
-  "Winter registration opens": "Abre la inscripción de invierno"
+  "Winter registration opens": "Abre la inscripción de invierno",
+  "Winter classes begin": "Empiezan las clases de invierno",
+  "Winter 2027 classes start January 4.": "Las clases de invierno 2027 empiezan el 4 de enero.",
+  "Last day to drop winter classes with no W on the transcript.": "Último día para dar de baja clases de invierno sin W en el expediente.",
+  "Last day to register or add winter classes.": "Último día para inscribirte o añadir clases de invierno.",
+  "Spring registration opens": "Abre la inscripción de primavera",
+  "Initial spring 2027 registration runs February 22 – March 3, per the catalog.": "La primera inscripción de primavera 2027 va del 22 de febrero al 3 de marzo, según el catálogo.",
+  "Winter exams run March 15–19. Check DuckWeb for each exam time.": "Los exámenes de invierno van del 15 al 19 de marzo. Revisa cada hora en DuckWeb.",
+  "UO spring vacation runs March 20–28. Spring classes begin March 29.": "Las vacaciones de primavera de la UO van del 20 al 28 de marzo. Las clases de primavera empiezan el 29 de marzo.",
+  "Fall 2026 through fall 2027.": "De otoño 2026 a otoño 2027."
 }

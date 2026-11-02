@@ -120,7 +120,6 @@
   "FAFSA": "FAFSA",
   "FAFSA and Oregon Student Aid are this fall’s paperwork, not a spring surprise.": "FAFSA랑 오리건 주 학자금은 이번 가을에 써요. 봄까지 미루지 마세요.",
   "Fall 2026": "2026년 가을",
-  "Fall 2026 and the terms after it.": "2026년 가을, 그리고 그다음 학기예요.",
   "Fall 2026 waitlists close at 9 a.m. After that you need an add, not a waitlist.": "2026년 가을 대기자 명단은 오전 9시에 닫혀요. 그다음부터는 대기가 아니라 수강 추가로 넣어야 해요.",
   "Fall classes start September 28 — {n} days out.": "가을 수업은 9월 28일에 시작해요. {n}일 남았어요.",
   "Fall dates come from the UO 2026–27 catalog and the registrar. Bus rules, library hours, and market days change. Check the official site before you bet a grade on a card.": "가을 날짜는 UO 2026–27 요강과 학사팀 기준이에요. 버스·도서관·마켓 시간은 바뀝니다. 이 카드에 성적을 걸기 전에 공식 사이트를 확인하세요.",
@@ -419,5 +418,14 @@
   "Who to ask": "어디에 물어보나",
   "Winter break": "겨울 방학",
   "Winter break runs through January 3.": "겨울 방학은 1월 3일까지예요.",
-  "Winter registration opens": "겨울 수강 신청 시작"
+  "Winter registration opens": "겨울 수강 신청 시작",
+  "Winter classes begin": "겨울 텀 개강",
+  "Winter 2027 classes start January 4.": "2027 겨울 텀 수업은 1월 4일에 시작해요.",
+  "Last day to drop winter classes with no W on the transcript.": "성적표에 W 없이 겨울 텀 수업을 드롭할 수 있는 마지막 날이에요.",
+  "Last day to register or add winter classes.": "겨울 텀 수업을 등록하거나 추가할 수 있는 마지막 날이에요.",
+  "Spring registration opens": "봄 텀 수강 신청 시작",
+  "Initial spring 2027 registration runs February 22 – March 3, per the catalog.": "학사 일정대로 2027 봄 텀 첫 수강 신청은 2월 22일부터 3월 3일까지예요.",
+  "Winter exams run March 15–19. Check DuckWeb for each exam time.": "겨울 텀 시험은 3월 15일부터 19일까지예요. 시험 시간은 DuckWeb에서 확인해요.",
+  "UO spring vacation runs March 20–28. Spring classes begin March 29.": "UO 봄방학은 3월 20일부터 28일까지예요. 봄 텀 수업은 3월 29일에 시작해요.",
+  "Fall 2026 through fall 2027.": "2026 가을부터 2027 가을까지."
 }

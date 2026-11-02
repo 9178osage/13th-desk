@@ -120,7 +120,6 @@
   "FAFSA": "FAFSA",
   "FAFSA and Oregon Student Aid are this fall’s paperwork, not a spring surprise.": "FAFSA とオレゴン州の援助は、この秋に出します。春まで延ばさないでね。",
   "Fall 2026": "2026年秋",
-  "Fall 2026 and the terms after it.": "2026年秋と、その次の学期です。",
   "Fall 2026 waitlists close at 9 a.m. After that you need an add, not a waitlist.": "2026年秋のウェイティングリストは午前9時に閉じます。そのあとは追加登録で、ウェイティングリストではない。",
   "Fall classes start September 28 — {n} days out.": "秋の授業は9月28日に始まります。あと {n} 日です。",
   "Fall dates come from the UO 2026–27 catalog and the registrar. Bus rules, library hours, and market days change. Check the official site before you bet a grade on a card.": "秋の日付は UO 2026–27 の要覧と教務。バス・図書館・マーケットの時間は変わる。このカードに成績を賭ける前に公式を見て。",
@@ -419,5 +418,14 @@
   "Who to ask": "どこに聞くか",
   "Winter break": "冬休み",
   "Winter break runs through January 3.": "冬休みは1月3日までです。",
-  "Winter registration opens": "冬学期の登録開始"
+  "Winter registration opens": "冬学期の登録開始",
+  "Winter classes begin": "冬学期の授業開始",
+  "Winter 2027 classes start January 4.": "2027年冬学期の授業は1月4日に始まります。",
+  "Last day to drop winter classes with no W on the transcript.": "成績証明書にWを残さずに冬学期の授業を取り消せる最終日です。",
+  "Last day to register or add winter classes.": "冬学期の授業を登録・追加できる最終日です。",
+  "Spring registration opens": "春学期の登録開始",
+  "Initial spring 2027 registration runs February 22 – March 3, per the catalog.": "カタログでは、2027年春学期の最初の登録は2月22日–3月3日です。",
+  "Winter exams run March 15–19. Check DuckWeb for each exam time.": "冬学期の試験は3月15–19日です。各試験の時間は DuckWeb で確認してね。",
+  "UO spring vacation runs March 20–28. Spring classes begin March 29.": "UOの春休みは3月20–28日です。春学期の授業は3月29日に始まります。",
+  "Fall 2026 through fall 2027.": "2026年秋から2027年秋まで。"
 }
