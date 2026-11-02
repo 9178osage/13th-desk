@@ -44,6 +44,7 @@ import {
   termExpiredByValidThrough,
   UO_VALID_THROUGH,
 } from "./calendar-meta.ts";
+import { deadlines as uniDeadlines } from "../data/guide.ts";
 import { deadlinesFor, releaseLine } from "../data/k12.ts";
 import { deskBootScript, BOOT_HTML_LANG, BOOT_LEVELS } from "./boot-script.ts";
 import { LEVEL_IDS, LEVELS, isLevel } from "./levels.ts";
@@ -791,8 +792,22 @@ test("import undo stays offered after other status messages", () => {
 });
 
 test("term expiry uses valid-through without inventing new dates", () => {
-  assert.equal(termExpiredByValidThrough("2026-12-11", UO_VALID_THROUGH), false);
-  assert.equal(termExpiredByValidThrough("2026-12-12", UO_VALID_THROUGH), true);
+  assert.equal(termExpiredByValidThrough("2027-06-14", UO_VALID_THROUGH), false);
+  assert.equal(termExpiredByValidThrough("2027-06-15", UO_VALID_THROUGH), true);
+});
+
+test("every university date falls inside the UO term window", () => {
+  for (const item of uniDeadlines) {
+    assert.ok(item.ymd <= UO_VALID_THROUGH, `${item.id} ${item.ymd} is after ${UO_VALID_THROUGH}`);
+  }
+  // The last stored date should close the window, so it never lingers past the data.
+  assert.equal(
+    uniDeadlines
+      .map((item) => item.ymd)
+      .sort()
+      .at(-1),
+    UO_VALID_THROUGH,
+  );
 });
 
 test("only 4J (or unset) has stored K12 calendar rows", () => {

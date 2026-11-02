@@ -1,8 +1,8 @@
 /** Shared with `calendar.ts`. Safe for node:test (no path aliases). */
 
-export const UO_TERM_ID = "uo-fall-2026";
-export const UO_VALID_THROUGH = "2026-12-11";
-export const UO_LAST_VERIFIED = "2026-10-03";
+export const UO_TERM_ID = "uo-2026-27";
+export const UO_VALID_THROUGH = "2027-06-14";
+export const UO_LAST_VERIFIED = "2026-11-02";
 export const UO_SOURCE_HREF = "https://catalog.uoregon.edu/calendar/";
 
 /** Official calendar PDF/index for Eugene 4J (the only district with stored date rows). */

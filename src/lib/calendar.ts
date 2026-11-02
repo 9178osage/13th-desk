@@ -26,14 +26,14 @@ export function deadlinePassed(item: { ymd: string; time?: string }, clock: Euge
 export const uoAcademicTerm = {
   id: UO_TERM_ID,
   label: {
-    en: "UO Fall 2026",
-    zh: "UO 2026 秋季",
-    es: "UO otoño 2026",
-    ko: "UO 2026 가을",
-    vi: "UO mùa thu 2026",
-    ja: "UO 2026年秋",
+    en: "UO 2026–27",
+    zh: "UO 2026–27 学年",
+    es: "UO 2026–27",
+    ko: "UO 2026–27 학년도",
+    vi: "UO năm học 2026–27",
+    ja: "UO 2026–27年度",
   } satisfies Copy,
-  /** Inclusive last day this hard-coded list is meant to cover (finals end). */
+  /** Inclusive last day this hard-coded list covers (latest UO date in guide.ts). */
   validThrough: UO_VALID_THROUGH,
   lastVerified: UO_LAST_VERIFIED,
   sourceHref: UO_SOURCE_HREF,
