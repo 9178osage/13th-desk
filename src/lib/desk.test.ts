@@ -1277,6 +1277,45 @@ test("framing: one strict CSP for every host, no host-based relaxing", () => {
   assert.ok(!all.some((h) => h.key.toLowerCase() === "x-frame-options"));
 });
 
+test("error page and empty search use the language already on the page", async () => {
+  const { errorPageLang } = await import("./error-copy.ts");
+  const packs = { es: esPack, ko: koPack, vi: viPack, ja: jaPack } as const;
+  const empty = "Try another word, clear the search, or pin a place from Campus or Town first.";
+  assert.equal(packs.es[empty].includes("Ciudad"), false);
+  assert.equal(packs.es[empty].includes("Explorar Eugene"), true);
+  assert.equal(packs.ko[empty].includes("Town"), false);
+  assert.equal(packs.ko[empty].includes("캠퍼스"), true);
+  assert.equal(packs.vi[empty].includes("Campus"), false);
+  assert.equal(packs.vi[empty].includes("Khuôn viên"), true);
+  assert.equal(packs.ja[empty].includes("Town"), false);
+  assert.equal(packs.ja[empty].includes("キャンパス"), true);
+  assert.equal(packs.vi["Campus"], "Khuôn viên");
+  assert.equal(packs.vi["The campus clinic."].includes("campus"), false);
+  const html = {
+    lang: "en",
+    cookie: "",
+  };
+  const prev = globalThis.document;
+  globalThis.document = {
+    documentElement: html,
+    get cookie() {
+      return html.cookie;
+    },
+  } as unknown as Document;
+  try {
+    html.lang = "zh-CN";
+    assert.equal(errorPageLang(), "zh");
+    html.lang = "";
+    html.cookie = "eugene-desk-prefs=ja.uni";
+    assert.equal(errorPageLang(), "ja");
+    html.cookie = "";
+    assert.equal(errorPageLang(), "en");
+  } finally {
+    if (prev) globalThis.document = prev;
+    else delete (globalThis as { document?: unknown }).document;
+  }
+});
+
 test("sign-in and sign-out only navigate to a same-origin path", () => {
   const origin = "https://eugene-desk.vercel.app";
   assert.equal(sameOriginAppPath("/guide?q=1#week", origin), "/guide?q=1#week");
