@@ -1,6 +1,6 @@
 import { useClock } from "@/lib/use-clock";
 import { Check, ExternalLink } from "lucide-react";
-import { fourJEarlyReleaseToday, k12Checks, k12Links, releaseLine } from "@/data/k12";
+import { fourJBellLine, k12Checks, k12Links } from "@/data/k12";
 import { cn } from "@/lib/cn";
 import {
   deadlinePassed,
@@ -67,9 +67,7 @@ export function K12Guide({ level }: { level: Exclude<Level, "uni"> }) {
           ) : null}
         </p>
         {source.hasMatchingData && (
-          <p className="mt-3 max-w-2xl text-sm text-ink">
-            {tr(lang, releaseLine(level, fourJEarlyReleaseToday(clock, level)))}
-          </p>
+          <p className="mt-3 max-w-2xl text-sm text-ink">{tr(lang, fourJBellLine(level, clock))}</p>
         )}
       </header>
 

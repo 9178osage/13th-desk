@@ -49,7 +49,14 @@ import { chartTicks } from "./chart-ticks.ts";
 import { isDeskReplacedStorageEvent } from "./desk-replaced.ts";
 import {
   deadlinesFor,
+  FOURJ_ELEM_NO_SCHOOL,
+  FOURJ_HALF_DAYS,
+  FOURJ_NO_SCHOOL,
+  FOURJ_YEAR,
+  fourJBellLine,
   fourJEarlyReleaseToday,
+  fourJHalfDayToday,
+  halfDayLine,
   isFourJSchoolDay,
   releaseLine,
 } from "../data/k12.ts";
@@ -332,7 +339,7 @@ test("campus bell copy follows the selected district", () => {
   );
   assert.match(campus, /district === null \|\| district === "4j"/);
   assert.match(campus, /c\(lang, "districtBellHint"\)/);
-  assert.match(campus, /releaseLine\(level, fourJEarlyReleaseToday\(clock, level\)\)/);
+  assert.match(campus, /fourJBellLine\(level, clock\)/);
   assert.match(campus, /k12CalendarSource\(district\)/);
 });
 test("overlap detection lists conflicting classes and ignores adjacent times", () => {
@@ -818,6 +825,53 @@ test("every university date falls inside the UO term window", () => {
       .at(-1),
     UO_VALID_THROUGH,
   );
+});
+
+test("every 4J date falls inside the stored 4J school year", () => {
+  const inYear = (ymd: string) => ymd >= FOURJ_YEAR.start && ymd <= FOURJ_YEAR.end;
+  for (const [from, to] of FOURJ_NO_SCHOOL) {
+    assert.ok(inYear(from) && inYear(to) && from <= to, `${from}..${to}`);
+  }
+  for (const ymd of [...FOURJ_ELEM_NO_SCHOOL, ...FOURJ_HALF_DAYS]) {
+    assert.ok(inYear(ymd), ymd);
+  }
+  for (const level of ["elem", "mid", "high"] as const) {
+    for (const item of deadlinesFor(level)) {
+      if (item.id === "k-early") continue; // senior college date, not a 4J calendar row
+      // The grading day right after the last student day is the one stored row past it.
+      if (item.id === "k-jun-grading") {
+        assert.equal(item.ymd, "2027-06-17");
+        continue;
+      }
+      assert.ok(
+        inYear(item.ymd),
+        `${level} ${item.id} ${item.ymd} is outside ${FOURJ_YEAR.start}..${FOURJ_YEAR.end}`,
+      );
+    }
+  }
+  // The last day closes the year, so 4J data never lingers past it.
+  assert.equal(FOURJ_HALF_DAYS.at(-1), FOURJ_YEAR.end);
+  assert.equal(isFourJSchoolDay("2027-06-17", 4, "high"), false);
+  for (const lang of ["en", "zh", "es", "ko", "vi", "ja"] as const) {
+    assert.ok((halfDayLine()[lang] ?? "").length > 0, lang);
+  }
+});
+
+test("4J calendar titles are in all six languages", () => {
+  for (const level of ["elem", "mid", "high"] as const) {
+    for (const item of deadlinesFor(level)) {
+      if (item.id === "k-early") continue;
+      const packs = { es: esPack, ko: koPack, vi: viPack, ja: jaPack } as Record<
+        "es" | "ko" | "vi" | "ja",
+        Record<string, string>
+      >;
+      assert.ok(item.title.zh, `${item.id} title missing zh`);
+      for (const lang of ["es", "ko", "vi", "ja"] as const) {
+        const text = item.title[lang] ?? packs[lang][item.title.en];
+        assert.ok(text && text !== item.title.en, `${item.id} title missing ${lang}`);
+      }
+    }
+  }
 });
 
 test("only 4J (or unset) has stored K12 calendar rows", () => {
@@ -2386,7 +2440,15 @@ test("4J early release only shows on Wednesdays with school", () => {
   ]) {
     assert.equal(wed(ymd), false, ymd);
   }
-  assert.equal(wed("2027-06-16"), true);
+  // June 16, 2027 is the last-day half day, not a regular Wednesday early release.
+  assert.equal(wed("2027-06-16"), false);
+  for (const level of ["elem", "mid", "high"] as const) {
+    const lastDay = { ymd: "2027-06-16", weekday: 3 };
+    assert.equal(fourJHalfDayToday(lastDay, level), true, level);
+    assert.deepEqual(fourJBellLine(level, lastDay), halfDayLine(), level);
+    assert.ok(!/2:30|2:35|1:10|1:45/.test(fourJBellLine(level, lastDay).en ?? ""), level);
+  }
+  assert.equal(fourJHalfDayToday({ ymd: "2026-11-04", weekday: 3 }, "high"), false);
   assert.equal(fourJEarlyReleaseToday({ ymd: "2026-11-05", weekday: 4 }, "high"), false);
   assert.equal(isFourJSchoolDay("2027-06-11", 5, "elem"), false);
   assert.equal(isFourJSchoolDay("2027-06-11", 5, "mid"), true);
