@@ -1,15 +1,21 @@
+import { useEffect, useState } from "react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { TriangleAlert } from "lucide-react";
+import { ERROR_FALLBACK, ERROR_TITLE, errorPageLang, type Lang } from "@/lib/error-copy";
 
-const FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
-
-function errorMessage(error: unknown): string {
+function shownMessage(error: unknown, lang: Lang): string {
   if (error instanceof Error && error.message) return error.message;
   if (typeof error === "string" && error) return error;
-  return FALLBACK_MESSAGE;
+  return ERROR_FALLBACK[lang];
 }
 
 export function AppErrorComponent({ error }: ErrorComponentProps) {
+  // First paint matches the server (English). The effect then uses the language
+  // the boot script or cookie already chose, without reading the desk store.
+  const [lang, setLang] = useState<Lang>("en");
+  useEffect(() => {
+    setLang(errorPageLang());
+  }, []);
   return (
     <main
       className={
@@ -20,9 +26,9 @@ export function AppErrorComponent({ error }: ErrorComponentProps) {
       <span className="text-red-500" aria-hidden="true">
         <TriangleAlert className="size-10" strokeWidth={2} />
       </span>
-      <h1 className="text-lg font-semibold">Something went wrong</h1>
+      <h1 className="text-lg font-semibold">{ERROR_TITLE[lang]}</h1>
       <p className="max-w-md text-sm break-words text-zinc-500 dark:text-zinc-400">
-        {errorMessage(error)}
+        {shownMessage(error, lang)}
       </p>
     </main>
   );

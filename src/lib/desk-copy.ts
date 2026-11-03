@@ -14,7 +14,7 @@ const copy = {
     "学生生活のワークスペース",
   ],
   today: ["Today", "今日", "Hoy", "오늘", "Hôm nay", "今日"],
-  campus: ["Campus", "校园", "Campus", "캠퍼스", "Trường học", "キャンパス"],
+  campus: ["Campus", "校园", "Campus", "캠퍼스", "Khuôn viên", "キャンパス"],
   schools: ["Schools", "学校", "Escuelas", "학교", "Trường học", "学校"],
   town: [
     "Explore Eugene",

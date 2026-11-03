@@ -38,7 +38,7 @@ export const places: Place[] = [
     href: "https://library.uoregon.edu/knight/knight-library-hours",
     blurb: {
       en: "The default. Learn which floor is actually quiet. Hours shift in finals week — check before you cross campus in the rain.",
-      zh: "校园自习的常用选择，可按需要寻找安静楼层。期末和假期开放时间可能调整，出发前请查看官网。",
+      zh: "默认来这里。先搞清哪一层真的安静。期末周时间会变，下雨横穿校园之前先查一下。",
     },
   },
   {
@@ -50,7 +50,7 @@ export const places: Place[] = [
     hours: "Weekdays daytime · quieter evenings than Knight",
     blurb: {
       en: "The science library. Better group rooms than Knight when everyone in your lab shows up at once.",
-      zh: "理科图书馆，适合查阅资料或小组学习。讨论室的预约方式和空位请查看官网。",
+      zh: "理科图书馆。实验室的人一起来时，这里订小组讨论室比 Knight 方便。",
     },
   },
   {
@@ -63,7 +63,7 @@ export const places: Place[] = [
     href: "https://emu.uoregon.edu/",
     blurb: {
       en: "Tables and outlets under the student union. Fine between classes. A bad place to write the paper you have been avoiding.",
-      zh: "学生会大楼内有桌椅和插座，适合课间休息或处理简单作业。需要专注时，可以再找一处安静空间。",
+      zh: "学生会楼下有桌子和插座。课间可以坐。不适合写你一直拖着的那篇论文。",
     },
   },
   {
@@ -88,7 +88,7 @@ export const places: Place[] = [
     href: "https://jsma.uoregon.edu/",
     blurb: {
       en: "When another fluorescent room sounds unbearable. Ask at the desk — students are often admitted free.",
-      zh: "课余可以来看看展览、换个心情。学生票价和入馆政策请查看官网。",
+      zh: "再也不想坐在荧光灯下面时可以来。问门口，学生常常免票。",
     },
   },
   {
@@ -100,7 +100,7 @@ export const places: Place[] = [
     hours: "Daylight · weather permitting",
     blurb: {
       en: "Grass, not a power plan. Use it on the rare afternoon the sky is actually blue.",
-      zh: "天气好时可以在草坪上休息、看书。这里是户外空间，没有充电插座。",
+      zh: "是草坪，不是充电的地方。只有天空真的发蓝的下午才适合来。",
     },
   },
   {
@@ -112,7 +112,7 @@ export const places: Place[] = [
     hours: "Law school hours · quietest midweek",
     blurb: {
       en: "Very quiet. If the law school is in exams, leave the seats to them.",
-      zh: "适合安静阅读和学习。考试期间的访客规定及开放时间请以图书馆公告为准。",
+      zh: "非常安静。法学院在考试时，把座位留给他们。",
     },
   },
   {
@@ -125,7 +125,7 @@ export const places: Place[] = [
     href: "https://www.lanecc.edu/",
     blurb: {
       en: "Main campus on East 30th. A real room when the UO libraries are full, and the home library if you go to Lane.",
-      zh: "位于莱恩社区学院主校区，是莱恩学生查资料、自习和使用学习资源的主要场所。",
+      zh: "在东 30 街的主校区。俄勒冈大学图书馆满了可以来这里；如果你在莱恩上课，这就是你的图书馆。",
     },
   },
   {
@@ -138,7 +138,7 @@ export const places: Place[] = [
     href: "https://emu.uoregon.edu/",
     blurb: {
       en: "Fast and central, mostly chains. Little Big Burger is the one that started in Portland rather than a national counter.",
-      zh: "校园中心的餐饮区域，集合了多家店铺，适合课间快速用餐。",
+      zh: "又快又在校园中心，大多是连锁。Little Big Burger 是从波特兰做起来的，不是全国柜台连锁。",
     },
   },
   {
@@ -151,7 +151,7 @@ export const places: Place[] = [
     href: "https://housing.uoregon.edu/",
     blurb: {
       en: "Residence dining. Meal-plan territory, and weekend hours move — check housing before you walk over hungry.",
-      zh: "宿舍餐饮场所。用餐方案、支付方式和周末营业时间请查看学校住房与餐饮网站。",
+      zh: "宿舍餐厅，要用餐计划。周末时间会变，饿着走过去之前先看住房网站。",
     },
   },
   {
@@ -164,7 +164,7 @@ export const places: Place[] = [
     href: "https://housing.uoregon.edu/",
     blurb: {
       en: "The other big dining room, on the west side of the quads. Same rule: trust this term's hours, not last year's memory.",
-      zh: "校园内的餐饮场所，适合上课前后用餐。营业时间可能随学期调整，请查看最新安排。",
+      zh: "另一间大餐厅，在方庭西边。同样：看这学期的时间，别靠去年的记忆。",
     },
   },
   {
@@ -176,7 +176,7 @@ export const places: Place[] = [
     hours: "Evenings in Unthank · limited groceries",
     blurb: {
       en: "Inside Unthank Hall. Snacks and a few real groceries, so tonight does not have to be another campus pastry.",
-      zh: "位于 Unthank 楼内，有零食和简餐，适合课间补充能量。",
+      zh: "在 Unthank 楼里。有零食，也有一点真能当饭的东西，今晚不必再吃一块校园点心。",
     },
   },
   {
@@ -188,7 +188,7 @@ export const places: Place[] = [
     hours: "Morning through evening · 13th Ave",
     blurb: {
       en: "The 13th Avenue campus coffee shop. Hazelnut mocha is the cliché because people keep ordering it.",
-      zh: "13 街上的校园咖啡馆。很多人点榛果摩卡。",
+      zh: "13 街上的校园咖啡馆。榛果摩卡被点得太多，已经成了招牌。",
     },
   },
   {
@@ -248,7 +248,7 @@ export const places: Place[] = [
     hours: "Lunch through early evening",
     blurb: {
       en: "Rice bowls, born in Eugene. The place you take a visitor when you do not want to explain the menu.",
-      zh: "米饭碗，这家店从尤金做起来的。带朋友来就行，菜单很好懂。",
+      zh: "米饭碗，这家店从尤金做起来的。带访客来、又不想解释菜单时，就来这里。",
     },
   },
   {
@@ -260,7 +260,7 @@ export const places: Place[] = [
     hours: "Brunch stretch · Sunday wait",
     blurb: {
       en: "Liège waffles as a study reward. Sundays mean a wait. Budget for that, not a reservation fantasy.",
-      zh: "自习结束后可以来吃列日华夫。周日要排队，不能订位。",
+      zh: "自习后的奖励：列日华夫。周日要排队，别想着能订位。",
     },
   },
   {
@@ -272,7 +272,7 @@ export const places: Place[] = [
     hours: "Breakfast all day · booth hours",
     blurb: {
       en: "Booths and breakfast all day. The restaurant people mention once they have actually lived here.",
-      zh: "有卡座的本地餐厅，以全天早餐为特色，适合和朋友悠闲地吃一餐。",
+      zh: "有卡座，全天早餐。在尤金住过一阵的人才会跟你提这家。",
     },
   },
   {
@@ -284,7 +284,7 @@ export const places: Place[] = [
     hours: "Afternoon & evening scoops",
     blurb: {
       en: "Ice cream on 13th. Not dinner. Still part of being a student here.",
-      zh: "13 街上的冰淇淋。不是正餐，不过学生经常去。",
+      zh: "13 街上的冰淇淋。不是正餐，但仍是在这里当学生的一部分。",
     },
   },
   {
@@ -309,7 +309,7 @@ export const places: Place[] = [
     hours: "Dinner · reservations help",
     blurb: {
       en: "Inside 5th Street Public Market. A nicer dinner, ideally when someone else is paying.",
-      zh: "位于第五街公共市场，适合聚餐或想认真享用一顿饭的时候。菜单与价格请查看官网。",
+      zh: "在第五街公共市场里面。比较正式的一顿，最好有人请客。",
     },
   },
   {
@@ -321,7 +321,7 @@ export const places: Place[] = [
     hours: "Daytime stalls · same building as Marché",
     blurb: {
       en: "Same building as Marché, more stalls, easier to split a meal without dressing up.",
-      zh: "集合了不同餐饮摊位，适合和朋友各选喜欢的食物，再一起用餐。",
+      zh: "和 Marché 同一栋楼，摊位更多。不用穿得很正式，几个人分着吃也方便。",
     },
   },
   {
@@ -406,7 +406,7 @@ export const places: Place[] = [
     hours: "Indoor · useful Oct–May",
     blurb: {
       en: "Indoors, which matters from October on. Food, a few shops, and a place to wait out a squall.",
-      zh: "室内集市，有餐饮和小店，下雨天也可以慢慢逛。",
+      zh: "在室内，从十月起这很重要。有吃的、几家店，也可以躲一阵暴雨。",
     },
   },
   {
@@ -419,7 +419,7 @@ export const places: Place[] = [
     href: "https://www.uoduckstore.com/",
     blurb: {
       en: "Textbooks, and the sweatshirt you said you would not buy. Compare the ISBN before you pay campus prices.",
-      zh: "卖教材，也卖卫衣。付钱前先核对 ISBN，别买错版本。",
+      zh: "卖教材，也卖你说过不会买的卫衣。付钱之前先对 ISBN，别按校园价买错版本。",
     },
   },
   {
@@ -444,7 +444,7 @@ export const places: Place[] = [
     hours: "Supermarket hours · not campus snack",
     blurb: {
       en: "Agate Street Market covers tonight. Fred Meyer or Market of Choice is the actual shop. The Duck Store is not a grocery plan.",
-      zh: "临时补充日用品可考虑 Agate Street Market；购买较多食材可查看 Fred Meyer 或 Market of Choice。",
+      zh: "今晚的东西，Agate Street Market 够了。真正采购去 Fred Meyer 或 Market of Choice。Duck Store 不是买菜的地方。",
     },
   },
 ];

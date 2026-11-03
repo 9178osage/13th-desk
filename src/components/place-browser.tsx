@@ -139,7 +139,7 @@ export function PlaceBrowser({
           title={tr(lang, { en: "Nothing matches", zh: "没有找到匹配的地点" })}
           body={tr(lang, {
             en: "Try another word, clear the search, or pin a place from Campus or Town first.",
-            zh: "试试其他关键词或分类。收藏夹中只会显示你已收藏的地点。",
+            zh: "换个词，或清空搜索。也可以先在「校园」或「探索尤金」里收藏一个地点。",
           })}
         />
       ) : (
