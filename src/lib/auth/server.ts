@@ -29,7 +29,7 @@
  * components read the user via `@/lib/auth/use-current-user`; server functions get
  * a verified id via `@/lib/auth/middleware`.
  */
-import { betterAuth } from "better-auth";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { bearer, genericOAuth } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
@@ -39,11 +39,13 @@ import { ensureDbReady, getPglite } from "../db";
 import {
   AUTH_RATE_LIMIT,
   AUTH_SESSION,
+  assertSafeAccountLinking,
+  passwordAuthSettings,
   authFlagOn,
   productionAuthProblems,
   trustedOriginsFor,
 } from "./auth-config";
-import { emailAndPasswordEnabled } from "./email-password";
+import { emailAndPasswordEnabled, sendVerificationEmail } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
 import { pgliteDialect } from "./pglite-dialect";
@@ -169,7 +171,10 @@ const grokOAuthPlugin = authConfigured
         tokenUrl: grokTokenUrl,
         userInfoUrl: grokUserInfoUrl,
         scopes: ["openid", "profile", "email"],
-        // The broker was built for the 1.6 exchange, which did not send PKCE.
+        // PKCE is off because the broker (relay) was built for the older Better
+        // Auth 1.6 exchange, which sent no PKCE. Nobody has confirmed whether the
+        // broker rejects a PKCE request; confirm with the platform and turn this
+        // on before sign-in is ever enabled (audit S6).
         pkce: false,
         // `prompt: "login"` forces the broker to re-authenticate against the
         // upstream on every sign-in instead of silently reusing an existing
@@ -181,7 +186,11 @@ const grokOAuthPlugin = authConfigured
     })
   : null;
 
-export const auth = betterAuth({
+// Audit S6: password sign-up and account linking are derived together; this throws
+// at startup if password sign-up is on without a verification-mail sender.
+const passwordAuth = passwordAuthSettings(emailAndPasswordEnabled, sendVerificationEmail);
+
+const authOptions = {
   baseURL,
   // Deployed apps inject BETTER_AUTH_SECRET. Preview: process-stable secret on
   // globalThis so HMR doesn't invalidate PGLite-backed sessions (see above).
@@ -205,9 +214,11 @@ export const auth = betterAuth({
     accountLinking: {
       enabled: true,
       trustedProviders: [...GROK_PROVIDERS.map((p) => p.providerId), GATE_PROVIDER_ID],
-      // X's synthetic email is never "verified", so don't gate linking on the
-      // local user's email-verified state.
-      requireLocalEmailVerified: false,
+      // Derived (audit S6): false while password sign-up is off, so X's
+      // platform-generated, never-"verified" email still signs in; forced true
+      // when password sign-up is on, so a pre-registered email cannot capture a
+      // later OAuth sign-in.
+      requireLocalEmailVerified: passwordAuth.requireLocalEmailVerified,
     },
   },
 
@@ -224,8 +235,14 @@ export const auth = betterAuth({
     customRules: { ...AUTH_RATE_LIMIT.customRules },
   },
 
-  // Local email/password — toggled only via `./email-password` (not a plugin).
-  ...(emailAndPasswordEnabled ? { emailAndPassword: { enabled: true } } : {}),
+  // Local email/password — toggled only via `./email-password`; when on it always
+  // requires email verification (see `passwordAuthSettings`, audit S6).
+  ...(passwordAuth.emailAndPassword
+    ? {
+        emailAndPassword: { ...passwordAuth.emailAndPassword },
+        emailVerification: { ...passwordAuth.emailVerification },
+      }
+    : {}),
 
   // `__Host-` prefixed cookies: the browser REFUSES any same-named cookie that
   // carries a `Domain` attribute, so a sibling `*.grok.me` app cannot "toss" a
@@ -264,7 +281,12 @@ export const auth = betterAuth({
     // last so it runs after every other plugin's hooks.
     tanstackStartCookies(),
   ],
-});
+} satisfies BetterAuthOptions;
+
+// Belt and braces: fail at startup if the final options ever allow unsafe linking.
+assertSafeAccountLinking(authOptions);
+
+export const auth = betterAuth(authOptions);
 
 export function readSessionToken(): string | null {
   return getCookie(SESSION_TOKEN_COOKIE) ?? null;

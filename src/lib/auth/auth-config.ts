@@ -90,3 +90,83 @@ export function trustedOriginsFor(
     ...local,
   ];
 }
+
+/** Sends the verification mail for email/password sign-up (none is wired today). */
+export type SendVerificationEmail = (data: {
+  user: { email: string };
+  url: string;
+  token: string;
+}) => Promise<void>;
+
+export type PasswordAuthSettings = {
+  /** Spread into `betterAuth({...})` only when password sign-up is on. */
+  emailAndPassword?: { enabled: true; requireEmailVerification: true };
+  emailVerification?: {
+    sendOnSignUp: true;
+    sendVerificationEmail: SendVerificationEmail;
+  };
+  /** `account.accountLinking.requireLocalEmailVerified`. */
+  requireLocalEmailVerified: boolean;
+};
+
+/**
+ * Audit S6: derive the email/password and account-linking settings together.
+ *
+ * - Password sign-up off (shipped): every local user comes from the broker, so
+ *   linking does not gate on the local email-verified flag (X's platform-generated
+ *   email is never "verified"; requiring it would break X sign-in).
+ * - Password sign-up on: an attacker could pre-register the victim's email, and a
+ *   later trusted-provider OAuth sign-in would merge into that account, mark the
+ *   email verified and leave the attacker's password working. So BOTH sign-up email
+ *   verification and `requireLocalEmailVerified` are forced on, and it throws at
+ *   startup without a real `sendVerificationEmail` (no mail service is wired, so
+ *   password sign-up cannot be turned on until one is).
+ */
+export function passwordAuthSettings(
+  enabled: boolean,
+  sendVerificationEmail: SendVerificationEmail | undefined,
+): PasswordAuthSettings {
+  if (!enabled) return { requireLocalEmailVerified: false };
+  if (typeof sendVerificationEmail !== "function") {
+    throw new Error(
+      "[auth] email/password sign-up is enabled but no sendVerificationEmail is wired. " +
+        "Sign-up must verify email before OAuth accounts can link (audit S6).",
+    );
+  }
+  return {
+    emailAndPassword: { enabled: true, requireEmailVerification: true },
+    emailVerification: { sendOnSignUp: true, sendVerificationEmail },
+    requireLocalEmailVerified: true,
+  };
+}
+
+/** Throws when password sign-up is on while linking or sign-up skips email verification. */
+export function assertSafeAccountLinking(options: {
+  emailAndPassword?: { enabled?: boolean; requireEmailVerification?: boolean };
+  account?: { accountLinking?: { requireLocalEmailVerified?: boolean } };
+}): void {
+  if (!options.emailAndPassword?.enabled) return;
+  const linking = options.account?.accountLinking?.requireLocalEmailVerified ?? true;
+  if (!linking || options.emailAndPassword.requireEmailVerification !== true) {
+    throw new Error(
+      "[auth] email/password sign-up requires requireEmailVerification and " +
+        "accountLinking.requireLocalEmailVerified (audit S6).",
+    );
+  }
+}
+
+/**
+ * Mirror of Better Auth 1.7.14's implicit-link decision in `oauth2/link-account.mjs`
+ * (an OAuth sign-in meeting an existing user with the same email and no linked
+ * account). True means the OAuth identity is merged into that existing user.
+ */
+export function wouldAutoLink(input: {
+  trustedProvider: boolean;
+  oauthEmailVerified: boolean;
+  localEmailVerified: boolean;
+  requireLocalEmailVerified: boolean;
+}): boolean {
+  if (!input.trustedProvider && !input.oauthEmailVerified) return false;
+  if (input.requireLocalEmailVerified && !input.localEmailVerified) return false;
+  return true;
+}
