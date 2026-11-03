@@ -2,6 +2,7 @@ import { createAuthClient } from "better-auth/react";
 import { runPreSignInSignOut, runSignOut } from "../../../scripts/sign-out-plan.mjs";
 import { sameOriginAppPath } from "@/lib/same-origin-path";
 import { GROK_PROVIDERS } from "./providers";
+import { authFlagOn } from "./auth-config";
 
 /**
  * Better Auth client for this React SPA (browser-side).
@@ -29,13 +30,11 @@ export const authClient = createAuthClient({
 });
 
 /**
- * True when sign-in UI should be shown — i.e. whenever `VITE_AUTH_ENABLED` is
- * not `"false"`. The shipped template sets it to `"false"`
- * (`.grok/app-env.json`), which selects the dev user (see `use-current-user`);
- * with the key removed, sign-in is real in preview (baked preview client) and
- * when deployed (injected per-app client).
+ * True when sign-in UI should be shown — only when `VITE_AUTH_ENABLED` is exactly
+ * `"true"` (audit S6: unset or any other value keeps sign-in off). Eugene Desk
+ * ships `"false"` (`.grok/app-env.json`), which selects the dev user.
  */
-export const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== "false";
+export const authEnabled = authFlagOn(import.meta.env.VITE_AUTH_ENABLED);
 
 /** The upstream providers to render sign-in buttons for. */
 export { GROK_PROVIDERS };
