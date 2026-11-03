@@ -13,6 +13,9 @@ import {
   type GateJwks,
 } from "./gate-identity.server.ts";
 
+// Audit S6: gate sessions only run with the flag explicitly on; these tests exercise that path.
+process.env.VITE_AUTH_ENABLED = "true";
+
 const ISSUER = "https://gate.app-builder-testing.com";
 const AUDIENCE = "app:proj-123";
 
@@ -484,10 +487,19 @@ describe("gateIdentityFromHeaders", () => {
 });
 
 describe("gateIdentityEnabled", () => {
-  it("is enabled by default with no gate env vars", () => {
+  it("is enabled with VITE_AUTH_ENABLED=true and no gate env vars", () => {
     delete process.env.GROK_PROJECT_ID;
     delete process.env.GROK_GATE_ORIGIN;
     assert.equal(gateIdentityEnabled(), true);
+  });
+
+  it("is disabled when VITE_AUTH_ENABLED is unset (fail closed)", () => {
+    delete process.env.VITE_AUTH_ENABLED;
+    try {
+      assert.equal(gateIdentityEnabled(), false);
+    } finally {
+      process.env.VITE_AUTH_ENABLED = "true";
+    }
   });
 
   it("is disabled when VITE_AUTH_ENABLED is false", () => {
@@ -495,7 +507,7 @@ describe("gateIdentityEnabled", () => {
     try {
       assert.equal(gateIdentityEnabled(), false);
     } finally {
-      delete process.env.VITE_AUTH_ENABLED;
+      process.env.VITE_AUTH_ENABLED = "true";
     }
   });
 });

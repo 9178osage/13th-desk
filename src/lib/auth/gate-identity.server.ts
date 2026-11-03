@@ -1,5 +1,6 @@
 import { importJWK, jwtVerify, type JWK, type JWTVerifyGetKey } from "jose";
 import { env, isWorkspacePreview } from "../env.server.ts";
+import { authFlagOn } from "./auth-config.ts";
 
 export const GATE_IDENTITY_HEADER = "x-grok-identity";
 export const GATE_JWKS_PATH = "/__gate/identity-key";
@@ -22,7 +23,8 @@ export type GateJwks = { keys: JWK[] };
 export type JwksFetch = (url: string) => Promise<GateJwks | null>;
 
 export function gateIdentityEnabled(): boolean {
-  return env("VITE_AUTH_ENABLED") !== "false";
+  // Audit S6: on only for exactly "true"; unset keeps gate sessions off.
+  return authFlagOn(env("VITE_AUTH_ENABLED"));
 }
 
 export function gateTokenAudience(): string {
