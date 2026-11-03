@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { TriangleAlert } from "lucide-react";
 import { ERROR_FALLBACK, ERROR_TITLE, errorPageLang, type Lang } from "@/lib/error-copy";
@@ -9,13 +9,14 @@ function shownMessage(error: unknown, lang: Lang): string {
   return ERROR_FALLBACK[lang];
 }
 
+function subscribe(): () => void {
+  return () => {};
+}
+
 export function AppErrorComponent({ error }: ErrorComponentProps) {
-  // First paint matches the server (English). The effect then uses the language
-  // the boot script or cookie already chose, without reading the desk store.
-  const [lang, setLang] = useState<Lang>("en");
-  useEffect(() => {
-    setLang(errorPageLang());
-  }, []);
+  // Server HTML stays English. After hydration, use the language the boot script
+  // or cookie already chose, without reading the desk store.
+  const lang = useSyncExternalStore(subscribe, errorPageLang, () => "en" as Lang);
   return (
     <main
       className={
