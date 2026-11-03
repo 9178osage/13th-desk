@@ -36,6 +36,13 @@ import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
+import {
+  AUTH_RATE_LIMIT,
+  AUTH_SESSION,
+  authFlagOn,
+  productionAuthProblems,
+  trustedOriginsFor,
+} from "./auth-config";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
@@ -70,9 +77,18 @@ const env = (key: string): string | undefined => {
   return value ? value : undefined;
 };
 
-// Explicit off-switch. The deployer sets `VITE_AUTH_ENABLED=true` when it
-// provisions auth; set it to "false" to force auth off everywhere (dev user).
-const authDisabled = env("VITE_AUTH_ENABLED") === "false";
+// Sign-in is on ONLY when `VITE_AUTH_ENABLED` is exactly "true" (audit S6: unset or
+// any other value keeps it off). Eugene Desk ships "false".
+const authDisabled = !authFlagOn(env("VITE_AUTH_ENABLED"));
+
+// Audit S6: with sign-in on in production, refuse to start on insecure fallbacks
+// (random per-instance secret, localhost base URL, shared preview client).
+const productionProblems = productionAuthProblems(process.env);
+if (productionProblems.length > 0) {
+  throw new Error(
+    `[auth] VITE_AUTH_ENABLED=true in production but: ${productionProblems.join("; ")}.`,
+  );
+}
 
 // Broker federation creds: the deployer injects a per-app client when deployed;
 // otherwise fall back to the shared live-preview client, which the broker accepts
@@ -97,11 +113,6 @@ const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
 // Local `npm run dev` (port 8080 contract). Browsers may send Origin as any of
 // these for the same server — trusting only `localhost` rejects `127.0.0.1` and
 // breaks email/password with "Invalid origin".
-const LOCAL_DEV_ORIGINS: string[] = [
-  "http://localhost:8080",
-  "http://127.0.0.1:8080",
-  "http://[::1]:8080",
-];
 const baseURL = explicitBaseURL ?? {
   // Include loopback hosts so dynamic baseURL resolves for local email/password
   // (not only the preview wildcard).
@@ -114,15 +125,12 @@ const baseURL = explicitBaseURL ?? {
 
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
-const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
-  : [
-      // Host wildcards (matched against Origin's host)
-      ...previewAllowedHosts,
-      // Full-origin wildcards (matched against Origin)
-      ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
-      ...LOCAL_DEV_ORIGINS,
-    ];
+// Loopback dev origins are trusted only outside production (audit S6).
+const trustedOrigins: string[] = trustedOriginsFor(
+  process.env,
+  explicitBaseURL,
+  previewAllowedHosts,
+);
 
 const databaseUrl = env("DATABASE_URL");
 
@@ -177,6 +185,7 @@ export const auth = betterAuth({
   baseURL,
   // Deployed apps inject BETTER_AUTH_SECRET. Preview: process-stable secret on
   // globalThis so HMR doesn't invalidate PGLite-backed sessions (see above).
+  // Production with sign-in on already threw above if this is missing.
   secret: env("BETTER_AUTH_SECRET") ?? previewAuthSecret(),
   database,
 
@@ -206,7 +215,14 @@ export const auth = betterAuth({
   // (incl. the client's `/get-session`) skip the DB — this shrinks the "loading"
   // window and reduces auth flicker. See the `auth` skill for the full
   // flicker-prevention guidance (gate on `isPending`; SSR the session).
-  session: { cookieCache: { enabled: true, maxAge: 300 } },
+  // Explicit expiry (7 days, refreshed daily) instead of library defaults (audit S6).
+  session: { ...AUTH_SESSION, cookieCache: { ...AUTH_SESSION.cookieCache } },
+
+  // Rate-limit auth endpoints in every environment, stricter on sign-in/sign-up.
+  rateLimit: {
+    ...AUTH_RATE_LIMIT,
+    customRules: { ...AUTH_RATE_LIMIT.customRules },
+  },
 
   // Local email/password — toggled only via `./email-password` (not a plugin).
   ...(emailAndPasswordEnabled ? { emailAndPassword: { enabled: true } } : {}),

@@ -41,6 +41,7 @@ const groups = [
       "src/lib/app-data/readiness-schedule.test.ts",
       "src/lib/auth/gate-identity.test.ts",
       "src/lib/auth/sign-in-gate.test.ts",
+      "src/lib/auth/auth-config.test.ts",
     ],
   },
 ];
