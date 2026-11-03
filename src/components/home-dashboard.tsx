@@ -17,7 +17,7 @@ import { Button, Input } from "@/components/ui";
 import { WeekSchedule } from "@/components/week-schedule";
 import { WeatherCard } from "@/components/weather";
 import { deadlines } from "@/data/guide";
-import { fourJEarlyReleaseToday, releaseLine } from "@/data/k12";
+import { fourJEarlyReleaseToday, fourJHalfDayToday, halfDayLine, releaseLine } from "@/data/k12";
 import { quickLinks } from "@/data/quick-links";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
 import { useDeskReplaced } from "@/lib/desk-replaced";
@@ -302,15 +302,23 @@ export function HomeDashboard() {
         <div className="today-primary">
           {level !== "uni" &&
             (district === null || district === "4j") &&
-            fourJEarlyReleaseToday(clock, level) && (
+            (fourJEarlyReleaseToday(clock, level) || fourJHalfDayToday(clock, level)) && (
               <aside
                 className="release-banner"
                 role="note"
-                aria-label={c(lang, "wednesdayRelease")}
+                aria-label={c(
+                  lang,
+                  fourJHalfDayToday(clock, level) ? "halfDayToday" : "wednesdayRelease",
+                )}
               >
                 <Megaphone size={20} aria-hidden="true" />
                 {/* releaseLine(…, true) already opens with "Today is the early release." */}
-                <p>{tr(lang, releaseLine(level, true))}</p>
+                <p>
+                  {tr(
+                    lang,
+                    fourJHalfDayToday(clock, level) ? halfDayLine() : releaseLine(level, true),
+                  )}
+                </p>
               </aside>
             )}
           <TaskList key={level} />

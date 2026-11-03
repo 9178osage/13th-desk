@@ -453,7 +453,14 @@ const sharedDates: Deadline[] = [
   {
     id: "k-semester",
     ymd: "2027-02-01",
-    title: { en: "Semester grading day", zh: "学期登分日，不上课" },
+    title: {
+      en: "Semester grading day",
+      zh: "学期登分日，不上课",
+      es: "Día de calificaciones del semestre",
+      ko: "학기 성적 처리일",
+      vi: "Ngày chấm điểm học kỳ",
+      ja: "学期成績処理日",
+    },
     detail: {
       en: "No school. First semester ends and teachers finish grades.",
       zh: "不上课。第一学期结束，老师完成登分。",
@@ -466,7 +473,14 @@ const sharedDates: Deadline[] = [
   {
     id: "k-transition",
     ymd: "2027-02-02",
-    title: { en: "Transition planning", zh: "过渡规划日，不上课" },
+    title: {
+      en: "Transition planning",
+      zh: "过渡规划日，不上课",
+      es: "Planificación de transición",
+      ko: "학기 전환 준비일",
+      vi: "Ngày chuẩn bị chuyển kỳ",
+      ja: "移行準備日",
+    },
     detail: {
       en: "No school. Staff prepare for the second semester.",
       zh: "不上课。教职员工为下学期做准备。",
@@ -492,7 +506,14 @@ const sharedDates: Deadline[] = [
   {
     id: "k-presidents",
     ymd: "2027-02-15",
-    title: { en: "Presidents Day", zh: "总统日" },
+    title: {
+      en: "Presidents Day",
+      zh: "总统日",
+      es: "Día de los Presidentes",
+      ko: "대통령의 날",
+      vi: "Ngày Tổng thống",
+      ja: "大統領の日",
+    },
     detail: {
       en: "No school. The district also lists it as a possible weather make-up day.",
       zh: "停课。学区也把它列为可能的恶劣天气补课日。",
@@ -544,7 +565,14 @@ const sharedDates: Deadline[] = [
   {
     id: "k-last",
     ymd: "2027-06-16",
-    title: { en: "Last day, half day", zh: "最后一天，半天" },
+    title: {
+      en: "Last day, half day",
+      zh: "最后一天，半天",
+      es: "Último día, medio día",
+      ko: "마지막 날, 반나절",
+      vi: "Ngày cuối, học nửa ngày",
+      ja: "最終日（半日）",
+    },
     detail: {
       en: "4J’s last day is a Wednesday half day.",
       zh: "4J 最后一天是周三，只上半天。",
@@ -573,7 +601,14 @@ const sharedDates: Deadline[] = [
 const elementaryDate: Deadline = {
   id: "k-elem-grading",
   ymd: "2027-06-11",
-  title: { en: "Elementary grading day", zh: "小学登分日，不上课" },
+  title: {
+    en: "Elementary grading day",
+    zh: "小学登分日，不上课",
+    es: "Día de calificaciones de primaria",
+    ko: "초등 성적 처리일",
+    vi: "Ngày chấm điểm tiểu học",
+    ja: "小学校の成績処理日",
+  },
   detail: {
     en: "No school for elementary students; teachers finish grades.",
     zh: "小学停课，老师完成登分。",
@@ -616,6 +651,9 @@ export const FOURJ_NO_SCHOOL: readonly (readonly [string, string])[] = [
   ["2027-05-31", "2027-05-31"],
 ];
 
+/** 4J half days for every grade (the PDF's "Last Day for Students: Half Day"). */
+export const FOURJ_HALF_DAYS: readonly string[] = ["2027-06-16"];
+
 /** No school for elementary only (grading day). */
 export const FOURJ_ELEM_NO_SCHOOL: readonly string[] = ["2027-06-11"];
 
@@ -636,7 +674,45 @@ export function fourJEarlyReleaseToday(
   clock: { ymd: string; weekday: number } | null,
   level: Level,
 ): boolean {
-  return !!clock && clock.weekday === 3 && isFourJSchoolDay(clock.ymd, clock.weekday, level);
+  return (
+    !!clock &&
+    clock.weekday === 3 &&
+    !FOURJ_HALF_DAYS.includes(clock.ymd) &&
+    isFourJSchoolDay(clock.ymd, clock.weekday, level)
+  );
+}
+
+/** A 4J half day (e.g. the last day): not the regular Wednesday early release. */
+export function fourJHalfDayToday(
+  clock: { ymd: string; weekday: number } | null,
+  level: Level,
+): boolean {
+  return (
+    !!clock &&
+    FOURJ_HALF_DAYS.includes(clock.ymd) &&
+    isFourJSchoolDay(clock.ymd, clock.weekday, level)
+  );
+}
+
+/**
+ * Half-day copy. 4J publishes no district-wide half-day bell times (the PDF only says
+ * "Half Day"), so this points to the school's own notice instead of inventing a time.
+ */
+export function halfDayLine(): Copy {
+  return {
+    en: "Today is 4J’s last day, a half day. School lets out earlier than the usual Wednesday time. Check your school’s notice for the exact time.",
+    zh: "今天是 4J 最后一天，只上半天，放学比平时周三更早。具体时间以学校通知为准。",
+    es: "Hoy es el último día de 4J, de medio día. Las clases terminan antes que el miércoles habitual. Consulta el aviso de tu escuela para la hora exacta.",
+    ko: "오늘은 4J 마지막 날이라 반나절만 해요. 평소 수요일보다 일찍 끝나요. 정확한 시간은 학교 안내를 확인하세요.",
+    vi: "Hôm nay là ngày cuối của 4J, chỉ học nửa ngày. Tan học sớm hơn thứ Tư thường lệ. Xem thông báo của trường để biết giờ chính xác.",
+    ja: "今日は4Jの最終日で半日です。普段の水曜より早く下校します。正確な時刻は学校のお知らせを確認してください。",
+  };
+}
+
+/** The 4J bell line for today: half-day notice, or the regular line (with early release on school Wednesdays). */
+export function fourJBellLine(level: Level, clock: { ymd: string; weekday: number } | null): Copy {
+  if (fourJHalfDayToday(clock, level)) return halfDayLine();
+  return releaseLine(level, fourJEarlyReleaseToday(clock, level));
 }
 
 export function deadlinesFor(level: Level): Deadline[] {

@@ -804,6 +804,14 @@ const copy = {
     "Trang chính thức",
     "公式サイト",
   ],
+  halfDayToday: [
+    "Half day today",
+    "今天只上半天",
+    "Hoy es medio día",
+    "오늘은 반나절 수업",
+    "Hôm nay học nửa ngày",
+    "今日は半日",
+  ],
   wednesdayRelease: [
     "Early release today",
     "今天提前放学",
