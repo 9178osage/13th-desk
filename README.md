@@ -35,6 +35,7 @@
 
 ## 技术栈
 
+- **Node.js 26 LTS**（`.nvmrc`、CI 与 Vercel 的 `engines.node` 保持一致）
 - **Vite** + **React 19**
 - **TanStack** Router / Start / Query
 - **Tailwind CSS 4**
