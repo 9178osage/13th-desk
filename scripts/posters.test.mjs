@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
+import { createServer } from "node:http";
 import jsQR from "jsqr";
+import { chromium } from "playwright";
 import { PNG } from "pngjs";
 import { deskText } from "../src/lib/desk-copy.ts";
 import { skyAdvice } from "../src/lib/sky-advice.ts";
@@ -82,6 +84,89 @@ test("every poster PNG contains a QR code that decodes to the /poster URL", () =
     }
   }
 });
+
+test(
+  "every Letter PDF contains a QR code that decodes to the /poster URL",
+  async () => {
+    const pdfJs = readFileSync(
+      new URL("../node_modules/pdfjs-dist/build/pdf.mjs", import.meta.url),
+    );
+    const pdfJsWorker = readFileSync(
+      new URL("../node_modules/pdfjs-dist/build/pdf.worker.mjs", import.meta.url),
+    );
+    const pdfNames = new Set(LANGS.map((lang) => posterFile(lang, "letter", "pdf")));
+    const html = `<!doctype html>
+    <canvas></canvas>
+    <script type="module">
+      import { getDocument, GlobalWorkerOptions } from "/pdf.mjs";
+      GlobalWorkerOptions.workerSrc = "/pdf.worker.mjs";
+      try {
+        const file = new URLSearchParams(location.search).get("file");
+        const pdf = await getDocument({ url: "/poster.pdf?file=" + encodeURIComponent(file) }).promise;
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 2 });
+        const canvas = document.querySelector("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+        window.pdfReady = true;
+      } catch (error) {
+        window.pdfError = error.stack || String(error);
+      }
+    </script>`;
+    const server = createServer((request, response) => {
+      const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/") {
+        response.writeHead(200, { "content-type": "text/html" }).end(html);
+      } else if (url.pathname === "/pdf.mjs") {
+        response.writeHead(200, { "content-type": "text/javascript" }).end(pdfJs);
+      } else if (url.pathname === "/pdf.worker.mjs") {
+        response.writeHead(200, { "content-type": "text/javascript" }).end(pdfJsWorker);
+      } else if (url.pathname === "/poster.pdf" && pdfNames.has(url.searchParams.get("file"))) {
+        const pdf = readFileSync(posterPath(url.searchParams.get("file")));
+        response
+          .writeHead(200, {
+            "content-length": pdf.length,
+            "content-type": "application/pdf",
+          })
+          .end(pdf);
+      } else {
+        response.writeHead(404).end();
+      }
+    });
+    await new Promise((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolve);
+    });
+
+    let browser;
+    try {
+      browser = await chromium.launch({ headless: true });
+      const page = await browser.newPage();
+      for (const lang of LANGS) {
+        const name = posterFile(lang, "letter", "pdf");
+        await page.goto(
+          `http://127.0.0.1:${server.address().port}/?file=${encodeURIComponent(name)}`,
+        );
+        await page.waitForFunction(() => window.pdfReady || window.pdfError, null, {
+          timeout: 30_000,
+        });
+        assert.equal(await page.evaluate(() => window.pdfError), undefined, name);
+        const image = PNG.sync.read(await page.locator("canvas").screenshot());
+        const decoded = jsQR(new Uint8ClampedArray(image.data), image.width, image.height, {
+          inversionAttempts: "dontInvert",
+        });
+        assert.equal(decoded?.data, POSTER_URL, `${name} QR code`);
+      }
+    } finally {
+      await browser?.close();
+      await new Promise((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  },
+  { timeout: 120_000 },
+);
 
 test("every language has a Letter PDF, a Letter PNG and a phone-size PNG", () => {
   const pngInfo = (name) => {
