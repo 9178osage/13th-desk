@@ -16,7 +16,7 @@ Eugene Desk 的网站源码、个人资料和临时产物分开维护。目录�
 | `screenshots/`、`verification/`           | 本机截图、合成测试文件和验证记录。保留历史证据路径，不部署。                                                                             |
 | `artifacts/`                              | 本机历史交付和素材；`artifacts/README.md` 说明分类，整理清单支持按哈希恢复。                                                             |
 | `.app-builder/`                           | 项目构建环境配置和工具参考资料，由原 `.grok/` 目录迁移；运行配置及必要的品牌检查资料随仓库维护，其余本机资料不提交。                     |
-| `Eugene Desk Logo/`                       | 设计源文件，保留原位。旧版的部分文件已被 Git 跟踪；`v2/` 等未跟踪文件受忽略规则保护。                                                    |
+| `Eugene Desk Logo/v2/`                    | 本机保留的第二版设计源文件，受忽略规则保护；旧版设计已按用户要求移除。                                                                   |
 | `申请材料/`、`attachments/`               | 已移到 `~/Desktop/Eugene Desk 私人材料/`，不放在仓库里；.gitignore 和开发服务器的 fs.deny 仍然拦着，防止再放回来时被提交或被局域网读到。 |
 | `node_modules/`、`.vercel/`、`.tanstack/` | 依赖和构建/项目状态，不通过手动挪动来整理。构建时由原有工具管理。                                                                        |
 
