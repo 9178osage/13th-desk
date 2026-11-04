@@ -24,19 +24,27 @@ const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url
 
 test("every HTML response varies on Cookie, including 404/500", () => {
   const rules = vercel.headers ?? [];
-  // Fingerprinted /assets/* never depend on the cookie, so they skip Vary and stay
-  // cacheable across a language or level switch. A missing asset still renders the
-  // app document, but that 404 ships with \`Cache-Control: private, no-cache\`.
+  // App routes (including HTML 404/500 routes) vary on Cookie. Static files and
+  // API endpoints do not render cookie-personalized HTML.
   const rule = rules.find((item) =>
     item.headers.some((header) => header.key.toLowerCase() === "vary"),
   );
   assert.ok(rule, "vercel.json needs a Vary rule");
-  assert.equal(rule.source, "/((?!assets/).*)");
+  assert.equal(rule.source, "/((?!assets/|api/|.*\\.[^/]+$).*)");
   const pattern = new RegExp(`^${rule.source}$`);
-  for (const path of ["/", "/guide", "/nope", "/assetsx", "/brand/x.svg"]) {
+  for (const path of ["/", "/guide", "/nope", "/assetsx", "/poster", "/nested/not-found"]) {
     assert.ok(pattern.test(path), path);
   }
-  assert.ok(!pattern.test("/assets/index-abc.js"));
+  for (const path of [
+    "/assets/index-abc.js",
+    "/posters/eugene-desk-poster-en-letter.pdf",
+    "/brand/logo.svg",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/api/auth/get-session",
+  ]) {
+    assert.ok(!pattern.test(path), path);
+  }
   const vary = rule.headers.find((header) => header.key.toLowerCase() === "vary");
   assert.match(
     vary.value,

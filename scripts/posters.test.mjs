@@ -1,11 +1,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, statSync } from "node:fs";
+import jsQR from "jsqr";
+import { PNG } from "pngjs";
+import { deskText } from "../src/lib/desk-copy.ts";
+import { skyAdvice } from "../src/lib/sky-advice.ts";
 import { LANGS, POSTER_COPY, POSTER_URL, POSTER_URL_LABEL } from "./posters/copy.mjs";
 import { posterFile } from "./posters/render.mjs";
 
 const root = new URL("../", import.meta.url);
 const posterPath = (name) => new URL(`public/posters/${name}`, root);
+const sitePacks = Object.fromEntries(
+  ["es", "ko", "vi", "ja"].map((lang) => [
+    lang,
+    JSON.parse(readFileSync(new URL(`../src/lib/i18n/${lang}.json`, import.meta.url), "utf8")),
+  ]),
+);
 
 test("poster copy is complete in all six site languages", () => {
   assert.deepEqual(LANGS, ["en", "zh", "es", "ko", "vi", "ja"]);
@@ -24,6 +34,32 @@ test("poster copy is complete in all six site languages", () => {
   }
 });
 
+test("poster text shared with the site stays in sync in all six languages", () => {
+  const pageKeys = ["today", "campus", "town", "guide", "gpa"];
+  for (const lang of LANGS) {
+    const copy = POSTER_COPY[lang];
+    const headlineSeparator = ["zh", "ja"].includes(lang) ? "" : " ";
+    assert.equal(
+      copy.headline.join(headlineSeparator),
+      deskText(lang, "welcome"),
+      `${lang} headline`,
+    );
+    assert.equal(copy.lede, deskText(lang, "intro"), `${lang} intro`);
+    assert.equal(copy.levelLabel, deskText(lang, "level"), `${lang} level label`);
+    assert.equal(copy.tasksTitle, deskText(lang, "tasks"), `${lang} task title`);
+    assert.equal(copy.next, deskText(lang, "next"), `${lang} next class`);
+    assert.deepEqual(
+      copy.pages.map(({ name }) => name),
+      pageKeys.map((key) => deskText(lang, key)),
+      `${lang} page names`,
+    );
+
+    const advice = skyAdvice("rain", "elem");
+    const siteAdvice = advice[lang] ?? sitePacks[lang]?.[advice.en];
+    assert.equal(copy.rainAdvice, siteAdvice, `${lang} rain advice`);
+  }
+});
+
 test("the QR code and printed URL point at the /poster channel", () => {
   assert.equal(POSTER_URL, "https://eugene-desk.vercel.app/poster");
   assert.equal(`https://${POSTER_URL_LABEL}`, POSTER_URL);
@@ -32,6 +68,19 @@ test("the QR code and printed URL point at the /poster channel", () => {
   const channels = readFileSync(new URL("src/lib/channels.ts", root), "utf8");
   const slug = new URL(POSTER_URL).pathname.slice(1);
   assert.match(channels, new RegExp(`CHANNELS = \\[[^\\]]*"${slug}"`));
+});
+
+test("every poster PNG contains a QR code that decodes to the /poster URL", () => {
+  for (const lang of LANGS) {
+    for (const format of ["letter", "story"]) {
+      const name = posterFile(lang, format, "png");
+      const image = PNG.sync.read(readFileSync(posterPath(name)));
+      const decoded = jsQR(new Uint8ClampedArray(image.data), image.width, image.height, {
+        inversionAttempts: "dontInvert",
+      });
+      assert.equal(decoded?.data, POSTER_URL, `${name} QR code`);
+    }
+  }
 });
 
 test("every language has a Letter PDF, a Letter PNG and a phone-size PNG", () => {

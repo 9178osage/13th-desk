@@ -20,6 +20,7 @@ const groups = [
   {
     cwd: root,
     args: [
+      "--experimental-strip-types",
       "--test",
       ...readdirSync(join(root, "scripts"))
         .filter((name) => name.endsWith(".test.mjs") && name !== platformTest)
