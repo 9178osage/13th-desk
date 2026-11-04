@@ -81,6 +81,7 @@ jobs:
           const major = readFileSync('.nvmrc', 'utf8').trim();
           const config = JSON.parse(readFileSync('.vercel/output/functions/__server.func/.vc-config.json', 'utf8'));
           assert.equal(config.runtime, `nodejs${major}.x`);
+          assert.deepEqual(config.regions, ['pdx1']);
           console.log(`Verified deployed function runtime: ${config.runtime}`);
           NODE
       - name: Publish verification summary

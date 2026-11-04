@@ -1290,7 +1290,8 @@ test("SSR function runs in a single region near Eugene (Hobby allows one)", () =
   };
   assert.deepEqual(vercel.regions, ["pdx1"]);
   const vite = readFileSync(join(repo, "vite.config.ts"), "utf8");
-  assert.match(vite, /vercel: \{ functions: \{ regions: \["pdx1"\] \} \}/);
+  // Other function options can change while the region list stays exactly pdx1.
+  assert.match(vite, /vercel:\s*\{\s*functions:\s*\{[^}]*regions:\s*\["pdx1"\]/);
 });
 
 test("framing: one strict CSP for every host, no host-based relaxing", () => {
