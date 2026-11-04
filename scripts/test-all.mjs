@@ -38,6 +38,7 @@ const groups = [
       "src/lib/merge3.test.ts",
       "src/lib/tab-presence.test.ts",
       "src/lib/channels.test.ts",
+      "src/lib/chunk-reload.test.ts",
       "src/lib/app-data/app-data.test.ts",
       "src/lib/app-data/readiness-schedule.test.ts",
       "src/lib/auth/gate-identity.test.ts",
