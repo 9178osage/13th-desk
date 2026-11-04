@@ -24,15 +24,22 @@ const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url
 
 test("every HTML response varies on Cookie, including 404/500", () => {
   const rules = vercel.headers ?? [];
-  // App routes (including HTML 404/500 routes) vary on Cookie. Static files and
-  // API endpoints do not render cookie-personalized HTML.
+  // App routes (including HTML 404/500 routes) vary on Cookie. Static files do not.
   const rule = rules.find((item) =>
     item.headers.some((header) => header.key.toLowerCase() === "vary"),
   );
   assert.ok(rule, "vercel.json needs a Vary rule");
-  assert.equal(rule.source, "/((?!assets/|api/|.*\\.[^/]+$).*)");
+  assert.equal(rule.source, "/((?!assets/|.*\\.[^/]+$).*)");
   const pattern = new RegExp(`^${rule.source}$`);
-  for (const path of ["/", "/guide", "/nope", "/assetsx", "/poster", "/nested/not-found"]) {
+  for (const path of [
+    "/",
+    "/guide",
+    "/nope",
+    "/assetsx",
+    "/poster",
+    "/nested/not-found",
+    "/api/auth/get-session",
+  ]) {
     assert.ok(pattern.test(path), path);
   }
   for (const path of [
@@ -41,7 +48,6 @@ test("every HTML response varies on Cookie, including 404/500", () => {
     "/brand/logo.svg",
     "/robots.txt",
     "/sitemap.xml",
-    "/api/auth/get-session",
   ]) {
     assert.ok(!pattern.test(path), path);
   }

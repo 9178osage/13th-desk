@@ -24,7 +24,7 @@
       ]
     },
     {
-      "source": "/((?!assets/|api/|.*\\.[^/]+$).*)",
+      "source": "/((?!assets/|.*\\.[^/]+$).*)",
       "headers": [
         {
           "key": "Vary",
