@@ -18,6 +18,48 @@ const outDir = join(root, "public", "posters");
 
 export const posterFile = (lang, format, ext) => `eugene-desk-poster-${lang}-${format}.${ext}`;
 
+const CRC_TABLE = Uint32Array.from({ length: 256 }, (_, value) => {
+  let crc = value;
+  for (let bit = 0; bit < 8; bit++) crc = crc & 1 ? 0xedb88320 ^ (crc >>> 1) : crc >>> 1;
+  return crc >>> 0;
+});
+
+function pngChunk(type, data) {
+  const name = Buffer.from(type, "ascii");
+  const chunk = Buffer.alloc(data.length + 12);
+  chunk.writeUInt32BE(data.length, 0);
+  name.copy(chunk, 4);
+  data.copy(chunk, 8);
+  let crc = 0xffffffff;
+  for (const byte of Buffer.concat([name, data]))
+    crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+  chunk.writeUInt32BE((crc ^ 0xffffffff) >>> 0, data.length + 8);
+  return chunk;
+}
+
+function setPngDpi(png, dpi) {
+  const signature = png.subarray(0, 8);
+  const chunks = [];
+  let insertAt = -1;
+  for (let offset = 8; offset < png.length;) {
+    const length = png.readUInt32BE(offset);
+    const type = png.toString("ascii", offset + 4, offset + 8);
+    const end = offset + length + 12;
+    if (end > png.length) throw new Error("Truncated PNG while setting resolution metadata");
+    if (type === "IHDR") insertAt = chunks.length + 1;
+    if (type !== "pHYs") chunks.push(png.subarray(offset, end));
+    offset = end;
+  }
+  if (insertAt < 0) throw new Error("PNG has no IHDR chunk");
+  const pixelsPerMeter = Math.round(dpi / 0.0254);
+  const phys = Buffer.alloc(9);
+  phys.writeUInt32BE(pixelsPerMeter, 0);
+  phys.writeUInt32BE(pixelsPerMeter, 4);
+  phys[8] = 1;
+  chunks.splice(insertAt, 0, pngChunk("pHYs", phys));
+  return Buffer.concat([signature, ...chunks]);
+}
+
 /** Layout problems in the rendered page, in design pixels; empty when it fits. */
 function layoutProblems() {
   const problems = [];
@@ -84,7 +126,7 @@ async function main() {
     for (const lang of langs) {
       const rendered = [];
       for (const format of Object.keys(FORMATS)) {
-        const { width, height } = FORMATS[format];
+        const { width, height, pngDpi } = FORMATS[format];
         const page = await browser.newPage({
           viewport: { width, height },
           deviceScaleFactor: format === "letter" ? 2 : 1,
@@ -99,7 +141,8 @@ async function main() {
           await page.close();
           continue;
         }
-        rendered.push([posterFile(lang, format, "png"), await page.screenshot({ type: "png" })]);
+        const screenshot = await page.screenshot({ type: "png" });
+        rendered.push([posterFile(lang, format, "png"), setPngDpi(screenshot, pngDpi)]);
         if (format === "letter") {
           rendered.push([
             posterFile(lang, format, "pdf"),

@@ -19,8 +19,8 @@ import {
 import { LANGS, POSTER_COPY, POSTER_URL_LABEL } from "./copy.mjs";
 
 export const FORMATS = {
-  letter: { width: 816, height: 1056, zoom: 1 },
-  story: { width: 1080, height: 1920, zoom: 1080 / 816 },
+  letter: { width: 816, height: 1056, zoom: 1, pngDpi: 192 },
+  story: { width: 1080, height: 1920, zoom: 1080 / 816, pngDpi: 96 },
 };
 
 const PAGE_ICONS = [House, LibraryBig, MapPin, Compass, Calculator];

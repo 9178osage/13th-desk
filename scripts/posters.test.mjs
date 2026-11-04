@@ -35,14 +35,45 @@ test("the QR code and printed URL point at the /poster channel", () => {
 });
 
 test("every language has a Letter PDF, a Letter PNG and a phone-size PNG", () => {
-  const pngSize = (name) => {
+  const pngInfo = (name) => {
     const bytes = readFileSync(posterPath(name));
     assert.equal(bytes.toString("latin1", 1, 4), "PNG", name);
-    return [bytes.readUInt32BE(16), bytes.readUInt32BE(20)];
+    let width;
+    let height;
+    let resolution;
+    for (let offset = 8; offset < bytes.length;) {
+      const length = bytes.readUInt32BE(offset);
+      const type = bytes.toString("ascii", offset + 4, offset + 8);
+      const data = offset + 8;
+      if (type === "IHDR") {
+        width = bytes.readUInt32BE(data);
+        height = bytes.readUInt32BE(data + 4);
+      } else if (type === "pHYs") {
+        assert.equal(resolution, undefined, `${name} has one resolution chunk`);
+        assert.equal(bytes[data + 8], 1, `${name} resolution uses meters`);
+        resolution = [bytes.readUInt32BE(data), bytes.readUInt32BE(data + 4)];
+      }
+      offset += length + 12;
+    }
+    return { width, height, resolution };
   };
   for (const lang of LANGS) {
-    assert.deepEqual(pngSize(posterFile(lang, "letter", "png")), [1632, 2112], lang);
-    assert.deepEqual(pngSize(posterFile(lang, "story", "png")), [1080, 1920], lang);
+    const letter = pngInfo(posterFile(lang, "letter", "png"));
+    assert.deepEqual([letter.width, letter.height], [1632, 2112], `${lang} Letter pixels`);
+    assert.deepEqual(letter.resolution, [7559, 7559], `${lang} Letter PNG at 192 DPI`);
+    assert.ok(
+      Math.abs((letter.width / letter.resolution[0]) * 39.3701 - 8.5) < 0.002,
+      `${lang} is 8.5 inches wide`,
+    );
+    assert.ok(
+      Math.abs((letter.height / letter.resolution[1]) * 39.3701 - 11) < 0.002,
+      `${lang} is 11 inches tall`,
+    );
+
+    const story = pngInfo(posterFile(lang, "story", "png"));
+    assert.deepEqual([story.width, story.height], [1080, 1920], `${lang} story pixels`);
+    assert.deepEqual(story.resolution, [3780, 3780], `${lang} story PNG at 96 DPI`);
+
     const pdfName = posterFile(lang, "letter", "pdf");
     const pdf = readFileSync(posterPath(pdfName)).toString("latin1");
     assert.ok(pdf.startsWith("%PDF-"), pdfName);
