@@ -247,7 +247,8 @@ export default defineConfig(({ command, isPreview }) => ({
             serverDir: "./server",
             // Run the SSR function in Portland, next to Eugene (Vercel's
             // default is iad1, Washington D.C.). One region: fine on Hobby.
-            vercel: { functions: { regions: ["pdx1"] } },
+            // This Nitro version defaults to Node 24 even when built on Node 26.
+            vercel: { functions: { regions: ["pdx1"], runtime: "nodejs26.x" } },
           }),
         ]
       : []),

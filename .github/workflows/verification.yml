@@ -73,7 +73,16 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         env:
           VITE_AUTH_ENABLED: "false"
-        run: npm run build 2>&1 | tee verification/build.log
+        run: |
+          npm run build 2>&1 | tee verification/build.log
+          node --input-type=module <<'NODE' 2>&1 | tee -a verification/build.log
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const major = readFileSync('.nvmrc', 'utf8').trim();
+          const config = JSON.parse(readFileSync('.vercel/output/functions/__server.func/.vc-config.json', 'utf8'));
+          assert.equal(config.runtime, `nodejs${major}.x`);
+          console.log(`Verified deployed function runtime: ${config.runtime}`);
+          NODE
       - name: Publish verification summary
         if: always()
         env:
