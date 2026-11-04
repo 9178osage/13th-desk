@@ -12,12 +12,14 @@
 | `npm run typecheck`、`npm run lint`               | 分别检查 TypeScript 类型和代码规范。                                       |
 | `npm run check:links`、`npm run check:auth`       | 检查外部链接与开发环境和构建环境的认证配置。                               |
 | `npm run preview:restart`、`npm run preview:stop` | 在 Linux 沙箱中管理生产构建的预览服务。                                    |
+| `npm run posters`                                 | 用 Playwright 重新生成 `public/posters/` 里的六语海报（PDF 与 PNG）。      |
 
 ## 文件分组
 
 - **构建和配置**：`with-app-env.mjs`、`app-env-plugin.mjs`、`migrate.mjs`、`migration-plan.mjs`。
 - **浏览器和发布验证**：`browser-smoke.mjs`、`browser-smoke-verdict.mjs`、`browser-guard.mjs`、`brand-check.mjs`、`check-auth-invariant.mjs`、`check-links.mjs`、`link-outcome.mjs`、`preview.mjs`、`preview-thumbnail.mjs`。
 - **平台功能**：`grok-pwa-plugin.mjs`、`grok-pwa-shared.mjs`、`grok-pwa-shared.d.mts`、`install-page.html`；这些文件与平台的 PWA 和安装页面配合使用。
+- **海报**：`posters/copy.mjs` 是六语文案，`posters/template.mjs` 是版式，`posters/render.mjs` 输出文件并检查文字溢出；`posters/qr-poster.svg` 是指向 `/poster` 的二维码。`npm run posters -- zh en` 只重做指定语言。
 - **共享工具**：`sign-out-plan.mjs` 提供退出登录步骤；`temp-dir.mjs` 管理测试临时目录；`write-atomic.mjs` 原子写入文件。
 - **测试**：`*.test.mjs` 覆盖脚本和应用行为；应用库自身的 TypeScript 测试位于 `src/lib/`。
 

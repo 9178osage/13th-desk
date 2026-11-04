@@ -1,10 +1,11 @@
 /**
- * Channel entry paths (e.g. /card on a printed card, /isa in an email).
+ * Channel entry paths (e.g. /card on a printed card, /isa in an email,
+ * /poster in the QR code on the posters in public/posters/).
  * Each one renders the home page so Vercel Web Analytics records the path
  * itself as the source — Hobby plans do not report query/UTM params.
  * Nothing about the visitor is stored. Add a future channel with one line.
  */
-export const CHANNELS = ["card", "isa", "teacher", "eld"] as const;
+export const CHANNELS = ["card", "isa", "teacher", "eld", "poster"] as const;
 
 export type Channel = (typeof CHANNELS)[number];
 

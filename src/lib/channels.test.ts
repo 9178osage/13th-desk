@@ -4,7 +4,7 @@ import { CHANNELS, channelEntry, homeAliasPath, isChannel } from "./channels.ts"
 import { readFileSync } from "node:fs";
 
 test("only the listed channel slugs are entry paths", () => {
-  assert.deepEqual([...CHANNELS], ["card", "isa", "teacher", "eld"]);
+  assert.deepEqual([...CHANNELS], ["card", "isa", "teacher", "eld", "poster"]);
   for (const slug of CHANNELS) assert.equal(isChannel(slug), true);
   for (const slug of [
     "",
@@ -29,7 +29,9 @@ test("a channel entry records its own path and ends on /", () => {
   assert.deepEqual(channelEntry("/card"), { record: "/card", then: "/" });
   assert.deepEqual(channelEntry("/isa/"), { record: "/isa", then: "/" });
   assert.deepEqual(channelEntry("/eld"), { record: "/eld", then: "/" });
-  for (const path of ["/", "/guide", "/foo", "/card/x", "/cards"])
+  assert.deepEqual(channelEntry("/poster"), { record: "/poster", then: "/" });
+  // The poster files live under /posters/; only the QR path is a channel.
+  for (const path of ["/", "/guide", "/foo", "/card/x", "/cards", "/posters", "/poster/x"])
     assert.equal(channelEntry(path), null, path);
 });
 

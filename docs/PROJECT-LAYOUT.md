@@ -9,6 +9,7 @@ Eugene Desk 的网站源码、个人资料和临时产物分开维护。目录�
 | `src/lib/`                                | 存储、备份、日期、课表与 GPA 规则；旁边的测试固定兼容边界。                                                                              |
 | `src/data/`                               | 地点、学区、校历等业务数据。                                                                                                             |
 | `public/brand/`                           | 网站实际使用的品牌资源；不是 Illustrator 源文件目录。                                                                                    |
+| `public/posters/`                         | 六语宣传海报（打印 PDF、PNG 和手机图），由 `npm run posters` 从 `scripts/posters/` 生成；不手改。                                        |
 | `scripts/`、`.github/workflows/`          | 项目测试、构建及发布验证；[脚本索引](../scripts/README.md)说明各入口，`npm test` 是全量测试入口。                                        |
 | `docs/`                                   | 维护与历史记录。本页是目录索引；改版/修复进度见 [REDESIGN](REDESIGN-2026-10-03.md)。                                                     |
 | `eugene-desk-all-code/`                   | 本机文本副本与恢复快照。用 `sync.py` 生成，不手改分卷、不提交；每卷不超过 130,000 字节。                                                 |

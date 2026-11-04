@@ -24,6 +24,7 @@
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "check:format": "prettier --check .",
     "check:links": "node scripts/check-links.mjs",
+    "posters": "node scripts/posters/render.mjs",
     "test": "node scripts/test-all.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
