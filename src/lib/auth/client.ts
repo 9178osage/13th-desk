@@ -32,7 +32,7 @@ export const authClient = createAuthClient({
 /**
  * True when sign-in UI should be shown — only when `VITE_AUTH_ENABLED` is exactly
  * `"true"` (audit S6: unset or any other value keeps sign-in off). Eugene Desk
- * ships `"false"` (`.grok/app-env.json`), which selects the dev user.
+ * ships `"false"` (`.app-builder/app-env.json`), which selects the dev user.
  */
 export const authEnabled = authFlagOn(import.meta.env.VITE_AUTH_ENABLED);
 

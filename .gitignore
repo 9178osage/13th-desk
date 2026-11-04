@@ -8,11 +8,11 @@ dist
 screenshots
 artifacts
 verification/
-.grok/*
-!.grok/app-env.json
-!.grok/skills/
-.grok/skills/*
-!.grok/skills/og/
+.app-builder/*
+!.app-builder/app-env.json
+!.app-builder/skills/
+.app-builder/skills/*
+!.app-builder/skills/og/
 .env*
 
 # Local junk / archives (do not commit)

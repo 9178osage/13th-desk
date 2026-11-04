@@ -34,7 +34,10 @@ describe("audit S6: auth config", () => {
 
   it("ships with sign-in off", () => {
     const appEnv = JSON.parse(
-      readFileSync(join(import.meta.dirname, "..", "..", "..", ".grok", "app-env.json"), "utf8"),
+      readFileSync(
+        join(import.meta.dirname, "..", "..", "..", ".app-builder", "app-env.json"),
+        "utf8",
+      ),
     );
     assert.equal(appEnv.VITE_AUTH_ENABLED, "false");
   });
