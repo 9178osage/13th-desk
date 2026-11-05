@@ -56,6 +56,8 @@ npm install
 npm run dev:local
 ```
 
+先启用 Node 26；使用 fnm 时可运行 `fnm install`、`fnm use`，读取本仓库的 `.nvmrc`，无需替换其他项目的系统 Node。
+
 打开 [http://localhost:8080](http://localhost:8080)。`dev:local` 只监听 127.0.0.1；`npm run dev` 监听 0.0.0.0，给预览沙盒用，在公共 Wi‑Fi 上别用它。
 
 常用命令：
@@ -87,6 +89,8 @@ npx vercel --prod
 ```
 
 （需已登录并链到同一 Vercel 项目。）
+
+Vercel 的安装与构建命令通过 `scripts/vercel-npm.mjs` 启动 npm，移除构建环境注入、npm 不支持的 `npm_config_cache_dir`（含大写变体）。只记录移除的变量名，不记录值；合法的 `npm_config_cache`、其他配置和警告均保留，嵌套的 `npm run db:migrate` 也继承清理后的环境。不要通过降低 npm 日志级别隐藏配置警告。
 
 旧标签页在部署后可能找不到原来的动态资源。网站会先询问是否刷新，并提醒未保存的输入会丢失；取消不会自动刷新，同一标签页内相同错误只询问一次。原始加载错误仍会交给原有错误处理。这只是资源加载失败时的恢复措施，不替代 Vercel Skew Protection 的前后端版本锁定。
 

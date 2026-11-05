@@ -1,5 +1,6 @@
 {
-  "installCommand": "npm ci --omit=dev --ignore-scripts --no-audit --no-fund",
+  "installCommand": "node scripts/vercel-npm.mjs ci --omit=dev --ignore-scripts --no-audit --no-fund",
+  "buildCommand": "node scripts/vercel-npm.mjs run build",
   "regions": ["pdx1"],
   "headers": [
     {
