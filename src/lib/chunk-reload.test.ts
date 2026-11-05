@@ -10,7 +10,7 @@ import {
 } from "./chunk-reload.ts";
 
 const CHROMIUM = new TypeError(
-  "Failed to fetch dynamically imported module: https://example.test/assets/es-old.js",
+  "Failed to fetch dynamically imported module: https://example.com/assets/es-old.js",
 );
 
 function memoryStorage() {
