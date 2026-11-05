@@ -1,9 +1,9 @@
 /**
  * A tab opened before a deploy still asks for the previous build's hashed chunks,
  * which the new deployment no longer serves (Vercel Skew Protection needs a paid
- * plan). Vite fires `vite:preloadError` for every failed dynamic import, so reload
- * once and let the tab pick up the current build instead of showing the error page
- * or silently staying in the wrong language.
+ * plan). On `vite:preloadError`, offer one reload to pick up the current build.
+ * Never refresh silently: even a background prefetch can fail while a form has
+ * unsaved input.
  */
 
 // TanStack Router's lazyRouteComponent records its own one-time reload under this
@@ -26,6 +26,7 @@ export function isMissingChunk(error: unknown): error is Error {
 export interface ReloadEnv {
   storage: Pick<Storage, "getItem" | "setItem"> | null;
   online: boolean;
+  confirmReload: () => boolean;
   reload: () => void;
 }
 
@@ -41,6 +42,8 @@ export function reloadForMissingChunk(error: unknown, env: ReloadEnv): boolean {
     // Without a record, a chunk that is really gone would reload forever.
     return false;
   }
+  // Record the decision before prompting so TanStack cannot override a refusal.
+  if (!env.confirmReload()) return false;
   env.reload();
   return true;
 }
@@ -51,9 +54,10 @@ export interface ChunkReloadHost {
   readonly sessionStorage: Pick<Storage, "getItem" | "setItem">;
   readonly navigator: { readonly onLine: boolean };
   readonly location: { reload(): void };
+  confirm(message: string): boolean;
 }
 
-export function installChunkReload(host: ChunkReloadHost): () => void {
+export function installChunkReload(host: ChunkReloadHost, message: string): () => void {
   const onPreloadError = (event: Event) => {
     let storage: ReloadEnv["storage"] = null;
     try {
@@ -64,6 +68,7 @@ export function installChunkReload(host: ChunkReloadHost): () => void {
     reloadForMissingChunk((event as Event & { payload?: unknown }).payload, {
       storage,
       online: host.navigator.onLine !== false,
+      confirmReload: () => host.confirm(message),
       reload: () => host.location.reload(),
     });
   };

@@ -88,6 +88,8 @@ npx vercel --prod
 
 （需已登录并链到同一 Vercel 项目。）
 
+旧标签页在部署后可能找不到原来的动态资源。网站会先询问是否刷新，并提醒未保存的输入会丢失；取消不会自动刷新，同一标签页内相同错误只询问一次。原始加载错误仍会交给原有错误处理。这只是资源加载失败时的恢复措施，不替代 Vercel Skew Protection 的前后端版本锁定。
+
 ---
 
 ## 数据与说明
@@ -174,6 +176,8 @@ npx vercel --prod
 ```
 
 You must already be logged in and linked to the same Vercel project.
+
+An older tab may request a dynamic asset that a new deployment no longer serves. The site asks before reloading and warns that unsaved input will be lost. Canceling prevents an automatic reload; the same error prompts only once per tab. Original errors still reach existing error handlers. This is asset-load recovery, not Vercel Skew Protection's client/server version locking.
 
 ### Data notes
 

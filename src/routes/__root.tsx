@@ -11,6 +11,7 @@ import { DEFAULT_LANG, DeskHintContext, useDesk, useLang } from "@/lib/store";
 import { PREFS_COOKIE, parsePrefsValue, readPrefsCookie, type PrefsHint } from "@/lib/prefs-cookie";
 import { deskBootScript } from "@/lib/boot-script";
 import { installChunkReload } from "@/lib/chunk-reload";
+import { deskText } from "@/lib/desk-copy";
 import appCss from "../styles.css?url";
 // Same hashed files the @font-face rules use. Preload every face the first
 // screen paints with (Outfit 400/500, Fraunces 500/600) so they are usually
@@ -86,7 +87,10 @@ function Root() {
   const packJson = inlinePackJson(pageLang);
   const activeLang = useLang();
   const hydrated = useDesk((s) => s.hydrated);
-  useEffect(() => installChunkReload(window), []);
+  useEffect(
+    () => installChunkReload(window, deskText(activeLang, "reloadMissingChunk")),
+    [activeLang],
+  );
   useEffect(() => {
     // Wait for the stored desk: before that, boot-script.ts has already set the
     // right language from localStorage and the store still holds the default.

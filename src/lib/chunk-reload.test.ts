@@ -23,14 +23,26 @@ function memoryStorage() {
 }
 
 function env(
-  overrides: { online?: boolean; storage?: ReturnType<typeof memoryStorage> | null } = {},
+  overrides: {
+    online?: boolean;
+    storage?: ReturnType<typeof memoryStorage> | null;
+    confirmed?: boolean;
+  } = {},
 ) {
   const storage = overrides.storage === undefined ? memoryStorage() : overrides.storage;
   let reloads = 0;
+  let prompts = 0;
   return {
     storage,
     online: overrides.online ?? true,
+    confirmReload: () => {
+      prompts++;
+      return overrides.confirmed ?? true;
+    },
     reload: () => void reloads++,
+    get prompts() {
+      return prompts;
+    },
     get reloads() {
       return reloads;
     },
@@ -61,6 +73,17 @@ test("reloads once per missing chunk, then lets the error through", () => {
   assert.equal(e.reloads, 2);
 });
 
+test("a refused reload stays refused, including TanStack's fallback", () => {
+  const e = env({ confirmed: false });
+  assert.equal(reloadForMissingChunk(CHROMIUM, e), false);
+  assert.equal(e.reloads, 0);
+  assert.equal(e.prompts, 1);
+  assert.equal(e.storage?.items.get(RELOAD_KEY_PREFIX + CHROMIUM.message), "1");
+  assert.equal(reloadForMissingChunk(CHROMIUM, e), false);
+  assert.equal(e.prompts, 1);
+  assert.equal(e.reloads, 0);
+});
+
 test("never reloads for ordinary errors, offline, or without a loop guard", () => {
   const ordinary = env();
   assert.equal(reloadForMissingChunk(new Error("boom"), ordinary), false);
@@ -74,6 +97,7 @@ test("never reloads for ordinary errors, offline, or without a loop guard", () =
   };
   assert.equal(reloadForMissingChunk(CHROMIUM, throwing), false);
   assert.equal(ordinary.reloads + offline.reloads + noStorage.reloads + throwing.reloads, 0);
+  assert.equal(ordinary.prompts + offline.prompts + noStorage.prompts + throwing.prompts, 0);
 });
 
 test("installChunkReload listens for vite:preloadError until disposed", () => {
@@ -86,13 +110,17 @@ test("installChunkReload listens for vite:preloadError until disposed", () => {
     sessionStorage: storage,
     navigator: { onLine: true },
     location: { reload: () => void reloads++ },
+    confirm: (message) => {
+      assert.equal(message, "Reload? Unsaved input will be lost.");
+      return true;
+    },
   };
   const fire = (payload: unknown) => {
     const event = Object.assign(new Event("vite:preloadError", { cancelable: true }), { payload });
     target.dispatchEvent(event);
     return event;
   };
-  const dispose = installChunkReload(host);
+  const dispose = installChunkReload(host, "Reload? Unsaved input will be lost.");
   const event = fire(CHROMIUM);
   assert.equal(reloads, 1);
   // Vite still rethrows, so callers' own error handling keeps working.

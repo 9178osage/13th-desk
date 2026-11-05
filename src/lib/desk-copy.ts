@@ -78,6 +78,14 @@ const copy = {
     "Không lưu được. Giữ tab này mở và kiểm tra cài đặt lưu trữ.",
     "保存できません。タブを開いたまま、ブラウザの保存設定を確認してください。",
   ],
+  reloadMissingChunk: [
+    "A required page file could not be loaded. Reload the page to try again? Unsaved input will be lost.",
+    "页面所需的文件加载失败。要刷新页面重试吗？尚未保存的输入将会丢失。",
+    "No se pudo cargar un archivo necesario para la página. ¿Recargar la página para intentarlo de nuevo? Se perderá lo que hayas escrito sin guardar.",
+    "페이지에 필요한 파일을 불러오지 못했어요. 페이지를 새로고침하여 다시 시도할까요? 저장하지 않은 입력 내용은 사라져요.",
+    "Không tải được tệp cần thiết cho trang. Tải lại trang để thử lại? Nội dung nhập chưa lưu sẽ bị mất.",
+    "ページに必要なファイルを読み込めませんでした。ページを再読み込みしてやり直しますか？未保存の入力内容は失われます。",
+  ],
   otherTabOpen: [
     "This desk is open in another tab. Changes sync automatically; edit in one tab at a time to avoid conflicts.",
     "这份书桌也在其他标签页打开。改动会自动同步；为避免冲突，请尽量只在一个标签页编辑。",
