@@ -304,7 +304,7 @@ Debes estar autenticado y vinculado al mismo proyecto de Vercel.
 기타:
 
 - **첫 실행:** 언어와 학령을 고릅니다. 이후 상단 바나 모바일 하단 내비에서 언제든 바꿀 수 있습니다.
-- **학령:** 초등 / 중등 / 고등 / 대학 (`elem` · `mid` · `high` · `uni`)
+- **학령:** 초등 / 중학교 / 고등 / 대학 (`elem` · `mid` · `high` · `uni`)
 - **시간표:** 월–금 블록, 핀 고정 가능
 - **학군 바 (K–12):** 위치 사용 또는 Lane 카운티 근처 학군 직접 선택
 - **여섯 언어:** English · 中文 · Español · 한국어 · Tiếng Việt · 日本語

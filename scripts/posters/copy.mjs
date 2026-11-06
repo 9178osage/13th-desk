@@ -105,7 +105,7 @@ export const POSTER_COPY = {
     headline: ["오늘을", "차근차근."],
     lede: "수업과 할 일을 정리하고, 유진 생활에 필요한 정보를 찾아보세요.",
     levelLabel: "학교 단계",
-    levels: ["초등", "중등", "고등", "대학"],
+    levels: ["초등", "중학교", "고등", "대학"],
     pages: [
       { name: "오늘", desc: "할 일, 시간표, 날씨" },
       { name: "캠퍼스", desc: "캠퍼스 장소와 운영 시간" },
