@@ -56,7 +56,7 @@ const copy = {
   ],
   hostScript: [
     "The site loads one script from grok.com, its app platform, for install and preview features. It does not read your desk data.",
-    "本站会从 grok.com（应用平台）加载一个脚本，用于安装和预览功能；它不会读取你的桌面数据。",
+    "本站会从 grok.com（应用平台）加载一个脚本，用于安装和预览功能；它不会读取你的书桌数据。",
     "El sitio carga un script de grok.com, su plataforma, para instalar y previsualizar. No lee los datos de tu escritorio.",
     "이 사이트는 설치와 미리보기 기능을 위해 앱 플랫폼인 grok.com에서 스크립트 하나를 불러와요. 내 데스크 데이터는 읽지 않아요.",
     "Trang web tải một tập lệnh từ grok.com, nền tảng ứng dụng, cho tính năng cài đặt và xem trước. Nó không đọc dữ liệu của bạn.",
@@ -97,7 +97,7 @@ const copy = {
   storageOverflow: [
     "Merging tabs kept items beyond the usual limit. Nothing was removed. Export a backup, then make room before adding more.",
     "多页面合并后，条目超过了常规上限，已有内容均已保留。建议先导出备份，整理出空间后再添加。",
-    "La combinación de pestañas conservó elementos por encima del límite habitual. No se eliminó nada. Exporta una copia y libera espacio antes de añadir más.",
+    "La combinación de pestañas conservó elementos por encima del límite habitual. No se eliminó nada. Exporta una copia y libera espacio antes de agregar más.",
     "탭을 합치면서 항목이 기본 한도를 넘었지만 모두 보존했어요. 먼저 백업을 내보낸 뒤, 항목을 정리하고 추가해 주세요.",
     "Khi gộp các tab, số mục vượt giới hạn thường dùng nhưng tất cả đều được giữ lại. Hãy xuất bản sao lưu và dọn bớt trước khi thêm.",
     "タブの統合で通常の件数上限を超えましたが、すべて保持されています。まずバックアップを出力し、整理してから追加してください。",
@@ -186,7 +186,7 @@ const copy = {
     "Ví dụ: ôn ghi chép môn Sinh",
     "例：生物のノートを見直す",
   ],
-  add: ["Add", "添加", "Añadir", "추가", "Thêm", "追加"],
+  add: ["Add", "添加", "Agregar", "추가", "Thêm", "追加"],
   all: ["All", "全部", "Todas", "전체", "Tất cả", "すべて"],
   noTasks: [
     "No to-dos yet.",
@@ -215,7 +215,7 @@ const copy = {
   taskLimit: [
     "You can keep 20 tasks. Remove an old one to add another.",
     "最多保留 20 条待办，删除不需要的条目后可以继续添加。",
-    "Puedes guardar 20 tareas. Elimina una para añadir otra.",
+    "Puedes guardar 20 tareas. Elimina una para agregar otra.",
     "최대 20개까지 저장할 수 있어요. 기존 항목을 삭제한 뒤 추가하세요.",
     "Lưu tối đa 20 việc. Xóa một việc cũ để thêm việc mới.",
     "20件まで保存できます。不要な項目を削除して追加してください。",
@@ -307,7 +307,7 @@ const copy = {
     "Lịch lặp lại từ thứ Hai đến thứ Sáu. Xem lịch trường để biết ngày nghỉ.",
     "月〜金の繰り返し時間割です。祝日・休校日は学校のカレンダーをご確認ください。",
   ],
-  addClass: ["Add a class", "添加课程", "Añadir clase", "수업 추가", "Thêm lớp học", "授業を追加"],
+  addClass: ["Add a class", "添加课程", "Agregar clase", "수업 추가", "Thêm lớp học", "授業を追加"],
   editClass: ["Edit class", "编辑课程", "Editar clase", "수업 수정", "Sửa lớp học", "授業を編集"],
   title: ["Class name", "课程名称", "Nombre de la clase", "수업 이름", "Tên lớp học", "授業名"],
   place: [
@@ -828,7 +828,7 @@ const copy = {
     "Hôm nay tan học sớm",
     "今日は短縮日課",
   ],
-  quickAdd: ["Quick add", "一键添加", "Añadir rápido", "바로 추가", "Thêm nhanh", "すぐ追加"],
+  quickAdd: ["Quick add", "一键添加", "Agregar rápido", "바로 추가", "Thêm nhanh", "すぐ追加"],
   fillSample: [
     "Fill sample slots",
     "填入示例时段",
@@ -864,7 +864,7 @@ const copy = {
   icsDone: [
     "Calendar file downloaded. Open it to add the dates.",
     "日历文件已下载，打开即可添加这些日期。",
-    "Archivo de calendario descargado. Ábrelo para añadir las fechas.",
+    "Archivo de calendario descargado. Ábrelo para agregar las fechas.",
     "캘린더 파일을 내려받았어요. 열면 날짜가 추가돼요.",
     "Đã tải tệp lịch. Mở tệp để thêm các ngày.",
     "カレンダーファイルをダウンロードしました。開くと日付が追加されます。",

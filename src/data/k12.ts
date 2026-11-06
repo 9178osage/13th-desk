@@ -378,7 +378,7 @@ const sharedDates: Deadline[] = [
     title: { en: "No school", zh: "停课" },
     detail: {
       en: "4J has no school for teacher planning and professional development. All grades.",
-      zh: "4J 全区停课：老师备课与培训。所有年级。",
+      zh: "4J 全区停课：教师计划与培训。所有年级。",
       es: "No hay clases en 4J: planificación y desarrollo profesional del profesorado. Todos los grados.",
       ko: "4J는 교사 계획·연수로 수업이 없어요. 모든 학년.",
       vi: "4J nghỉ học để giáo viên lập kế hoạch và bồi dưỡng. Tất cả các khối.",
@@ -418,7 +418,7 @@ const sharedDates: Deadline[] = [
     detail: {
       en: "4J is out November 23–27. Conference sign-up is per school.",
       zh: "4J 11 月 23 日至 27 日不上课。家长会预约看各校通知。",
-      es: "En 4J no hay clases del 23 al 27 de noviembre. La inscripción a las conferencias es por escuela.",
+      es: "En 4J no hay clases del 23 al 27 de noviembre. La inscripción a las reuniones con maestros es por escuela.",
       ko: "4J는 11월 23–27일 수업이 없어요. 학부모 상담 신청은 학교마다 달라요.",
       vi: "4J nghỉ từ 23 đến 27 tháng 11. Đăng ký họp phụ huynh tùy từng trường.",
       ja: "4Jは11月23〜27日が休みです。面談の申し込みは学校ごとです。",
@@ -430,7 +430,7 @@ const sharedDates: Deadline[] = [
     title: { en: "Winter break", zh: "寒假" },
     detail: {
       en: "4J is out December 21 through January 4. Classes resume after the planning day.",
-      zh: "4J 从 12 月 21 日放到 1 月 4 日。老师培训日过了才上课。",
+      zh: "4J 从 12 月 21 日放到 1 月 4 日。教师计划日过后才上课。",
       es: "En 4J no hay clases del 21 de diciembre al 4 de enero. Las clases vuelven tras el día de planificación.",
       ko: "4J는 12월 21일부터 1월 4일까지 방학이에요. 교사 계획일이 지나면 수업이 다시 시작해요.",
       vi: "4J nghỉ từ 21 tháng 12 đến 4 tháng 1. Học lại sau ngày giáo viên lập kế hoạch.",
@@ -487,7 +487,7 @@ const sharedDates: Deadline[] = [
       es: "No hay clases. El personal prepara el segundo semestre.",
       ko: "수업이 없어요. 교직원이 2학기를 준비해요.",
       vi: "Không có lớp. Nhân viên chuẩn bị cho học kỳ hai.",
-      ja: "休校です。教職員が後期の準備をします。",
+      ja: "休校です。教職員が2学期の準備をします。",
     },
   },
   {
@@ -500,7 +500,7 @@ const sharedDates: Deadline[] = [
       es: "Empieza el segundo semestre.",
       ko: "2학기가 시작돼요.",
       vi: "Học kỳ hai bắt đầu.",
-      ja: "後期が始まります。",
+      ja: "2学期が始まります。",
     },
   },
   {
@@ -529,7 +529,7 @@ const sharedDates: Deadline[] = [
     title: { en: "Spring break", zh: "春假" },
     detail: {
       en: "4J is out March 22–29: spring break, then a teacher planning day. Classes resume March 30.",
-      zh: "4J 3 月 22 日至 29 日不上课：春假，之后一天老师备课。3 月 30 日复课。",
+      zh: "4J 3 月 22 日至 29 日不上课：春假，之后一天是教师计划日。3 月 30 日复课。",
       es: "En 4J no hay clases del 22 al 29 de marzo: vacaciones de primavera y un día de planificación. Las clases vuelven el 30 de marzo.",
       ko: "4J는 3월 22–29일 수업이 없어요. 봄방학 뒤 교사 계획일이 하루 있고, 3월 30일부터 수업해요.",
       vi: "4J nghỉ từ 22 đến 29 tháng 3: nghỉ xuân rồi một ngày giáo viên lập kế hoạch. Học lại từ 30 tháng 3.",
@@ -885,7 +885,7 @@ export const k12Checks: Record<Exclude<Level, "uni">, K12Check[]> = {
         es: "El segundo semestre empieza el 3 de febrero. El 1 de febrero es día de notas; el 2 es planificación de transición.",
         ko: "2학기는 2월 3일에 시작해요. 2월 1일은 성적 마감일, 2월 2일은 전환 준비일이에요.",
         vi: "Học kỳ hai bắt đầu ngày 3 tháng 2. Ngày 1 tháng 2 là ngày nhập điểm; ngày 2 là chuẩn bị chuyển học kỳ.",
-        ja: "後期は2月3日に始まります。2月1日は成績確定日、2月2日は移行準備日です。",
+        ja: "2学期は2月3日に始まります。2月1日は成績確定日、2月2日は移行準備日です。",
       },
     },
     {
@@ -943,7 +943,7 @@ export const k12Checks: Record<Exclude<Level, "uni">, K12Check[]> = {
         es: "El segundo semestre empieza el 3 de febrero.",
         ko: "2학기는 2월 3일에 시작해요.",
         vi: "Học kỳ hai bắt đầu ngày 3 tháng 2.",
-        ja: "後期は2月3日に始まります。",
+        ja: "2学期は2月3日に始まります。",
       },
     },
     {

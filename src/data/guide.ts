@@ -300,7 +300,7 @@ export const around: { title: Bilingual; body: Bilingual }[] = [
     title: { en: "Bike, then lock it", zh: "骑车，然后锁好" },
     body: {
       en: "Campus is flat until the south hills. From October, lights are not optional. West University theft is ordinary — lock the frame to a rack, not a wheel to itself.",
-      zh: "到南山之前，这一带是平的。十月起晚上骑车必须开车灯。西区经常丢车：把车架锁在停车架上，不要只锁一个轮子。",
+      zh: "到南山之前，这一带是平的。十月起晚上骑车必须开车灯。West University（校园西区）经常丢车：把车架锁在停车架上，不要只锁一个轮子。",
     },
   },
   {

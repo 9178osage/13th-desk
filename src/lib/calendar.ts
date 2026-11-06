@@ -42,7 +42,7 @@ export const uoAcademicTerm = {
     zh: "UO 校历",
     es: "Calendario del catálogo UO",
     ko: "UO 카탈로그 학사일정",
-    vi: "Lịch niên khóa UO",
+    vi: "Lịch niên giám UO",
     ja: "UOカタログの学年暦",
   } satisfies Copy,
 } as const;

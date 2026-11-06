@@ -353,7 +353,7 @@ function GpaPage() {
           <SectionHeader
             className="mb-3"
             kicker={tr(lang, { en: "What if", zh: "假如" })}
-            title={tr(lang, { en: "Target GPA", zh: "目标绩点" })}
+            title={tr(lang, { en: "Target GPA", zh: "目标 GPA" })}
           />
           {level === "high" && (
             <p className="mb-3 text-sm text-muted">
