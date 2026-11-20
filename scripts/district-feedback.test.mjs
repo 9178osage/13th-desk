@@ -137,7 +137,7 @@ const failedNotes = [
   "位置が取れませんでした。学区は自分で選んでください。",
 ];
 
-function districtFixture({ supported = true } = {}) {
+function districtFixture({ supported = true, shapesFail = false } = {}) {
   const runner = hookRunner();
   const requests = [];
   const choices = [];
@@ -155,7 +155,8 @@ function districtFixture({ supported = true } = {}) {
     {
       react: runner.hooks,
       "@/data/districts": districts,
-      "@/data/district-shapes": districtShapes,
+      // Without the mock, the dynamic import rejects like a chunk that failed to load.
+      ...(shapesFail ? {} : { "@/data/district-shapes": districtShapes }),
       "@/lib/store": { useLang: () => lang, useDesk: (select) => select(state) },
       "@/lib/text": { tr },
       "@/lib/cn": { cn: (...parts) => parts.filter(Boolean).join(" ") },
@@ -941,4 +942,39 @@ test("timetable: classGone after a delete does not leave the old Undo beside it"
   f.submit();
   assert.match(f.status(), /^That class is no longer in your timetable/);
   assert.equal(undoButton(f.tree()), undefined);
+});
+
+test("a district map that fails to load says so in six languages and offers a retry", async () => {
+  const f = districtFixture({ shapesFail: true });
+  const request = f.locate();
+  await request.success(position);
+  // Let the rejected import settle.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  f.render();
+  assert.equal(f.locateButton().props.disabled, false, "busy is cleared");
+  assert.deepEqual(f.choices, [], "nothing is picked for the visitor");
+  const expected = [
+    ["The district map didn't load, so your location wasn't matched.", "Try again"],
+    ["学区地图没有加载出来，所以没能按位置匹配。", "重试"],
+    ["El mapa de distritos no se cargó", "Reintentar"],
+    ["학구 지도를 불러오지 못해 위치로 찾지 못했어요.", "다시 시도"],
+    ["Chưa tải được bản đồ học khu", "Thử lại"],
+    ["学区の地図を読み込めず", "再試行"],
+  ];
+  langs.forEach((lang, i) => {
+    f.language(lang);
+    assert.ok(f.note().startsWith(expected[i][0]), lang);
+    assert.ok(
+      nodes(f.render()).some((n) => n.type === "button" && text(n) === expected[i][1]),
+      `${lang} retry button`,
+    );
+  });
+  f.language("en");
+  const retry = nodes(f.render()).find((n) => n.type === "button" && text(n) === "Try again");
+  retry.props.onClick();
+  f.render();
+  assert.equal(f.requests.length, 2, "Try again asks for the location again");
+  // The manual list stays available the whole time.
+  f.select("bethel");
+  assert.deepEqual(f.choices, ["bethel"]);
 });

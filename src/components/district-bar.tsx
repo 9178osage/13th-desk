@@ -4,6 +4,25 @@ import { useDesk, useLang } from "@/lib/store";
 import { tr, type Copy } from "@/lib/text";
 import { cn } from "@/lib/cn";
 
+/** The boundary map itself could not load (offline, a deploy replaced the chunk, …). */
+const SHAPES_FAILED: Copy = {
+  en: "The district map didn't load, so your location wasn't matched. Try again, or pick your district from the list above.",
+  zh: "学区地图没有加载出来，所以没能按位置匹配。可以重试，或在上方列表中手动选择学区。",
+  es: "El mapa de distritos no se cargó, así que no se pudo ubicar tu distrito. Reintenta o elige tu distrito en la lista de arriba.",
+  ko: "학구 지도를 불러오지 못해 위치로 찾지 못했어요. 다시 시도하거나 위 목록에서 학구를 직접 고르세요.",
+  vi: "Chưa tải được bản đồ học khu nên chưa đối chiếu được vị trí. Thử lại, hoặc tự chọn học khu trong danh sách phía trên.",
+  ja: "学区の地図を読み込めず、位置から学区を探せませんでした。再試行するか、上の一覧から学区を選んでください。",
+};
+
+const RETRY: Copy = {
+  en: "Try again",
+  zh: "重试",
+  es: "Reintentar",
+  ko: "다시 시도",
+  vi: "Thử lại",
+  ja: "再試行",
+};
+
 /**
  * Compact district picker for the toolbar. It used to carry a second, wide-screen
  * branch behind a `compact` prop; nothing could reach it (shell.tsx always passed
@@ -54,13 +73,17 @@ export function DistrictBar() {
     setNote(null);
     // Boundary polygons load only now, in parallel with the location prompt.
     const shapes = import("@/data/district-shapes");
+    // If the location prompt fails first, nobody awaits `shapes`: no unhandled rejection.
+    shapes.catch(() => {});
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         let districtAt: (typeof import("@/data/district-shapes"))["districtAt"];
         try {
           ({ districtAt } = await shapes);
         } catch {
-          if (version === lookupVersion.current) setBusy(false);
+          if (version !== lookupVersion.current) return;
+          setBusy(false);
+          setNote(SHAPES_FAILED);
           return;
         }
         if (version !== lookupVersion.current) return;
@@ -196,6 +219,15 @@ export function DistrictBar() {
                 })}
           </button>
           {note ? <p className="text-xs text-muted">{tr(lang, note)}</p> : null}
+          {note === SHAPES_FAILED ? (
+            <button
+              type="button"
+              onClick={locate}
+              className="min-h-10 w-full rounded-md px-2 text-sm text-moss underline"
+            >
+              {tr(lang, RETRY)}
+            </button>
+          ) : null}
           {mismatch && picked ? (
             <p className="text-xs text-muted">
               {tr(lang, {
