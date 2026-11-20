@@ -239,7 +239,7 @@ test("mobile GPA spacing and submit adapt without changing desktop spacing", () 
 test("the real GPA add form pairs credits and grade while keeping the name full-width", async () => {
   const mocks = {
     react:
-      'export const lazy=()=>"Lazy", Suspense="Suspense", useEffect=()=>{}, useMemo=fn=>fn(), useState=value=>[typeof value==="function"?value():value,()=>{}];',
+      'export const lazy=()=>"Lazy", Suspense="Suspense", Component=class{}, useEffect=()=>{}, useMemo=fn=>fn(), useState=value=>[typeof value==="function"?value():value,()=>{}];',
     "react/jsx-runtime":
       'export const jsx=(type,props)=>({type,props}); export const jsxs=jsx, Fragment="Fragment";',
     "@tanstack/react-router": "export const createFileRoute=()=>options=>options;",

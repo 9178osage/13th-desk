@@ -1206,7 +1206,8 @@ test("bundle guards: language packs and Recharts stay code-split", () => {
   };
   assert.equal(pkg.dependencies.recharts, undefined);
   const gpa = readFileSync(join(src, "routes/gpa.tsx"), "utf8");
-  assert.match(gpa, /lazy\(\(\) => import\("@\/components\/gpa-chart"\)\)/);
+  assert.match(gpa, /const loadGpaChart = \(\) => import\("@\/components\/gpa-chart"\);/);
+  assert.match(gpa, /useRetryableLazy\(loadGpaChart\)/);
 });
 
 test("a never-chosen language falls back to English (new visitors see English)", () => {

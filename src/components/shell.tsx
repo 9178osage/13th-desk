@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { homeAliasPath } from "@/lib/channels";
 import {
@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { DeskBackup } from "@/components/desk-backup";
 import { DistrictBar } from "@/components/district-bar";
+import { LoadBoundary } from "@/components/load-boundary";
+import { useRetryableLazy } from "@/lib/retryable-lazy";
 import { LEVELS, isLevel } from "@/lib/levels";
 import { ensureDeskHydrated, useDesk, useLang, useStorageStatus } from "@/lib/store";
 import { LANGS, isLang, tr } from "@/lib/text";
@@ -22,7 +24,11 @@ import { hasDeskOverflow } from "@/lib/desk-limits";
 
 // Command palette code (cmdk + Radix dialog) only downloads on first use.
 const loadPalette = () => import("@/components/command-palette");
-const CommandPalette = lazy(loadPalette);
+/** Warm the palette chunk on hover/focus. A failed prefetch is not an error yet: the
+ * real load on open retries and, if it fails again, shows a notice with "Try again". */
+const preloadPalette = () => {
+  loadPalette().catch(() => {});
+};
 
 const NAV = [
   { to: "/", key: "today", short: "today", icon: House },
@@ -75,6 +81,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteUsed, setPaletteUsed] = useState(false);
+  const [CommandPalette, retryPalette] = useRetryableLazy(loadPalette);
   // Server and hydration render "Ctrl K"; the client snapshot then picks ⌘K on Apple devices.
   const shortcut = useSyncExternalStore(noSubscribe, clientShortcut, serverShortcut);
   const openPalette = () => {
@@ -165,8 +172,8 @@ export function Shell({ children }: { children: ReactNode }) {
             type="button"
             className="palette-trigger"
             onClick={openPalette}
-            onPointerEnter={() => void loadPalette()}
-            onFocus={() => void loadPalette()}
+            onPointerEnter={preloadPalette}
+            onFocus={preloadPalette}
             aria-label={c(lang, "paletteOpen")}
             aria-haspopup="dialog"
             aria-keyshortcuts="Meta+K Control+K"
@@ -251,9 +258,22 @@ export function Shell({ children }: { children: ReactNode }) {
         </footer>
       </div>
       {paletteUsed && (
-        <Suspense fallback={null}>
-          <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-        </Suspense>
+        <LoadBoundary
+          lang={lang}
+          message="paletteFailed"
+          className="load-failed load-failed-floating"
+          onRetry={retryPalette}
+          onClose={() => {
+            // Dismissed: unmount the notice; the next open imports the palette again.
+            setPaletteOpen(false);
+            setPaletteUsed(false);
+            retryPalette();
+          }}
+        >
+          <Suspense fallback={null}>
+            <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+          </Suspense>
+        </LoadBoundary>
       )}
       <nav className="desk-mobile-nav" aria-label={c(lang, "workspace")}>
         {NAV.map(({ to, short, icon: Icon }) => (

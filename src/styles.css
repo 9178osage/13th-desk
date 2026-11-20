@@ -2054,3 +2054,32 @@ html[data-desk-setup="done"] .welcome-note[data-pending] {
 .panel-title {
   flex-wrap: wrap;
 }
+
+/* Notice for an optional part (command palette, GPA chart) whose code did not load. */
+.load-failed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+.load-failed button {
+  min-height: 44px;
+  color: var(--color-moss);
+  text-decoration: underline;
+}
+.load-failed-floating {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  top: 1rem;
+  transform: translateX(-50%);
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  background: var(--color-card);
+  color: var(--color-ink);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}

@@ -926,6 +926,40 @@ const copy = {
     "今日に戻る",
   ],
   weekTitle: ["This week", "本周课表", "Esta semana", "이번 주", "Tuần này", "今週"],
+  partFailed: [
+    "This part didn't load. Your desk and saved data are fine.",
+    "这一部分没有加载出来。书桌和已保存的内容都没有受影响。",
+    "Esta parte no se cargó. Tu escritorio y tus datos guardados están bien.",
+    "이 부분을 불러오지 못했어요. 책상과 저장된 내용은 그대로예요.",
+    "Phần này chưa tải được. Bàn học và dữ liệu đã lưu vẫn ổn.",
+    "この部分を読み込めませんでした。デスクと保存した内容はそのままです。",
+  ],
+  paletteFailed: [
+    "Search didn't load. Your desk is fine.",
+    "搜索没有加载出来。书桌不受影响。",
+    "La búsqueda no se cargó. Tu escritorio está bien.",
+    "검색을 불러오지 못했어요. 책상은 그대로예요.",
+    "Chưa tải được ô tìm kiếm. Bàn học vẫn ổn.",
+    "検索を読み込めませんでした。デスクはそのままです。",
+  ],
+  retry: ["Try again", "重试", "Reintentar", "다시 시도", "Thử lại", "再試行"],
+  close: ["Close", "关闭", "Cerrar", "닫기", "Đóng", "閉じる"],
+  importReading: [
+    "Reading the file…",
+    "正在读取文件…",
+    "Leyendo el archivo…",
+    "파일을 읽는 중…",
+    "Đang đọc tệp…",
+    "ファイルを読み込み中…",
+  ],
+  importFileName: [
+    "File: {name}",
+    "文件：{name}",
+    "Archivo: {name}",
+    "파일: {name}",
+    "Tệp: {name}",
+    "ファイル：{name}",
+  ],
 } as const satisfies Record<string, readonly [string, string, string, string, string, string]>;
 
 const index: Record<Lang, number> = { en: 0, zh: 1, es: 2, ko: 3, vi: 4, ja: 5 };

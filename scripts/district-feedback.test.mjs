@@ -419,6 +419,8 @@ function gpaFixture(count = 0) {
     "@/lib/text": { tr },
     "@/lib/desk-copy": deskCopy,
     "@/lib/desk-replaced": { useDeskReplaced: () => {} },
+    "@/components/load-boundary": { LoadBoundary: "LoadBoundary" },
+    "@/lib/retryable-lazy": { useRetryableLazy: () => ["LazyChart", () => {}] },
   });
   let tree;
   const render = () => (tree = runner.render(Route.component));

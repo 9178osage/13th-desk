@@ -1,4 +1,6 @@
-import { lazy, Suspense, useMemo, useState, type FormEvent } from "react";
+import { Suspense, useMemo, useState, type FormEvent } from "react";
+import { LoadBoundary } from "@/components/load-boundary";
+import { useRetryableLazy } from "@/lib/retryable-lazy";
 import { canonicalLink } from "@/lib/site";
 import { createFileRoute } from "@tanstack/react-router";
 import * as AlertDialog from "@radix-ui/react-alert-dialog";
@@ -27,7 +29,7 @@ import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { tr, type Copy, type Lang } from "@/lib/text";
 
 // The chart only downloads once there is something to chart.
-const GpaChart = lazy(() => import("@/components/gpa-chart"));
+const loadGpaChart = () => import("@/components/gpa-chart");
 
 export const Route = createFileRoute("/gpa")({
   head: () => ({
@@ -85,6 +87,7 @@ function toInput(row: GradeRow): GpaInput {
 
 function GpaPage() {
   const lang = useLang();
+  const [GpaChart, retryChart] = useRetryableLazy(loadGpaChart);
   const level = useDesk((state) => state.level);
   const grades = useDesk((state) => state.buckets[state.level].grades);
   const priorGpa = useDesk((state) => state.buckets[state.level].priorGpa);
@@ -340,9 +343,12 @@ function GpaPage() {
             title={tr(lang, { en: "Grade points by credit", zh: "绩点分布（按学分）" })}
           />
           <div className="h-56 w-full">
-            <Suspense fallback={null}>
-              <GpaChart data={chartData} lang={lang} />
-            </Suspense>
+            {/* The chart is optional: if its code fails, only this card says so. */}
+            <LoadBoundary lang={lang} onRetry={retryChart}>
+              <Suspense fallback={null}>
+                <GpaChart data={chartData} lang={lang} />
+              </Suspense>
+            </LoadBoundary>
           </div>
         </Card>
       ) : null}
