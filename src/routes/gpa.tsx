@@ -19,7 +19,7 @@ import {
   type GpaInput,
 } from "@/lib/gpa";
 import type { Level } from "@/lib/levels";
-import { rowAt, shiftRefAfterInsert, shiftRefAfterRemove, type RemovedRow } from "@/lib/row-ref";
+import { refAfterRemove, rowAt, type RemovedRow } from "@/lib/row-ref";
 import type { GradeRow } from "@/lib/store";
 import { useDesk, useLang } from "@/lib/store";
 import { useDeskReplaced } from "@/lib/desk-replaced";
@@ -135,10 +135,9 @@ function GpaPage() {
     setDeleted(null);
   }
 
-  function startEdit(row: GradeRow, index: number) {
+  function startEdit(row: GradeRow) {
     setEditing({
-      id: row.id,
-      index,
+      key: row.rowKey,
       grade: row.grade,
       credits: String(row.credits),
       boost: row.boost,
@@ -152,7 +151,7 @@ function GpaPage() {
     event.preventDefault();
     if (!editing) return;
     const saved = updateGrade(
-      { id: editing.id, index: editing.index },
+      { key: editing.key },
       {
         grade: editing.grade,
         credits: Number(editing.credits),
@@ -164,10 +163,10 @@ function GpaPage() {
     setDeleted(null);
   }
 
-  function remove(row: GradeRow, index: number) {
-    const removed = removeGrade({ id: row.id, index });
+  function remove(row: GradeRow) {
+    const removed = removeGrade({ key: row.rowKey });
     if (!removed) return;
-    setEditing((current) => shiftRefAfterRemove(current, removed.index));
+    setEditing((current) => refAfterRemove(current, removed));
     setDeleted({ removed, level });
     setMessage("deleted");
   }
@@ -650,9 +649,9 @@ function GpaPage() {
         <div>
           {grades.length > 0 ? (
             <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card shadow-paper">
-              {grades.map((row, index) =>
-                editing?.index === index && editing.id === row.id ? (
-                  <li key={`${index}:${row.id}`} className="px-4 py-3">
+              {grades.map((row) =>
+                editing?.key === row.rowKey ? (
+                  <li key={row.rowKey} className="px-4 py-3">
                     <GradeEditor
                       lang={lang}
                       level={level}
@@ -664,7 +663,7 @@ function GpaPage() {
                     />
                   </li>
                 ) : (
-                  <li key={`${index}:${row.id}`} className="flex items-center gap-1 px-4 py-2">
+                  <li key={row.rowKey} className="flex items-center gap-1 px-4 py-2">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-ink">{row.title || row.grade}</p>
                       <p className="text-sm text-muted">
@@ -687,7 +686,7 @@ function GpaPage() {
                       type="button"
                       disabled={!hydrated}
                       aria-label={`${c(lang, "edit")}: ${row.title || row.grade}`}
-                      onClick={() => startEdit(row, index)}
+                      onClick={() => startEdit(row)}
                       className="min-h-11 shrink-0 px-2 text-sm text-moss"
                     >
                       {c(lang, "edit")}
@@ -696,7 +695,7 @@ function GpaPage() {
                       type="button"
                       disabled={!hydrated}
                       aria-label={`${tr(lang, REMOVE)}: ${row.title || row.grade}`}
-                      onClick={() => remove(row, index)}
+                      onClick={() => remove(row)}
                       className="min-h-11 shrink-0 px-2 text-sm text-muted"
                     >
                       {tr(lang, REMOVE)}
@@ -714,8 +713,7 @@ function GpaPage() {
                 type="button"
                 onClick={() => {
                   if (restoreGrade(deleted.removed, deleted.level)) {
-                    const at = deleted.removed.index;
-                    setEditing((current) => shiftRefAfterInsert(current, at));
+                    // Refs are row keys: an open editor stays on its own row.
                     setDeleted(null);
                     setMessage("restored");
                   } else setMessage("undoFailed");
@@ -861,7 +859,8 @@ const REMOVE: Copy = {
   ja: "削除",
 };
 
-type GradeDraft = { id: string; index: number; grade: string; credits: string; boost: boolean };
+/** `key` is the edited row's persisted rowKey (see row-ref.ts), never id or position. */
+type GradeDraft = { key: string; grade: string; credits: string; boost: boolean };
 
 const selectClass =
   "mt-1 min-h-11 w-full rounded-md border border-line bg-card px-3 font-normal shadow-sm";

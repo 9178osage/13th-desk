@@ -127,6 +127,20 @@ test("real hydration resolves cookie language and level together, with the pack 
       { name: "array buckets are held", saved: { buckets: [] } },
       { name: "null stage is held", saved: { buckets: { uni: null } } },
       { name: "unknown stage is held", saved: { buckets: { future: { notes: ["keep"] } } } },
+      // Present-but-invalid top-level fields: held like the backup importer rejects them,
+      // never reset to a default and overwritten on the next edit.
+      ...[
+        ["langSet", "yes"],
+        ["lang", "klingon"],
+        ["level", "college"],
+        ["levelSet", 1],
+        ["district", "atlantis"],
+        ["district", 4],
+        ["earlyStart", "true"],
+      ].map(([field, bad]) => ({
+        name: `invalid ${field} ${JSON.stringify(bad)} is held without overwriting bytes`,
+        saved: { buckets: {}, [field]: bad },
+      })),
       ...[
         ["25:00", "26:00"],
         ["09:99", "10:00"],

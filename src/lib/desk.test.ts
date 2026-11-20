@@ -35,7 +35,13 @@ import {
   type PersistedDeskLike,
 } from "./desk-backup.ts";
 import { sameOriginAppPath } from "./same-origin-path.ts";
-import { asHm, parseBucket, MAX_READ_TEXT } from "./desk-records.ts";
+import { asHm, parseBucket as parseBucketRaw, MAX_READ_TEXT, withRowKeys } from "./desk-records.ts";
+
+/** The loader keys rows (`withRowKeys`) before reading a bucket; tests read the same way. */
+function parseBucket(value: unknown) {
+  const keyed = withRowKeys({ buckets: { uni: value } }) as { buckets: { uni: unknown } };
+  return parseBucketRaw(keyed.buckets.uni);
+}
 import { DESK_LIMITS, DESK_READ_CAP } from "./desk-limits.ts";
 import { asForecast } from "./forecast.ts";
 import {
@@ -93,6 +99,7 @@ const schedule: ScheduleBlock[] = [
     title: "Math",
     place: "",
     pinned: false,
+    rowKey: "k-later",
   },
   {
     id: "early",
@@ -102,6 +109,7 @@ const schedule: ScheduleBlock[] = [
     title: "Writing",
     place: "",
     pinned: true,
+    rowKey: "k-early",
   },
   {
     id: "other",
@@ -111,6 +119,7 @@ const schedule: ScheduleBlock[] = [
     title: "Science",
     place: "",
     pinned: false,
+    rowKey: "k-other",
   },
 ];
 
@@ -377,6 +386,7 @@ test("existing overlapping courses are marked as conflicts", () => {
       title: "Lab",
       place: "",
       pinned: false,
+      rowKey: "k-clash",
     },
   ];
   const ids = conflictingClassIds(crowded);
@@ -395,6 +405,7 @@ test("conflict markers follow row identity, not a shared id", () => {
     title,
     place: "",
     pinned: false,
+    rowKey: `k-${title}`,
   });
   const first = row("dup", "09:00", "10:00", "First");
   const quiet = row("dup", "13:00", "14:00", "Quiet duplicate");
@@ -430,7 +441,7 @@ test("conflict markers follow row identity, not a shared id", () => {
 function blankBucket() {
   return {
     favs: [] as string[],
-    notes: [] as { id: string; text: string; done: boolean }[],
+    notes: [] as { id: string; text: string; done: boolean; rowKey: string }[],
     checks: [] as string[],
     grades: [] as {
       id: string;
@@ -438,6 +449,7 @@ function blankBucket() {
       credits: number;
       grade: "A" | "B" | "C" | "D" | "F";
       boost: boolean;
+      rowKey: string;
     }[],
     priorGpa: "",
     priorWeighted: "",
@@ -453,7 +465,7 @@ function sampleState(): PersistedDeskLike {
     high: blankBucket(),
     uni: blankBucket(),
   };
-  buckets.uni.notes = [{ id: "n1", text: "Review notes", done: false }];
+  buckets.uni.notes = [{ id: "n1", text: "Review notes", done: false, rowKey: "k-n1" }];
   buckets.uni.schedule = [
     {
       id: "c1",
@@ -463,9 +475,12 @@ function sampleState(): PersistedDeskLike {
       title: "Writing",
       place: "PLC",
       pinned: false,
+      rowKey: "k-c1",
     },
   ];
-  buckets.uni.grades = [{ id: "g1", title: "Chem", credits: 4, grade: "A", boost: false }];
+  buckets.uni.grades = [
+    { id: "g1", title: "Chem", credits: 4, grade: "A", boost: false, rowKey: "k-g1" },
+  ];
   return {
     lang: "zh",
     langSet: true,
@@ -1384,7 +1399,12 @@ test("sign-in and sign-out only navigate to a same-origin path", () => {
 
 test("a list past the read cap is refused; a merged overflow still round-trips", () => {
   const notes = (count: number) =>
-    Array.from({ length: count }, (_, i) => ({ id: `n${i}`, text: "x", done: false }));
+    Array.from({ length: count }, (_, i) => ({
+      id: `n${i}`,
+      text: "x",
+      done: false,
+      rowKey: `k${i}`,
+    }));
   const overCap = sampleState();
   overCap.buckets.uni.notes = notes(DESK_READ_CAP + 1);
   assert.deepEqual(parseDeskBackup(JSON.stringify(serializeDeskBackup(overCap))), {
@@ -1531,6 +1551,7 @@ test("sample week: UO MWF 10:00-10:50 + TTh 10:00-11:20, valid K-12 slots, no ov
       title: "x",
       place: "",
       pinned: false,
+      rowKey: `k${i}`,
     }));
     assert.equal(conflictingClassIds(blocks).size, 0, level);
   }
@@ -2134,13 +2155,21 @@ test("GPA undo: a deleted class goes back where it was, within the same restore 
 });
 
 test("GPA inline edit keeps id and title and uses the add rules for grade and credits", () => {
-  const row: GradeRow = { id: "x", title: "Bio", credits: 4, grade: "B", boost: false };
+  const row: GradeRow = {
+    id: "x",
+    title: "Bio",
+    credits: 4,
+    grade: "B",
+    boost: false,
+    rowKey: "k-x",
+  };
   assert.deepEqual(editedGrade(row, { grade: "A-", credits: 3, boost: false }, "uni"), {
     id: "x",
     title: "Bio",
     credits: 3,
     grade: "A-",
     boost: false,
+    rowKey: "k-x",
   });
   assert.equal(editedGrade(row, { grade: "Q", credits: 3, boost: false }, "uni"), null);
   assert.equal(editedGrade(row, { grade: "A", credits: 1.25, boost: false }, "uni"), null);
@@ -2298,97 +2327,156 @@ import { canRestoreRow, refOf, removeRow, rowAt, updateRow, type RemovedRow } fr
 test("duplicate and blank IDs: edits, toggles and deletes hit exactly one row", () => {
   for (const id of ["", "dup"]) {
     const rows = [
-      { id, text: "a", done: false },
-      { id, text: "b", done: false },
-      { id: "u", text: "c", done: false },
+      { id, text: "a", done: false, rowKey: "ka" },
+      { id, text: "b", done: false, rowKey: "kb" },
+      { id: "u", text: "c", done: false, rowKey: "kc" },
     ];
-    const edited = updateRow(rows, { id, index: 0 }, (row) => ({ ...row, text: "A" }));
+    const edited = updateRow(rows, { key: "ka" }, (row) => ({ ...row, text: "A" }));
     assert.deepEqual(
       edited?.map((row) => row.text),
       ["A", "b", "c"],
       `${JSON.stringify(id)}: edit only the first`,
     );
-    const toggled = updateRow(rows, { id, index: 1 }, (row) => ({ ...row, done: !row.done }));
+    const toggled = updateRow(rows, { key: "kb" }, (row) => ({ ...row, done: !row.done }));
     assert.deepEqual(
       toggled?.map((row) => row.done),
       [false, true, false],
       `${JSON.stringify(id)}: toggle only one`,
     );
-    const result = removeRow(rows, { id, index: 1 });
+    const result = removeRow(rows, { key: "kb" });
     assert.ok(result);
     assert.deepEqual(
       result.list.map((row) => row.text),
       ["a", "c"],
       `${JSON.stringify(id)}: delete only one`,
     );
-    assert.deepEqual(result.removed, { row: rows[1], index: 1, shared: true });
+    assert.deepEqual(result.removed, { row: rows[1], index: 1 });
     // Undo restores the very row at its original position, even though a sibling
     // still carries the same id; a second undo of the same row is refused.
     assert.equal(canRestoreRow(result.list, result.removed, "notes"), true);
     const back = insertAt(result.list, result.removed.row, result.removed.index);
     assert.deepEqual(back, rows);
     assert.equal(canRestoreRow(back, result.removed, "notes"), false);
-    // A stale position (the id there differs, or it is past the end) is a no-op.
+    // A key that no row holds (deleted elsewhere), or a blank key, is a no-op.
     assert.equal(
-      updateRow(rows, { id, index: 2 }, (row) => row),
+      updateRow(rows, { key: "gone" }, (row) => row),
       null,
     );
-    assert.equal(removeRow(rows, { id, index: 3 }), null);
-    assert.equal(rowAt(rows, { id, index: -1 }), null);
-    assert.equal(rowAt(rows, { id, index: 0.5 }), null);
-    assert.deepEqual(refOf(rows, rows[1]), { id, index: 1 });
+    assert.equal(removeRow(rows, { key: "" }), null);
+    assert.equal(rowAt(rows, null), null);
+    assert.deepEqual(refOf(rows, rows[1]), { key: "kb" });
     assert.equal(refOf(rows, { ...rows[1] }), null, "refs follow identity, not equality");
   }
 });
 
-test("unique IDs keep the old behavior: one row changes, undo refuses an id already back", () => {
-  const rows = [{ id: "a" }, { id: "b" }, { id: "c" }];
-  const result = removeRow(rows, { id: "b", index: 1 });
+test("audit repro: a stale edit never lands on the duplicate row that moved into its place", () => {
+  // Two rows share id "x". This tab edits A while another tab deletes A; B shifts into
+  // A's old position. The old id+index ref matched B there; a row key matches nothing.
+  const a = { id: "x", text: "A", done: false, rowKey: "ka" };
+  const b = { id: "x", text: "B", done: false, rowKey: "kb" };
+  const editingA = refOf([a, b], a)!;
+  const afterOtherTabDeleted = [b];
+  assert.equal(rowAt(afterOtherTabDeleted, editingA), null);
+  assert.equal(
+    updateRow(afterOtherTabDeleted, editingA, (row) => ({ ...row, text: "A edited" })),
+    null,
+    "the edit is refused instead of overwriting B",
+  );
+  assert.deepEqual(afterOtherTabDeleted, [b]);
+});
+
+test("old saves get unique, stable row keys; backups keep them", () => {
+  const legacy = {
+    buckets: {
+      uni: {
+        notes: [
+          { id: "x", text: "A", done: false },
+          { id: "x", text: "B", done: false },
+          { id: "", text: "C", done: false },
+        ],
+        grades: [{ id: "x", title: "Chem", credits: 4, grade: "A", boost: false }],
+      },
+      high: { notes: [{ id: "x", text: "D", done: false }] },
+    },
+  };
+  const once = withRowKeys(structuredClone(legacy));
+  assert.deepEqual(withRowKeys(structuredClone(legacy)), once, "deterministic across tabs");
+  assert.equal(withRowKeys(once), once, "already keyed desks are left untouched");
+  const keys = [
+    ...once.buckets.uni.notes,
+    ...once.buckets.uni.grades,
+    ...once.buckets.high.notes,
+  ].map((row) => (row as unknown as { rowKey: string }).rowKey);
+  assert.equal(new Set(keys).size, keys.length, "unique across lists and stages");
+  assert.ok(keys.every((key) => typeof key === "string" && key.length > 0));
+  // A duplicated key (hand-edited file, copied row) is made unique without dropping a row.
+  const dup = withRowKeys({
+    buckets: {
+      uni: {
+        notes: [
+          { id: "a", text: "1", rowKey: "k" },
+          { id: "b", text: "2", rowKey: "k" },
+        ],
+      },
+    },
+  });
+  const dupKeys = dup.buckets.uni.notes.map((row) => row.rowKey);
+  assert.equal(dupKeys[0], "k");
+  assert.notEqual(dupKeys[1], "k");
+  // Versionless single-bucket saves are keyed too.
+  const single = withRowKeys({ notes: [{ id: "n", text: "t" }] }) as {
+    notes: { rowKey?: string }[];
+  };
+  assert.ok(single.notes[0].rowKey);
+});
+
+test("unique IDs keep the old behavior: one row changes, undo refuses a row already back", () => {
+  const rows = [
+    { id: "a", rowKey: "ka" },
+    { id: "b", rowKey: "kb" },
+    { id: "c", rowKey: "kc" },
+  ];
+  const result = removeRow(rows, { key: "kb" });
   assert.ok(result);
-  assert.equal(result.removed.shared, false);
-  assert.deepEqual(result.list, [{ id: "a" }, { id: "c" }]);
+  assert.deepEqual(result.list, [rows[0], rows[2]]);
   assert.equal(canRestoreRow(result.list, result.removed, "grades"), true);
-  // Restored elsewhere (another tab) as a different object with the same unique id.
-  const elsewhere = [{ id: "b" }, ...result.list];
+  // Restored elsewhere (another tab) as a different object with the same row key.
+  const elsewhere = [{ id: "b", rowKey: "kb" }, ...result.list];
   assert.equal(canRestoreRow(elsewhere, result.removed, "grades"), false);
-  const over: RemovedRow<{ id: string }> = { row: { id: "z" }, index: 0, shared: false };
-  const full = Array.from({ length: LIMITS.grades }, (_, i) => ({ id: `g${i}` }));
+  const over: RemovedRow<{ id: string; rowKey: string }> = {
+    row: { id: "z", rowKey: "kz" },
+    index: 0,
+  };
+  const full = Array.from({ length: LIMITS.grades }, (_, i) => ({ id: `g${i}`, rowKey: `k${i}` }));
   assert.equal(canRestoreRow(full, over, "grades"), true, "back at the limit still restores");
-  assert.equal(canRestoreRow([...full, { id: "x" }], over, "grades"), false);
+  assert.equal(canRestoreRow([...full, { id: "x", rowKey: "kx" }], over, "grades"), false);
 });
 
 test("open editor follows its row when another row is deleted or restored", async () => {
-  const { refOf, rowAt, removeRow, shiftRefAfterRemove, shiftRefAfterInsert } =
-    await import("./row-ref.ts");
+  const { refOf, rowAt, removeRow, refAfterRemove } = await import("./row-ref.ts");
   const { insertAt } = await import("./desk-records.ts");
   for (const ids of [
     ["a", "b", "c"],
     ["x", "x", "x"],
     ["", "", ""],
   ]) {
-    const list = ids.map((id, n) => ({ id, n }));
+    const list = ids.map((id, n) => ({ id, n, rowKey: `k${n}` }));
     const editing = refOf(list, list[1])!;
-    // Delete row 0: the editor moves up with row 1 and still points at it.
-    const out = removeRow(list, { id: list[0].id, index: 0 })!;
-    const moved = shiftRefAfterRemove(editing, out.removed.index)!;
+    // Delete row 0: the editor's key still finds row 1.
+    const out = removeRow(list, { key: "k0" })!;
+    const moved = refAfterRemove(editing, out.removed)!;
     assert.equal(rowAt(out.list, moved), list[1]);
-    // Undo puts row 0 back: the editor shifts down again.
+    // Undo puts row 0 back: still the same row.
     const back = insertAt(out.list, out.removed.row, out.removed.index);
-    assert.equal(rowAt(back, shiftRefAfterInsert(moved, out.removed.index)), list[1]);
-    // A later row going away or coming back leaves the editor alone.
-    assert.equal(shiftRefAfterRemove(editing, 2), editing);
-    assert.equal(shiftRefAfterInsert(editing, 2), editing);
+    assert.equal(rowAt(back, moved), list[1]);
     // Deleting the edited row closes the editor.
-    assert.equal(shiftRefAfterRemove(editing, 1), null);
+    const own = removeRow(list, editing)!;
+    assert.equal(refAfterRemove(editing, own.removed), null);
   }
-  assert.equal(shiftRefAfterRemove(null, 0), null);
-  assert.equal(shiftRefAfterInsert(null, 0), null);
-  // Extra editor fields (the GPA draft) survive the shift.
-  assert.deepEqual(shiftRefAfterRemove({ id: "", index: 3, grade: "A" }, 0), {
-    id: "",
-    index: 2,
-    grade: "A",
-  });
+  assert.equal(refAfterRemove(null, { row: { rowKey: "k" }, index: 0 }), null);
+  // Extra editor fields (the GPA draft) survive.
+  const draft = { key: "k2", grade: "A" };
+  assert.equal(refAfterRemove(draft, { row: { rowKey: "k0" }, index: 0 }), draft);
 });
 
 test("today's agenda marks the next class by row, not by id", () => {
@@ -2504,4 +2592,37 @@ test("robots.txt, sitemap and canonical links agree on the public pages", async 
   }
   const channel = readFileSync(join(repo, "src/routes/$channel.tsx"), "utf8");
   assert.ok(channel.includes('canonicalLink("/")'), "channel entries canonicalize to home");
+});
+
+test("saved desks and backups share one top-level reader (audit: silent reset)", async () => {
+  const { parsePersistedDesk } = await import("./desk-backup.ts");
+  const good = sampleState();
+  assert.ok(parsePersistedDesk(good, "stored"));
+  assert.ok(parsePersistedDesk(good, "backup"));
+  for (const [field, bad] of [
+    ["lang", "klingon"],
+    ["lang", 3],
+    ["langSet", "yes"],
+    ["level", "college"],
+    ["levelSet", 1],
+    ["earlyStart", "true"],
+    ["district", "atlantis"],
+    ["district", 4],
+  ] as const) {
+    const broken = { ...sampleState(), [field]: bad };
+    assert.equal(parsePersistedDesk(broken, "stored"), null, `stored ${field}`);
+    assert.equal(parsePersistedDesk(broken, "backup"), null, `backup ${field}`);
+  }
+  // Older saves simply lack newer fields: the loader fills defaults, a backup must have them.
+  for (const field of ["lang", "langSet", "level", "levelSet", "earlyStart", "district"]) {
+    const older: Record<string, unknown> = { ...sampleState() };
+    delete older[field];
+    assert.ok(parsePersistedDesk(older, "stored"), `stored without ${field}`);
+    assert.equal(parsePersistedDesk(older, "backup"), null, `backup without ${field}`);
+  }
+  // `district: null` is "none picked", valid in both.
+  assert.ok(parsePersistedDesk({ ...sampleState(), district: null }, "backup"));
+  // The legacy single-bucket save still loads.
+  const legacy = parsePersistedDesk({ notes: [{ id: "n", text: "old", done: false }] }, "stored");
+  assert.equal(legacy?.buckets.uni.notes[0].text, "old");
 });

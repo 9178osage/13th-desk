@@ -491,3 +491,160 @@ test("explicit import archives a newer corrupt save even before its storage even
     assert.deepEqual(saved(env.data), ["imported"]);
   }
 });
+
+/** A Web Locks stand-in: one holder at a time, callbacks run when `release()` is called. */
+function fakeLocks() {
+  const waiting: { name: string; run: () => void }[] = [];
+  const names: string[] = [];
+  let held = false;
+  const next = () => {
+    if (held) return;
+    const item = waiting.shift();
+    if (!item) return;
+    held = true;
+    try {
+      item.run();
+    } finally {
+      held = false;
+    }
+    next();
+  };
+  return {
+    names,
+    hold: () => {
+      held = true;
+    },
+    release: () => {
+      held = false;
+      next();
+    },
+    request(name: string, callback: () => unknown) {
+      names.push(name);
+      return new Promise<unknown>((resolve) => {
+        waiting.push({ name, run: () => resolve(callback()) });
+        next();
+      });
+    },
+  };
+}
+
+test("with Web Locks, the read–merge–write runs inside one shared lock (audit: lost saves)", async () => {
+  const { DESK_SAVE_LOCK } = await import("./desk-storage.ts");
+  const data = new Map<string, string>();
+  const locks = fakeLocks();
+  const adapter = createDeskStorage<Desk>({
+    storage: {
+      getItem: (key) => data.get(key) ?? null,
+      setItem: (key, raw) => void data.set(key, raw),
+      removeItem: (key) => void data.delete(key),
+    },
+    status() {},
+    locks,
+  });
+  await adapter.storage.getItem(KEY);
+  // Another tab holds the lock and is mid-save: this tab's edits must wait.
+  locks.hold();
+  adapter.storage.setItem(KEY, value("mine 1"));
+  adapter.storage.setItem(KEY, value("mine 1", "mine 2"));
+  assert.equal(data.get(KEY), undefined, "nothing is read or written without the lock");
+  // The other tab finishes its write, then releases the lock.
+  data.set(KEY, JSON.stringify(value("theirs")));
+  locks.release();
+  assert.deepEqual(new Set(saved(data)), new Set(["theirs", "mine 1", "mine 2"]));
+  assert.ok(locks.names.length >= 1);
+  assert.ok(locks.names.every((name) => name === DESK_SAVE_LOCK));
+});
+
+test("with Web Locks, two tabs saving at once keep both edits", async () => {
+  const data = new Map<string, string>();
+  const locks = fakeLocks();
+  const tab = () =>
+    createDeskStorage<Desk>({
+      storage: {
+        getItem: (key) => data.get(key) ?? null,
+        setItem: (key, raw) => void data.set(key, raw),
+        removeItem: (key) => void data.delete(key),
+      },
+      status() {},
+      locks,
+    });
+  const a = tab();
+  const b = tab();
+  await a.storage.getItem(KEY);
+  await b.storage.getItem(KEY);
+  locks.hold();
+  // Both tabs saw the same (empty) disk and saved at the same moment.
+  a.storage.setItem(KEY, value("A"));
+  b.storage.setItem(KEY, value("B"));
+  locks.release();
+  assert.deepEqual(new Set(saved(data)), new Set(["A", "B"]));
+});
+
+test("a lock request that fails still saves, and a queued save is written on page hide", async () => {
+  const data = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, raw: string) => void data.set(key, raw),
+    removeItem: (key: string) => void data.delete(key),
+  };
+  const broken = createDeskStorage<Desk>({
+    storage,
+    status() {},
+    locks: {
+      request: () => {
+        throw new Error("SecurityError");
+      },
+    },
+  });
+  await broken.storage.getItem(KEY);
+  broken.storage.setItem(KEY, value("saved anyway"));
+  assert.deepEqual(saved(data), ["saved anyway"]);
+
+  const locks = fakeLocks();
+  const waiting = createDeskStorage<Desk>({ storage, status() {}, locks });
+  await waiting.storage.getItem(KEY);
+  locks.hold();
+  waiting.storage.setItem(KEY, value("saved anyway", "last edit"));
+  waiting.flushBeforeUnload();
+  assert.deepEqual(saved(data), ["saved anyway", "last edit"]);
+  locks.release();
+  assert.deepEqual(saved(data), ["saved anyway", "last edit"], "no second, stale write");
+});
+
+test("without Web Locks, a racing save that drops this tab's write leaves a recovery copy", async () => {
+  let clock = 1_000;
+  const recoveries = (data: Map<string, string>) =>
+    [...data.keys()].filter((key) => key.startsWith(`${KEY}:recovery:`));
+  const run = async (delay: number, theirs: string[]) => {
+    clock = 1_000;
+    const data = new Map<string, string>([[KEY, JSON.stringify(value("start"))]]);
+    const adapter = createDeskStorage<Desk>({
+      storage: {
+        getItem: (key) => data.get(key) ?? null,
+        setItem: (key, raw) => void data.set(key, raw),
+        removeItem: (key) => void data.delete(key),
+      },
+      status() {},
+      now: () => clock,
+    });
+    await adapter.storage.getItem(KEY);
+    adapter.storage.setItem(KEY, value("start", "mine"));
+    // The other tab read "start" before this write and saved over it.
+    clock += delay;
+    const raw = JSON.stringify(value(...theirs));
+    data.set(KEY, raw);
+    let shown: string[] = [];
+    adapter.syncFrom(raw, (v) => {
+      shown = v.state.notes;
+    });
+    return { data, shown, copies: recoveries(data) };
+  };
+  const lost = await run(50, ["start", "theirs"]);
+  assert.deepEqual(lost.shown, ["start", "theirs"], "the newer save is shown");
+  assert.equal(lost.copies.length, 1, "this tab's write is kept, not silently dropped");
+  assert.deepEqual(JSON.parse(lost.data.get(lost.copies[0])!).state.notes, ["start", "mine"]);
+  // The other tab had already merged this write: nothing was lost, no copy.
+  assert.equal((await run(50, ["start", "mine", "theirs"])).copies.length, 0);
+  // Long after this tab's write, a different save is ordinary editing, not a race.
+  assert.equal((await run(10_000, ["start", "theirs"])).copies.length, 0);
+});

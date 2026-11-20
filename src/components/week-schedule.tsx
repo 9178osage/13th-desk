@@ -11,14 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { LEVELS, type Level } from "@/lib/levels";
-import {
-  refOf,
-  rowAt,
-  shiftRefAfterInsert,
-  shiftRefAfterRemove,
-  type RemovedRow,
-  type RowRef,
-} from "@/lib/row-ref";
+import { refAfterRemove, refOf, rowAt, type RemovedRow, type RowRef } from "@/lib/row-ref";
 import { tr } from "@/lib/text";
 import { sampleSlots } from "@/lib/schedule-samples";
 import { Button, Input } from "@/components/ui";
@@ -82,7 +75,7 @@ function ScheduleEditor() {
   }
   const rows = scheduleForDay(schedule, day);
   const invalid = !validScheduleTime(draft.start, draft.end);
-  // The row being edited is excluded by identity: an id may be shared by several rows.
+  // The row being edited is excluded by its row key: an id may be shared by several rows.
   const editingRow = rowAt(schedule, editing);
   const conflicts = overlappingClasses(
     editingRow ? schedule.filter((item) => item !== editingRow) : schedule,
@@ -359,7 +352,7 @@ function ScheduleEditor() {
             return (
               <div
                 className={`class-row${inConflict || conflictsDraft ? " class-row-conflict" : ""}`}
-                key={`${schedule.indexOf(row)}:${row.id}`}
+                key={row.rowKey}
               >
                 <div className="class-time">
                   <strong>{row.start}</strong>
@@ -421,8 +414,8 @@ function ScheduleEditor() {
                         setOpen(false);
                         setAwaitConfirm(false);
                       } else {
-                        // Another row went away: keep the open editor on its own row.
-                        setEditing((current) => shiftRefAfterRemove(current, removed.index));
+                        // Another row went away: the editor's row key still finds its row.
+                        setEditing((current) => refAfterRemove(current, removed));
                       }
                     }}
                   >
@@ -442,8 +435,6 @@ function ScheduleEditor() {
             type="button"
             onClick={() => {
               if (restore(deleted.removed, deleted.level)) {
-                const at = deleted.removed.index;
-                setEditing((current) => shiftRefAfterInsert(current, at));
                 // The row went back to its own weekday; show it instead of leaving the
                 // visitor on an unrelated day with an empty list and a "restored" note.
                 setDay(deleted.removed.row.day);

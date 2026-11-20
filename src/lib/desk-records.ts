@@ -18,7 +18,13 @@ import { asStoredCredits, cleanDecimal, isLetter, type Letter } from "./gpa.ts";
 
 export type WeekDay = "mon" | "tue" | "wed" | "thu" | "fri";
 
-export type Note = { id: string; text: string; done: boolean };
+/**
+ * Every note, grade and class carries `rowKey`: an internal, persisted identity that is
+ * unique across the whole desk. The visible `id` may be shared or blank (saved desks and
+ * backups keep it verbatim), so edits, deletes and cross-tab merges address a row by its
+ * `rowKey` only. Older saves without one are keyed by `withRowKeys` when they are read.
+ */
+export type Note = { id: string; text: string; done: boolean; rowKey: string };
 
 export type GradeRow = {
   id: string;
@@ -26,6 +32,7 @@ export type GradeRow = {
   credits: number;
   grade: Letter;
   boost: boolean;
+  rowKey: string;
 };
 
 export type ScheduleBlock = {
@@ -36,6 +43,7 @@ export type ScheduleBlock = {
   title: string;
   place: string;
   pinned: boolean;
+  rowKey: string;
 };
 
 export type Bucket = {
@@ -79,6 +87,99 @@ export function asHm(value: unknown): string | null {
   return `${match[1].padStart(2, "0")}:${match[2]}`;
 }
 
+/** Longest stored row key accepted as-is; longer or non-string keys are re-derived. */
+export const MAX_ROW_KEY = 200;
+
+export function isRowKey(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= MAX_ROW_KEY;
+}
+
+/** A stored key, or "" when it still has to be assigned (see `withRowKeys`). */
+function readRowKey(value: unknown): string {
+  return isRowKey(value) ? value : "";
+}
+
+/** A fresh key for a row created in this tab. */
+export function newRowKey(): string {
+  const id = globalThis.crypto?.randomUUID?.();
+  return id ?? `r-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+/** The lists whose rows are edited one at a time and therefore need a row key. */
+export const KEYED_LISTS = ["notes", "grades", "schedule"] as const;
+
+/** Short, stable digest of a visible id (FNV-1a), so a long id never bloats a key. */
+function digest(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Gives every note, grade and class of a stored desk state a unique `rowKey`, without
+ * changing anything else. Rows that already have a valid key keep it. Rows without one
+ * (saves and backups from before row keys) get a key derived only from where they sit
+ * and their visible id (`legacy:<stage>:<list>:<id digest>:<occurrence>`), so every tab
+ * that reads the same old save derives the same keys and a later three-way merge pairs
+ * the rows correctly. A key that is already taken elsewhere on the desk (a hand-edited or
+ * duplicated row) gets a `~n` suffix, deterministically by order. Works on the raw parsed
+ * JSON, both the stage form (`{ buckets }`) and the legacy single-bucket form.
+ */
+export function withRowKeys<T>(state: T): T {
+  if (!isPlainRecord(state)) return state;
+  const used = new Set<string>();
+  const claim = (key: string) => {
+    let candidate = key;
+    for (let n = 1; used.has(candidate); n++) candidate = `${key}~${n}`;
+    used.add(candidate);
+    return candidate;
+  };
+  const keyBucket = (bucket: unknown, stage: string): unknown => {
+    if (!isPlainRecord(bucket)) return bucket;
+    let out: Record<string, unknown> | null = null;
+    for (const list of KEYED_LISTS) {
+      const rows = bucket[list];
+      if (!Array.isArray(rows) || rows.length > DESK_READ_CAP) continue;
+      const seen = new Map<string, number>();
+      let changed = false;
+      const keyed = rows.map((row) => {
+        if (!isPlainRecord(row)) return row;
+        const id = typeof row.id === "string" ? row.id : "";
+        const occurrence = seen.get(id) ?? 0;
+        seen.set(id, occurrence + 1);
+        const wanted = isRowKey(row.rowKey)
+          ? row.rowKey
+          : `legacy:${stage}:${list}:${digest(id)}:${occurrence}`;
+        const key = claim(wanted);
+        if (row.rowKey === key) return row;
+        changed = true;
+        return { ...row, rowKey: key };
+      });
+      if (changed) {
+        out ??= { ...bucket };
+        out[list] = keyed;
+      }
+    }
+    return out ?? bucket;
+  };
+  const buckets = state.buckets;
+  if (buckets === undefined) return keyBucket(state, "uni") as T; // legacy single bucket
+  if (!isPlainRecord(buckets)) return state;
+  const next: [string, unknown][] = Object.keys(buckets).map((stage) => [
+    stage,
+    keyBucket(buckets[stage], stage),
+  ]);
+  if (next.every(([stage, bucket]) => bucket === buckets[stage])) return state;
+  return { ...state, buckets: Object.fromEntries(next) };
+}
+
 export function isWeekDay(value: unknown): value is WeekDay {
   return (
     value === "mon" || value === "tue" || value === "wed" || value === "thu" || value === "fri"
@@ -90,7 +191,7 @@ export function asNote(value: unknown): Note | null {
   const raw = value as Record<string, unknown>;
   const text = asText(raw.text);
   if (typeof raw.id !== "string" || text === null || !text.trim()) return null;
-  return { id: raw.id, text, done: Boolean(raw.done) };
+  return { id: raw.id, text, done: Boolean(raw.done), rowKey: readRowKey(raw.rowKey) };
 }
 
 export function asGrade(value: unknown): GradeRow | null {
@@ -106,6 +207,7 @@ export function asGrade(value: unknown): GradeRow | null {
     credits,
     grade: raw.grade,
     boost: raw.boost === true,
+    rowKey: readRowKey(raw.rowKey),
   };
 }
 
@@ -156,6 +258,7 @@ export function asSchedule(value: unknown): ScheduleBlock | null {
     title,
     place,
     pinned: raw.pinned === true,
+    rowKey: readRowKey(raw.rowKey),
   };
 }
 

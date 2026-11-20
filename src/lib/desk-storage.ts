@@ -5,7 +5,7 @@ import { merge3 } from "./merge3.ts";
 export const DESK_STORAGE_VERSION = 0;
 
 export type SaveStatus = "ready" | "failed";
-export type DeskStorageEnvironment = {
+export type DeskStorageEnvironment<T = unknown> = {
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem">;
   status: (status: SaveStatus) => void;
   /**
@@ -18,7 +18,36 @@ export type DeskStorageEnvironment = {
    * Such a save is held exactly like unreadable JSON (no writes, failed status).
    */
   validate?: (value: unknown) => boolean;
+  /**
+   * Optional: applied to every parsed state (load, merge base, other tabs' saves) so that
+   * all three sides of a merge use the same row keys. Must be deterministic.
+   */
+  normalize?: (state: T) => T;
+  /**
+   * Web Locks (`navigator.locks`), when the browser has them. Every tab then runs its
+   * read–merge–write under one shared lock, so two tabs can never both read the same disk
+   * value and overwrite each other's save. Without locks, see `CONFLICT_WINDOW_MS`.
+   */
+  locks?: DeskLocks | null;
+  /** Clock for the no-locks conflict check; tests may inject one. */
+  now?: () => number;
 };
+
+/** The one part of `LockManager` the adapter uses. */
+export type DeskLocks = {
+  request: (name: string, callback: () => unknown) => Promise<unknown>;
+};
+
+/** One lock name shared by every tab and every save path (edits, merges, imports). */
+export const DESK_SAVE_LOCK = "13th-desk-v1:save";
+
+/**
+ * Without Web Locks, two tabs can still read the same value and write one after the
+ * other. When another tab's save arrives this soon after this tab's own write and does
+ * not contain that write, this tab's write is kept as a recovery copy
+ * (`13th-desk-v1:recovery:…`) before the newer save is shown, so nothing is lost silently.
+ */
+export const CONFLICT_WINDOW_MS = 2000;
 
 function recoveryId(): string {
   const id = globalThis.crypto?.randomUUID?.();
@@ -29,14 +58,16 @@ function recoveryId(): string {
  * Every tab saves. Tabs stay in step through `syncFrom`, fed by the browser's
  * `storage` event. `base` is the last disk value this tab is known to match; if
  * the disk moved on before this tab's save (its event is still queued), the save
- * is merged three ways instead of blindly overwriting. This is not a cross-tab
- * transaction; simultaneous read/write operations can still conflict.
+ * is merged three ways instead of blindly overwriting. With Web Locks every tab runs
+ * that read–merge–write under one shared lock (`DESK_SAVE_LOCK`), so it is a cross-tab
+ * transaction. Without them, a save that arrives right after this tab's own write and
+ * would drop it leaves a recovery copy first (`CONFLICT_WINDOW_MS`).
  * Storage events are only a hint: `syncFrom` always reads the current disk value,
  * so a late, stale event can never roll a tab back. The saved format is still
  * `{ state, version: 0 }`. A corrupt saved desk is never overwritten until an
  * explicit, successful restore.
  */
-export function createDeskStorage<T>(env: DeskStorageEnvironment) {
+export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
   const name = "13th-desk-v1";
   let initialized = false;
   let readFailed = false;
@@ -46,6 +77,11 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
   let applying = false;
   let pending: StorageValue<T> | null = null;
   let base: string | null = null;
+  // Web Locks: a save is queued for the lock; later edits just replace `pending`.
+  let queued = false;
+  // No Web Locks: this tab's last write and the disk value it was merged onto.
+  let lastWrite: { raw: string; base: string | null; at: number } | null = null;
+  const now = env.now ?? (() => Date.now());
 
   const parse = (raw: string | null): StorageValue<T> | null => {
     if (raw == null) return null;
@@ -63,7 +99,8 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       )
         return null;
       // Versionless legacy desks use the current schema, including during cross-tab merges.
-      return { ...value, version: DESK_STORAGE_VERSION };
+      const state = env.normalize ? env.normalize(value.state) : value.state;
+      return { ...value, state, version: DESK_STORAGE_VERSION };
     } catch {
       return null;
     }
@@ -88,7 +125,8 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
     }
   };
 
-  const flush = () => {
+  /** Read–merge–write. Runs under the shared save lock whenever the browser has one. */
+  const flushNow = () => {
     // Before the first read (hydration) a snapshot holds defaults, not the saved desk.
     if (!pending || !initialized || readFailed) return;
     try {
@@ -115,7 +153,10 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
         merged = raw !== JSON.stringify(pending);
       }
       // Unchanged content: skip the write (and the storage event it would send).
-      if (current !== raw) env.storage.setItem(name, raw);
+      if (current !== raw) {
+        env.storage.setItem(name, raw);
+        if (!env.locks) lastWrite = { raw, base: current, at: now() };
+      }
       base = raw;
       pending = null;
       initialReadError = false;
@@ -123,6 +164,51 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
       if (merged) applyLocal(next);
     } catch {
       env.status("failed");
+    }
+  };
+
+  /**
+   * Save `pending`. With Web Locks the read–merge–write waits for the shared lock (edits
+   * made meanwhile are folded into the same save); if the lock cannot be requested, the
+   * save runs directly as before rather than being dropped.
+   */
+  const flush = () => {
+    if (!env.locks) {
+      flushNow();
+      return;
+    }
+    if (queued) return;
+    queued = true;
+    const run = () => {
+      queued = false;
+      flushNow();
+    };
+    try {
+      env.locks.request(DESK_SAVE_LOCK, run).catch(() => {
+        if (queued) run();
+      });
+    } catch {
+      run();
+    }
+  };
+
+  /**
+   * No-locks fallback: another tab's save arrived right after this tab's own write. If it
+   * would lose that write (it was merged onto the same older value), keep this tab's write
+   * as a recovery copy before the newer save replaces it in memory.
+   */
+  const keepConflictCopy = (incoming: StorageValue<T>) => {
+    const mine = lastWrite;
+    lastWrite = null;
+    if (!mine || env.locks || now() - mine.at > CONFLICT_WINDOW_MS) return;
+    const written = parse(mine.raw);
+    if (!written) return;
+    const combined = merge3(parse(mine.base)?.state, written.state, incoming.state);
+    if (JSON.stringify(combined) === JSON.stringify(incoming.state)) return;
+    try {
+      env.storage.setItem(`${name}:recovery:${recoveryId()}`, mine.raw);
+    } catch {
+      /* quota: the newer save still loads; nothing else can be done here */
     }
   };
 
@@ -170,6 +256,13 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
     storage,
     flush,
     /**
+     * The page is going away: a save still waiting for the lock may never get it, so
+     * write it now (the read–merge–write still merges onto the latest disk value).
+     */
+    flushBeforeUnload() {
+      if (queued) flushNow();
+    },
+    /**
      * Another tab wrote the desk. The event's own value may already be stale
      * (events queue behind this tab's own saves), so read the disk now and apply
      * that. Nothing to do when the disk is what this tab last saved or applied.
@@ -192,6 +285,7 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
         hold();
         return false;
       }
+      keepConflictCopy(value);
       if (pending && pending.version === value.version) {
         // A failed save is still waiting: keep it on top of the newer desk. If the first
         // read had failed, the disk is the only trustworthy side for scalar fields.
@@ -215,26 +309,36 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment) {
     },
     /** Explicit, confirmed import only. Preserve a corrupt original before replacing it. */
     async replace(value: StorageValue<T>): Promise<boolean> {
+      if (!env.locks) return replaceNow(value);
       try {
-        const previous = env.storage.getItem(name);
-        if (previous !== null && (readFailed || !parse(previous))) {
-          // If archiving fails (e.g. quota), leave the original untouched.
-          env.storage.setItem(`${name}:recovery:${recoveryId()}`, previous);
-        }
-        const raw = JSON.stringify(value);
-        env.storage.setItem(name, raw);
-        base = raw;
-        initialized = true;
-        readFailed = false;
-        initialReadError = false;
-        pending = null;
-        env.status("ready");
-        return true;
+        return (await env.locks.request(DESK_SAVE_LOCK, () => replaceNow(value))) === true;
       } catch {
-        env.status("failed");
-        return false;
+        return replaceNow(value);
       }
     },
     dispose() {},
   };
+
+  function replaceNow(value: StorageValue<T>): boolean {
+    try {
+      const previous = env.storage.getItem(name);
+      if (previous !== null && (readFailed || !parse(previous))) {
+        // If archiving fails (e.g. quota), leave the original untouched.
+        env.storage.setItem(`${name}:recovery:${recoveryId()}`, previous);
+      }
+      const raw = JSON.stringify(value);
+      env.storage.setItem(name, raw);
+      base = raw;
+      initialized = true;
+      readFailed = false;
+      initialReadError = false;
+      pending = null;
+      lastWrite = null;
+      env.status("ready");
+      return true;
+    } catch {
+      env.status("failed");
+      return false;
+    }
+  }
 }

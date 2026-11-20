@@ -56,3 +56,41 @@ test("merge3 ignores inherited fields when deciding whether a JSON field was rem
     add: "mine",
   });
 });
+
+test("audit repro: one side deletes A, the other edits B (same id) — B's edit survives", () => {
+  const row = (rowKey: string, text: string) => ({ id: "x", text, done: false, rowKey });
+  const base = { notes: [row("ka", "A"), row("kb", "B")] };
+  const deletedA = { notes: [row("kb", "B")] };
+  const editedB = { notes: [row("ka", "A"), row("kb", "B2")] };
+  assert.deepEqual(merge3(base, editedB, deletedA), { notes: [row("kb", "B2")] });
+  assert.deepEqual(merge3(base, deletedA, editedB), { notes: [row("kb", "B2")] });
+});
+
+test("audit repro on an old save without row keys: keys derived per tab still pair rows", async () => {
+  const { withRowKeys } = await import("./desk-records.ts");
+  const legacy = {
+    buckets: {
+      uni: {
+        notes: [
+          { id: "x", text: "A", done: false },
+          { id: "x", text: "B", done: false },
+        ],
+      },
+    },
+  };
+  // Both tabs read the same old save and derive the same keys independently.
+  const tab1 = withRowKeys(structuredClone(legacy));
+  const tab2 = withRowKeys(structuredClone(legacy));
+  assert.deepEqual(tab1, tab2);
+  const [a, b] = tab1.buckets.uni.notes as unknown as { rowKey: string }[];
+  assert.notEqual(a.rowKey, b.rowKey);
+  // Tab 2 deletes A and saves; tab 1 edited B meanwhile and merges onto that save.
+  const theirs = { buckets: { uni: { notes: [tab2.buckets.uni.notes[1]] } } };
+  const ours = structuredClone(tab1);
+  (ours.buckets.uni.notes[1] as { text: string }).text = "B2";
+  const merged = merge3(withRowKeys(legacy), ours, theirs) as typeof legacy;
+  assert.deepEqual(
+    merged.buckets.uni.notes.map((note) => note.text),
+    ["B2"],
+  );
+});

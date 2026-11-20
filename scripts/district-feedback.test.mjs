@@ -359,6 +359,7 @@ function gpaFixture(count = 0) {
             credits: 4,
             grade: "A",
             boost: false,
+            rowKey: `g${i}`,
           })),
           priorGpa: "",
           priorWeighted: "",
@@ -519,7 +520,7 @@ test("GPA rows: delete then undo puts the class back in place, in all six langua
   assert.equal(f.status(), "Restored.");
   f.click("Remove: Class");
   // Restored elsewhere (another tab): undo refuses with the shared copy.
-  f.state.buckets.uni.grades = [{ id: "0" }, ...f.state.buckets.uni.grades];
+  f.state.buckets.uni.grades = [{ id: "0", rowKey: "g0" }, ...f.state.buckets.uni.grades];
   const expected = [
     "Couldn't undo: it is already back, or the list is over its limit.",
     "无法撤销：这一项已经恢复，或列表已超出上限。",
@@ -542,7 +543,7 @@ test("GPA rows: inline edit saves grade and credits, and a vanished row says so"
   assert.ok(editor, "the first row turned into the editor");
   assert.deepEqual(
     { ...editor.props.draft },
-    { id: "0", index: 0, grade: "A", credits: "4", boost: false },
+    { key: "g0", grade: "A", credits: "4", boost: false },
   );
   editor.props.onChange({ ...editor.props.draft, grade: "B+", credits: "3" });
   f.render();
@@ -554,6 +555,7 @@ test("GPA rows: inline edit saves grade and credits, and a vanished row says so"
     credits: 3,
     grade: "B+",
     boost: false,
+    rowKey: "g0",
   });
   assert.equal(f.editor(), undefined);
   assert.equal(f.status(), "Class updated.");
@@ -599,17 +601,18 @@ function scheduleFixture(count = 1) {
           end: "10:00",
           place: "",
           pinned: false,
+          rowKey: `s${i}`,
         })),
       },
     },
     addScheduleBlock(row) {
       calls.push(["add"]);
       if (state.buckets.uni.schedule.length >= 40) return false;
-      state.buckets.uni.schedule.push({ ...row, id: "new", pinned: false });
+      state.buckets.uni.schedule.push({ ...row, id: "new", pinned: false, rowKey: "s-new" });
       return true;
     },
     updateScheduleBlock(ref, patch) {
-      calls.push(["update", ref.id]);
+      calls.push(["update", ref.key]);
       const next = rowRef.updateRow(state.buckets.uni.schedule, ref, (row) => ({
         ...row,
         ...patch,
@@ -712,7 +715,7 @@ test("timetable: a blank ID opens Edit and saves exactly one existing course", (
   const submit = nodes(f.tree()).find((n) => n.props?.type === "submit");
   assert.equal(text(submit), "Save changes");
   f.submit();
-  assert.deepEqual(f.calls, [["update", ""]]);
+  assert.deepEqual(f.calls, [["update", "s0"]]);
   assert.equal(f.state.buckets.uni.schedule.length, 1);
   assert.equal(f.state.buckets.uni.schedule[0].id, "");
   assert.equal(f.status(), "Timetable updated.");
@@ -722,15 +725,15 @@ test("timetable: blank-ID edits work at the cap and a vanished row is not a cap 
   const f = scheduleFixture(40);
   f.edit();
   f.submit();
-  assert.deepEqual(f.calls, [["update", ""]]);
+  assert.deepEqual(f.calls, [["update", "s0"]]);
   assert.equal(f.state.buckets.uni.schedule.length, 40);
   assert.equal(f.status(), "Timetable updated.");
   f.edit();
   f.state.buckets.uni.schedule = f.state.buckets.uni.schedule.filter((row) => row.id !== "");
   f.submit();
   assert.deepEqual(f.calls, [
-    ["update", ""],
-    ["update", ""],
+    ["update", "s0"],
+    ["update", "s0"],
   ]);
   assert.equal(
     f.status(),
@@ -761,6 +764,7 @@ test("timetable: with two blank-ID courses, Edit and Delete touch only the chose
     start: "11:00",
     end: "12:00",
     place: "Room 2",
+    rowKey: "s-twin",
   };
   f.state.buckets.uni.schedule.push(twin);
   f.render();
@@ -878,7 +882,7 @@ for (const ids of [
     f.render();
     click("Delete: Course 0");
     f.submit();
-    assert.deepEqual(f.calls.at(-1), ["update", ids[1]]);
+    assert.deepEqual(f.calls.at(-1), ["update", "s1"]);
     assert.deepEqual(
       f.state.buckets.uni.schedule.map((row) => row.title),
       ["Course 1", "Course 2"],

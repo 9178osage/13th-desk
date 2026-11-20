@@ -1,7 +1,12 @@
 import { createContext, useContext, useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist, type StorageValue } from "zustand/middleware";
-import { createDeskStorage, DESK_STORAGE_VERSION, type SaveStatus } from "@/lib/desk-storage";
+import {
+  createDeskStorage,
+  DESK_STORAGE_VERSION,
+  type DeskLocks,
+  type SaveStatus,
+} from "@/lib/desk-storage";
 import { DESK_LIMITS } from "@/lib/desk-limits";
 import { canRestoreRow, removeRow, updateRow, type RemovedRow, type RowRef } from "./row-ref.ts";
 import { createTabPresence } from "@/lib/tab-presence";
@@ -24,9 +29,11 @@ import {
   emptyBucket,
   insertAt,
   isWeekDay,
+  newRowKey,
   parseBucket,
+  withRowKeys,
 } from "./desk-records.ts";
-import type { PersistedDeskLike } from "@/lib/desk-backup";
+import { parsePersistedDesk, type PersistedDeskLike } from "@/lib/desk-backup";
 import {
   EMPTY_PREFS,
   formatPrefsValue,
@@ -136,19 +143,9 @@ function asBucket(value: unknown): Bucket | null {
  */
 export function storedDeskIsUsable(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
-  const state = (value as { state?: unknown }).state;
-  if (!state || typeof state !== "object") return false;
-  const raw = state as Record<string, unknown>;
-  const stored = raw.buckets;
-  if (stored === undefined) return asBucket(raw) !== null; // legacy single-bucket save
-  if (!stored || typeof stored !== "object" || Array.isArray(stored)) return false;
-  // A newer/hand-edited stage must not silently vanish when this version saves again.
-  if (Object.keys(stored).some((id) => !isLevel(id))) return false;
-  for (const id of LEVEL_IDS) {
-    const item = (stored as Record<string, unknown>)[id];
-    if (item !== undefined && asBucket(item) === null) return false;
-  }
-  return true;
+  // Same reader as the backup importer: a present-but-invalid field (wrong type, unknown
+  // language, level or district) makes the save unusable, so it is held, never reset.
+  return parsePersistedDesk((value as { state?: unknown }).state, "stored") !== null;
 }
 
 type PersistedDesk = {
@@ -168,6 +165,16 @@ export const useStorageStatus = create<{ failed: boolean; reason: SaveStatus; ot
     otherTabs: false,
   }),
 );
+function webLocks(): DeskLocks | null {
+  try {
+    const locks = typeof navigator === "undefined" ? undefined : navigator.locks;
+    if (!locks || typeof locks.request !== "function") return null;
+    return { request: (name, callback) => locks.request(name, callback) };
+  } catch {
+    return null;
+  }
+}
+
 const deskStorage =
   typeof window === "undefined"
     ? null
@@ -180,6 +187,10 @@ const deskStorage =
         },
         status: (reason) => useStorageStatus.setState({ failed: reason !== "ready", reason }),
         validate: storedDeskIsUsable,
+        // Row keys before any merge, so base/disk/this tab pair rows by the same keys.
+        normalize: withRowKeys,
+        // One shared lock serializes every tab's read–merge–write (audit: lost saves).
+        locks: webLocks(),
         // A save was merged with a newer save from another tab: show the merged desk.
         merged: (value) => applyStoredDesk(value as StorageValue<PersistedDesk>),
       });
@@ -251,7 +262,10 @@ const deskStore = create<DeskState>()(
             ...buckets,
             [level]: {
               ...bucket,
-              notes: [{ id: crypto.randomUUID(), text: clean, done: false }, ...bucket.notes],
+              notes: [
+                { id: crypto.randomUUID(), text: clean, done: false, rowKey: newRowKey() },
+                ...bucket.notes,
+              ],
             },
           },
         });
@@ -300,6 +314,7 @@ const deskStore = create<DeskState>()(
           credits,
           grade: row.grade,
           boost: level === "high" && row.boost,
+          rowKey: newRowKey(),
         };
         set({
           buckets: {
@@ -377,6 +392,7 @@ const deskStore = create<DeskState>()(
           title,
           place: row.place.trim().slice(0, 60),
           pinned: false,
+          rowKey: newRowKey(),
         };
         set({
           buckets: {
@@ -464,7 +480,8 @@ const deskStore = create<DeskState>()(
       }),
       merge: (persisted, current) => {
         if (!persisted || typeof persisted !== "object") return current;
-        const raw = persisted as Record<string, unknown>;
+        // Older saves have no row keys yet: derive them the same way every tab does.
+        const raw = withRowKeys(persisted) as Record<string, unknown>;
         // Prefer in-memory choices made before rehydrate finishes (fast lang switch).
         const langSet = current.langSet || raw.langSet === true;
         // Never chosen? Keep the Chinese-first default instead of flipping to English
@@ -645,7 +662,11 @@ if (typeof window !== "undefined") {
   } catch {
     presence = null;
   }
-  const onPageHide = () => presence?.leave();
+  const onPageHide = () => {
+    // A save still waiting for the cross-tab lock must not be lost with the page.
+    deskStorage?.flushBeforeUnload();
+    presence?.leave();
+  };
   const onPageShow = (event: PageTransitionEvent) => {
     if (event.persisted) presence?.wake();
   };
@@ -705,7 +726,8 @@ export async function replacePersistedDeskState(next: PersistedDeskLike): Promis
     levelSet: next.levelSet,
     earlyStart: next.earlyStart,
     district: next.district,
-    buckets: structuredClone(next.buckets),
+    // Every written row has a unique key, even if a caller skipped the backup parser.
+    buckets: withRowKeys({ buckets: structuredClone(next.buckets) }).buckets,
   };
   if (
     !deskStorage ||

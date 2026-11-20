@@ -1,6 +1,6 @@
 import { asStoredCredits, isLetter } from "./gpa.ts";
 import type { Bucket } from "./desk-records.ts";
-import { asHm, parseBucket as parseBucketShared } from "./desk-records.ts";
+import { asHm, parseBucket as parseBucketShared, withRowKeys } from "./desk-records.ts";
 import { DESK_READ_CAP } from "./desk-limits.ts";
 import { LEVEL_IDS as LEVELS, isLevel, type Level } from "./levels.ts";
 import { isDistrict, type DistrictId } from "../data/districts.ts";
@@ -69,35 +69,69 @@ function parseBucket(value: unknown): Bucket | null {
   return lossy ? null : bucket;
 }
 
-function parseState(value: unknown): PersistedDeskLike | null {
-  if (!value || typeof value !== "object") return null;
+/**
+ * The one reader for the top-level desk fields, shared by the save loader (`store.ts`,
+ * via `storedDeskIsUsable`) and the backup importer. Both refuse a field that is present
+ * but wrong (a string `earlyStart`, an unknown `level` or `district`, …): the loader then
+ * holds the save untouched instead of silently resetting the field to a default and
+ * overwriting the original on the next edit.
+ *
+ * `mode: "stored"` is for the browser's own save, which may come from any older version:
+ * a field that is simply missing is allowed and filled with its default (that is the
+ * migration), and a save without `buckets` is the legacy single-bucket form. `"backup"`
+ * is for export files, which have always carried every field: all are required.
+ */
+export function parsePersistedDesk(
+  value: unknown,
+  mode: "stored" | "backup",
+): PersistedDeskLike | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;
-  if (!isLang(raw.lang) || typeof raw.langSet !== "boolean") return null;
-  if (!isLevel(raw.level) || typeof raw.levelSet !== "boolean") return null;
-  if (typeof raw.earlyStart !== "boolean") return null;
-  if (raw.district !== null && !isDistrict(raw.district)) return null;
-  const district: DistrictId | null = raw.district;
-  if (!raw.buckets || typeof raw.buckets !== "object") return null;
-  const stored = raw.buckets as Record<string, unknown>;
+  const stored = mode === "stored";
+  const field = <T>(key: string, valid: (item: unknown) => item is T, fallback: T): T | null => {
+    if (!(key in raw) || raw[key] === undefined) return stored ? fallback : null;
+    return valid(raw[key]) ? (raw[key] as T) : null;
+  };
+  const isBool = (item: unknown): item is boolean => typeof item === "boolean";
+  const lang = field<Lang>("lang", isLang, "en");
+  const langSet = field("langSet", isBool, false);
+  const level = field<Level>("level", isLevel, "uni");
+  const levelSet = field("levelSet", isBool, false);
+  const earlyStart = field("earlyStart", isBool, false);
+  if (lang === null || langSet === null || level === null || levelSet === null) return null;
+  if (earlyStart === null) return null;
+  // `null` is a valid district ("none picked"), so it is checked on its own.
+  let district: DistrictId | null = null;
+  if (raw.district !== undefined) {
+    if (raw.district !== null && !isDistrict(raw.district)) return null;
+    district = raw.district;
+  } else if (!stored) return null;
+  let bucketsRaw = raw.buckets;
+  if (bucketsRaw === undefined && stored) bucketsRaw = { uni: raw }; // legacy single bucket
+  if (!bucketsRaw || typeof bucketsRaw !== "object" || Array.isArray(bucketsRaw)) return null;
+  // Saves and backups from before row keys (and hand-edited duplicates) get unique keys.
+  const keyed = (withRowKeys({ buckets: bucketsRaw }) as { buckets: Record<string, unknown> })
+    .buckets;
+  // A newer/hand-edited stage must not silently vanish when this version saves again.
+  for (const key of Object.keys(keyed)) {
+    if (!LEVELS.includes(key as Level)) return null;
+  }
   const buckets = {} as Record<Level, Bucket>;
   for (const id of LEVELS) {
-    if (!(id in stored)) return null;
-    const bucket = parseBucket(stored[id]);
+    if (!(id in keyed) || keyed[id] === undefined) {
+      if (!stored) return null;
+      buckets[id] = parseBucketShared({}).bucket;
+      continue;
+    }
+    const bucket = parseBucket(keyed[id]);
     if (!bucket) return null;
     buckets[id] = bucket;
   }
-  for (const key of Object.keys(stored)) {
-    if (!LEVELS.includes(key as Level)) return null;
-  }
-  return {
-    lang: raw.lang,
-    langSet: raw.langSet,
-    level: raw.level,
-    levelSet: raw.levelSet,
-    earlyStart: raw.earlyStart,
-    district,
-    buckets,
-  };
+  return { lang, langSet, level, levelSet, earlyStart, district, buckets };
+}
+
+function parseState(value: unknown): PersistedDeskLike | null {
+  return parsePersistedDesk(value, "backup");
 }
 
 export function summarizeDeskState(state: PersistedDeskLike): BackupSummary {
