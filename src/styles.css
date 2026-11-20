@@ -2083,3 +2083,9 @@ html[data-desk-setup="done"] .welcome-note[data-pending] {
   color: var(--color-ink);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
 }
+
+/* The picked backup's file name in the import confirmation; long names wrap. */
+.backup-file-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

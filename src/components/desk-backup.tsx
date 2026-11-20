@@ -18,6 +18,7 @@ import {
 } from "@/lib/desk-backup";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { LEVELS } from "@/lib/levels";
+import { createLatestFileRead } from "@/lib/latest-file-read";
 import { getPersistedDeskState, replacePersistedDeskState, useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
 
@@ -34,6 +35,8 @@ const ERROR_COPY: Record<BackupParseError, DeskCopyKey> = {
 type PendingImport = {
   state: PersistedDeskLike;
   summary: BackupSummary;
+  /** Shown in the confirmation, so the visitor sees which backup will replace the desk. */
+  fileName: string;
 };
 
 export function DeskBackup({ compact = false }: { compact?: boolean }) {
@@ -49,6 +52,10 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
   const [snapshot, setSnapshot] = useState<PersistedDeskLike | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  // Only the latest picked file may fill the confirmation (see latest-file-read.ts).
+  const [reading, setReading] = useState(false);
+  const fileRead = useRef<ReturnType<typeof createLatestFileRead> | null>(null);
+  useEffect(() => () => fileRead.current?.cancel(), []);
 
   useEffect(() => {
     const sync = () => setSnapshot(readPreImportSnapshot());
@@ -105,28 +112,33 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    // A new pick replaces any earlier one, even one still being read.
+    fileRead.current?.cancel();
+    setPending(null);
     if (backupFileTooLarge(file.size)) {
-      setPending(null);
+      setReading(false);
       setMessage("importTooLarge");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = typeof reader.result === "string" ? reader.result : "";
-      const result = parseDeskBackup(text);
+    fileRead.current ??= createLatestFileRead(() => new FileReader());
+    const read = fileRead.current;
+    const fileName = file.name;
+    setReading(true);
+    setMessage("importReading");
+    read.read(file, (outcome) => {
+      setReading(false);
+      if (!outcome.ok) {
+        setMessage("importBadJson");
+        return;
+      }
+      const result = parseDeskBackup(outcome.text);
       if (!result.ok) {
-        setPending(null);
         setMessage(ERROR_COPY[result.error]);
         return;
       }
-      setPending({ state: result.backup.state, summary: result.summary });
+      setPending({ state: result.backup.state, summary: result.summary, fileName });
       setMessage(null);
-    };
-    reader.onerror = () => {
-      setPending(null);
-      setMessage("importBadJson");
-    };
-    reader.readAsText(file);
+    });
   }
 
   async function confirmImport() {
@@ -187,7 +199,8 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
           ref={importButtonRef}
           type="button"
           className="backup-link"
-          disabled={!hydrated}
+          disabled={!hydrated || reading}
+          aria-busy={reading}
           onClick={() => fileRef.current?.click()}
         >
           <Upload size={14} aria-hidden="true" />
@@ -216,6 +229,9 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
             onKeyDown={onDialogKeyDown}
           >
             <p id={hintId}>{c(lang, "importHint")}</p>
+            <p className="backup-file-name">
+              {c(lang, "importFileName", { name: pending.fileName })}
+            </p>
             <p>
               {c(lang, "importPreview", {
                 notes: pending.summary.totalNotes,

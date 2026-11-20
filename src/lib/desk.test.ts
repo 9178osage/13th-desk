@@ -2627,3 +2627,53 @@ test("saved desks and backups share one top-level reader (audit: silent reset)",
   const legacy = parsePersistedDesk({ notes: [{ id: "n", text: "old", done: false }] }, "stored");
   assert.equal(legacy?.buckets.uni.notes[0].text, "old");
 });
+
+test("backup picks: only the latest file fills the confirmation (audit: read race)", async () => {
+  const { createLatestFileRead } = await import("./latest-file-read.ts");
+  type TextReader = import("./latest-file-read.ts").TextReader;
+  type Fake = {
+    result: string | null;
+    onload: (() => void) | null;
+    onerror: (() => void) | null;
+    aborted: boolean;
+    readAsText: () => void;
+    abort: () => void;
+  };
+  const readers: Fake[] = [];
+  const read = createLatestFileRead(() => {
+    const reader: Fake = {
+      result: null,
+      onload: null,
+      onerror: null,
+      aborted: false,
+      readAsText() {},
+      abort() {
+        reader.aborted = true;
+      },
+    };
+    readers.push(reader);
+    return reader as unknown as TextReader;
+  });
+  const shown: string[] = [];
+  const blob = new Blob([""]);
+  read.read(blob, (outcome) => shown.push(outcome.ok ? outcome.text : "error"));
+  read.read(blob, (outcome) => shown.push(outcome.ok ? outcome.text : "error"));
+  assert.equal(readers[0].aborted, true, "picking again aborts the earlier read");
+  // The big first file finishes after the second one: it must not replace it.
+  readers[1].result = "B (picked last)";
+  readers[1].onload!();
+  readers[0].result = "A (picked first, slower)";
+  readers[0].onload!();
+  readers[0].onerror!();
+  assert.deepEqual(shown, ["B (picked last)"]);
+  // A refused pick (too large) cancels whatever was still being read.
+  read.read(blob, (outcome) => shown.push(outcome.ok ? outcome.text : "error"));
+  read.cancel();
+  readers[2].result = "late";
+  readers[2].onload!();
+  assert.deepEqual(shown, ["B (picked last)"]);
+
+  const ui = readFileSync(join(import.meta.dirname, "../components/desk-backup.tsx"), "utf8");
+  assert.match(ui, /disabled=\{!hydrated \|\| reading\}/, "Import is disabled while reading");
+  assert.match(ui, /importFileName", \{ name: pending\.fileName \}/, "confirm shows the file");
+});
