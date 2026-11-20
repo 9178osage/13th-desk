@@ -19,6 +19,7 @@ import {
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { LEVELS } from "@/lib/levels";
 import { createLatestFileRead } from "@/lib/latest-file-read";
+import { RecoveryCopies } from "@/components/recovery-copies";
 import { getPersistedDeskState, replacePersistedDeskState, useDesk, useLang } from "@/lib/store";
 import { tr } from "@/lib/text";
 
@@ -215,6 +216,7 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
           aria-label={c(lang, "importData")}
           onChange={onPickFile}
         />
+        <RecoveryCopies lang={lang} hydrated={hydrated} onMessage={setMessage} />
       </div>
       <p className="backup-note">{c(lang, "exportPlainNote")}</p>
       {pending && (

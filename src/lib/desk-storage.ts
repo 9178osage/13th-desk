@@ -1,5 +1,11 @@
 import type { PersistStorage, StorageValue } from "zustand/middleware";
 import { merge3 } from "./merge3.ts";
+import {
+  newRecoveryId,
+  wrapRecoveryCopy,
+  RECOVERY_PREFIX,
+  type RecoverySource,
+} from "./recovery-format.ts";
 
 /** Bump only with an explicit migration; the level/schema contract is tested. */
 export const DESK_STORAGE_VERSION = 0;
@@ -29,8 +35,10 @@ export type DeskStorageEnvironment<T = unknown> = {
    * value and overwrite each other's save. Without locks, see `CONFLICT_WINDOW_MS`.
    */
   locks?: DeskLocks | null;
-  /** Clock for the no-locks conflict check; tests may inject one. */
+  /** Clock for the no-locks conflict check and recovery-copy times; tests may inject one. */
   now?: () => number;
+  /** Called after this tab wrote a recovery copy, so the copies list can refresh. */
+  recoveryChanged?: () => void;
 };
 
 /** The one part of `LockManager` the adapter uses. */
@@ -49,9 +57,16 @@ export const DESK_SAVE_LOCK = "13th-desk-v1:save";
  */
 export const CONFLICT_WINDOW_MS = 2000;
 
-function recoveryId(): string {
-  const id = globalThis.crypto?.randomUUID?.();
-  return id ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+/** Keep `raw` under the recovery prefix with when and why (see recovery-format.ts). */
+function keepRecoveryCopy(
+  storage: DeskStorageEnvironment["storage"],
+  raw: string,
+  source: RecoverySource,
+  at: number,
+): string {
+  const key = `${RECOVERY_PREFIX}${newRecoveryId()}`;
+  storage.setItem(key, wrapRecoveryCopy(raw, source, new Date(at)));
+  return key;
 }
 
 /**
@@ -206,7 +221,8 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
     const combined = merge3(parse(mine.base)?.state, written.state, incoming.state);
     if (JSON.stringify(combined) === JSON.stringify(incoming.state)) return;
     try {
-      env.storage.setItem(`${name}:recovery:${recoveryId()}`, mine.raw);
+      keepRecoveryCopy(env.storage, mine.raw, "conflict", now());
+      env.recoveryChanged?.();
     } catch {
       /* quota: the newer save still loads; nothing else can be done here */
     }
@@ -320,11 +336,13 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
   };
 
   function replaceNow(value: StorageValue<T>): boolean {
+    let archived = false;
     try {
       const previous = env.storage.getItem(name);
       if (previous !== null && (readFailed || !parse(previous))) {
         // If archiving fails (e.g. quota), leave the original untouched.
-        env.storage.setItem(`${name}:recovery:${recoveryId()}`, previous);
+        keepRecoveryCopy(env.storage, previous, "unreadable", now());
+        archived = true;
       }
       const raw = JSON.stringify(value);
       env.storage.setItem(name, raw);
@@ -335,8 +353,10 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
       pending = null;
       lastWrite = null;
       env.status("ready");
+      if (archived) env.recoveryChanged?.();
       return true;
     } catch {
+      if (archived) env.recoveryChanged?.();
       env.status("failed");
       return false;
     }

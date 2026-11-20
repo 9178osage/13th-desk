@@ -34,6 +34,7 @@ import {
   withRowKeys,
 } from "./desk-records.ts";
 import { parsePersistedDesk, type PersistedDeskLike } from "@/lib/desk-backup";
+import { notifyRecoveryListeners } from "@/lib/recovery-copies";
 import {
   EMPTY_PREFS,
   formatPrefsValue,
@@ -186,6 +187,7 @@ const deskStorage =
           removeItem: (key) => localStorage.removeItem(key),
         },
         status: (reason) => useStorageStatus.setState({ failed: reason !== "ready", reason }),
+        recoveryChanged: notifyRecoveryListeners,
         validate: storedDeskIsUsable,
         // Row keys before any merge, so base/disk/this tab pair rows by the same keys.
         normalize: withRowKeys,

@@ -121,6 +121,9 @@
   flex-direction: column;
   background: var(--color-card);
   border-right: 1px solid var(--color-line);
+  /* Short windows: the backup links at the bottom must stay reachable. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .desk-brand {
   display: flex;
@@ -2088,4 +2091,47 @@ html[data-desk-setup="done"] .welcome-note[data-pending] {
 .backup-file-name {
   font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+/* Local recovery copies (backup panel). */
+.recovery-panel {
+  width: min(100%, 30rem);
+}
+.recovery-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.recovery-title:focus {
+  outline: none;
+}
+.recovery-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+}
+.recovery-item {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+.recovery-panel .recovery-date,
+.recovery-panel .recovery-counts {
+  color: var(--color-ink);
+}
+.recovery-panel .recovery-date {
+  font-weight: 600;
+}
+.recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.85rem;
+}
+.recovery-ask .form-actions {
+  margin-top: 0.5rem;
 }

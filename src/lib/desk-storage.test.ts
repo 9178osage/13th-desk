@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createDeskStorage, type SaveStatus } from "./desk-storage.ts";
+import { unwrapRecoveryCopy, wrapRecoveryCopy } from "./recovery-format.ts";
 
 const KEY = "13th-desk-v1";
 type Desk = { notes: string[] };
@@ -160,7 +161,7 @@ test("corrupt storage is preserved until explicit successful recovery, then edit
   assert.equal(env.data.get(KEY), "{broken");
   assert.equal(await tab.replace(value("restored")), true);
   assert.equal([...env.data.keys()].filter((key) => key.startsWith(KEY + ":recovery:")).length, 1);
-  assert.ok([...env.data.values()].includes("{broken"));
+  assert.ok([...env.data.values()].map((raw) => unwrapRecoveryCopy(raw).raw).includes("{broken"));
   tab.storage.setItem(KEY, value("restored", "new"));
   assert.deepEqual(saved(env.data), ["restored", "new"]);
   assert.equal(tab.status(), "ready");
@@ -368,7 +369,7 @@ test("a parsed save that would lose records is held, not overwritten (defect 3)"
   assert.equal(await adapter.replace({ state: { notes: ["restored"] }, version: 0 }), true);
   const archived = [...data.keys()].filter((k) => k.startsWith(`${KEY}:recovery:`));
   assert.equal(archived.length, 1);
-  assert.equal(data.get(archived[0]), bad);
+  assert.equal(unwrapRecoveryCopy(data.get(archived[0])!).raw, bad);
 });
 
 test("malformed and unsupported saves are held even after a tab has hydrated", async (t) => {
@@ -396,7 +397,7 @@ test("malformed and unsupported saves are held even after a tab has hydrated", a
       assert.equal(await tab.replace(value("restored")), true);
       const archives = [...env.data.keys()].filter((key) => key.startsWith(`${KEY}:recovery:`));
       assert.equal(archives.length, 1);
-      assert.equal(env.data.get(archives[0]), bad);
+      assert.equal(unwrapRecoveryCopy(env.data.get(archives[0])!).raw, bad);
       tab.storage.setItem(KEY, value("restored", "new"));
       assert.deepEqual(saved(env.data), ["restored", "new"]);
     });
@@ -487,7 +488,8 @@ test("explicit import archives a newer corrupt save even before its storage even
     assert.equal(await tab.replace(value("imported")), true);
     const archives = [...env.data.keys()].filter((key) => key.startsWith(`${KEY}:recovery:`));
     assert.equal(archives.length, 1);
-    assert.equal(env.data.get(archives[0]), original);
+    assert.equal(unwrapRecoveryCopy(env.data.get(archives[0])!).raw, original);
+    assert.equal(unwrapRecoveryCopy(env.data.get(archives[0])!).source, "unreadable");
     assert.deepEqual(saved(env.data), ["imported"]);
   }
 });
@@ -642,9 +644,32 @@ test("without Web Locks, a racing save that drops this tab's write leaves a reco
   const lost = await run(50, ["start", "theirs"]);
   assert.deepEqual(lost.shown, ["start", "theirs"], "the newer save is shown");
   assert.equal(lost.copies.length, 1, "this tab's write is kept, not silently dropped");
-  assert.deepEqual(JSON.parse(lost.data.get(lost.copies[0])!).state.notes, ["start", "mine"]);
+  const copy = unwrapRecoveryCopy(lost.data.get(lost.copies[0])!);
+  assert.deepEqual(JSON.parse(copy.raw).state.notes, ["start", "mine"]);
+  assert.equal(copy.source, "conflict");
+  assert.equal(copy.createdAt, new Date(1_050).toISOString(), "the copy records when it was made");
   // The other tab had already merged this write: nothing was lost, no copy.
   assert.equal((await run(50, ["start", "mine", "theirs"])).copies.length, 0);
   // Long after this tab's write, a different save is ordinary editing, not a race.
   assert.equal((await run(10_000, ["start", "theirs"])).copies.length, 0);
+});
+
+test("recovery copies carry their time and reason; bare copies from older builds still read", () => {
+  const raw = JSON.stringify(value("kept"));
+  const wrapped = wrapRecoveryCopy(raw, "old-tab", new Date("2026-11-20T18:00:00.000Z"));
+  assert.deepEqual(unwrapRecoveryCopy(wrapped), {
+    createdAt: "2026-11-20T18:00:00.000Z",
+    source: "old-tab",
+    raw,
+  });
+  // Written before metadata existed: the bare save, or unreadable bytes.
+  assert.deepEqual(unwrapRecoveryCopy(raw), { createdAt: null, source: "unknown", raw });
+  assert.deepEqual(unwrapRecoveryCopy("{broken"), {
+    createdAt: null,
+    source: "unknown",
+    raw: "{broken",
+  });
+  // A damaged envelope keeps its bytes; unknown fields do not invent a time or reason.
+  const odd = JSON.stringify({ eugeneDeskRecovery: 1, createdAt: "soon", source: "x", raw });
+  assert.deepEqual(unwrapRecoveryCopy(odd), { createdAt: null, source: "unknown", raw });
 });
