@@ -6,6 +6,7 @@ import { tr, type Copy, type Lang } from "@/lib/text";
 import { formatWhen } from "@/lib/time";
 import { Button } from "@/components/ui";
 import { asForecast, type Forecast } from "@/lib/forecast";
+import { watchForecastAge } from "@/lib/forecast-age";
 
 import { skyAdvice, type Kind } from "@/lib/sky-advice";
 
@@ -45,7 +46,10 @@ function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-/** How long a fetched forecast is reused when the card mounts again (route changes). */
+/**
+ * How long a fetched forecast is reused when the card mounts again (route changes), and
+ * how long an open page shows it before fetching a fresh one.
+ */
 const WEATHER_CACHE_MS = 15 * 60 * 1000;
 
 // Browser-only in practice: effects never run on the server, so SSR always renders the
@@ -64,6 +68,11 @@ export function WeatherCard() {
   const [data, setData] = useState<Forecast | null>(() => cachedForecast());
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // Bumped when the shown forecast outlives the cache window while the card stays open.
+  const [refresh, setRefresh] = useState(0);
+  const [fetchedAt, setFetchedAt] = useState<number | null>(() =>
+    cachedForecast() && lastForecast ? lastForecast.fetchedAt : null,
+  );
 
   useEffect(() => {
     // Back on a page within the cache window: keep the forecast, skip the request.
@@ -83,10 +92,16 @@ export function WeatherCard() {
         const forecast = asForecast(json);
         if (!forecast) throw new Error("shape");
         lastForecast = { data: forecast, fetchedAt: Date.now() };
-        if (!gone) setData(forecast);
+        if (!gone) {
+          setData(forecast);
+          setFailed(false);
+          setFetchedAt(lastForecast.fetchedAt);
+        }
       })
       .catch(() => {
-        if (!gone) setFailed(true);
+        // A failed background refresh keeps the last forecast on screen; the next
+        // focus or return to the tab tries again. Only an empty card shows the error.
+        if (!gone && !lastForecast) setFailed(true);
       })
       .finally(() => clearTimeout(timer));
     return () => {
@@ -94,7 +109,26 @@ export function WeatherCard() {
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, [attempt]);
+  }, [attempt, refresh]);
+
+  // A page left open past the cache window refreshes on its own, and on return to the tab.
+  useEffect(() => {
+    if (fetchedAt === null) return;
+    return watchForecastAge(fetchedAt, WEATHER_CACHE_MS, () => setRefresh((n) => n + 1), {
+      now: () => Date.now(),
+      setTimer: (run, ms) => window.setTimeout(run, ms),
+      clearTimer: (handle) => window.clearTimeout(handle as number),
+      visible: () => document.visibilityState !== "hidden",
+      onWake: (run) => {
+        window.addEventListener("focus", run);
+        document.addEventListener("visibilitychange", run);
+        return () => {
+          window.removeEventListener("focus", run);
+          document.removeEventListener("visibilitychange", run);
+        };
+      },
+    });
+  }, [fetchedAt]);
 
   return (
     <section className="desk-panel weather-panel">

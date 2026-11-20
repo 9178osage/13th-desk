@@ -2677,3 +2677,46 @@ test("backup picks: only the latest file fills the confirmation (audit: read rac
   assert.match(ui, /disabled=\{!hydrated \|\| reading\}/, "Import is disabled while reading");
   assert.match(ui, /importFileName", \{ name: pending\.fileName \}/, "confirm shows the file");
 });
+
+test("an open weather card refreshes after the 15-minute cache, and on return to the tab", async () => {
+  const { watchForecastAge, forecastIsStale } = await import("./forecast-age.ts");
+  const TTL = 15 * 60 * 1000;
+  let now = 1_000_000;
+  let visible = true;
+  const timers: { run: () => void; ms: number }[] = [];
+  const wakes: (() => void)[] = [];
+  let stale = 0;
+  const stop = watchForecastAge(now, TTL, () => stale++, {
+    now: () => now,
+    setTimer: (run, ms) => timers.push({ run, ms }),
+    clearTimer: () => {},
+    visible: () => visible,
+    onWake: (run) => {
+      wakes.push(run);
+      return () => wakes.splice(wakes.indexOf(run), 1);
+    },
+  });
+  assert.equal(timers.length, 1);
+  assert.ok(timers[0].ms >= TTL && timers[0].ms < TTL + 1000, "timer for the remaining TTL");
+  // Focus inside the window: still fresh, no request.
+  now += 5 * 60 * 1000;
+  wakes.forEach((wake) => wake());
+  assert.equal(stale, 0);
+  // The deadline passes while the tab is hidden: wait for the visitor.
+  now += TTL;
+  visible = false;
+  timers[0].run();
+  assert.equal(stale, 0);
+  visible = true;
+  wakes.forEach((wake) => wake());
+  assert.equal(stale, 1, "coming back to the tab refreshes");
+  timers[0].run();
+  assert.equal(stale, 2, "a visible deadline refreshes too");
+  stop();
+  assert.equal(wakes.length, 0, "listeners are removed");
+  assert.equal(forecastIsStale(10, 5, TTL), true, "a clock moved backwards counts as stale");
+
+  const src = readFileSync(join(import.meta.dirname, "../components/weather.tsx"), "utf8");
+  assert.match(src, /\}, \[attempt, refresh\]\);/);
+  assert.match(src, /watchForecastAge\(fetchedAt, WEATHER_CACHE_MS/);
+});
