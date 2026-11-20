@@ -1,12 +1,14 @@
-import { pendingMigrations } from "../../scripts/migration-plan.mjs";
+import { databaseUrlFrom, pendingMigrations } from "../../scripts/migration-plan.mjs";
 
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
 
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
-// "unset" — otherwise production would silently run on the PGLite fallback.
-const rawDatabaseUrl = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl = rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+// "unset". The reading is shared with the deploy migrator (scripts/migrate.mjs), so both
+// agree on whether a database is configured, and both use the trimmed value.
+const databaseUrl = databaseUrlFrom(
+  typeof process !== "undefined" ? process.env.DATABASE_URL : undefined,
+);
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured

@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * Migration bookkeeping shared by the two appliers — `scripts/migrate.mjs`
+ * Migration bookkeeping (and the DATABASE_URL reading) shared by the two appliers — `scripts/migrate.mjs`
  * (deploy, `readdir`) and `src/lib/db.ts` (PGLite preview, `import.meta.glob`).
  *
  * Applied files are keyed by BASENAME, so the same file applies once no matter
@@ -11,6 +11,19 @@
  * Neither applier descends into subdirectories, so `migrations/auth/*.sql` is
  * out of scope for both until it is copied up.
  */
+
+/**
+ * The one reading of `DATABASE_URL`, shared by the deploy migrator and `src/lib/db.ts`:
+ * surrounding whitespace is removed, and an empty or whitespace-only value means "not
+ * configured". Both sides therefore agree on whether a database exists, and a padded
+ * value never reaches a connection string.
+ * @param {string | undefined | null} value
+ * @returns {string | undefined}
+ */
+export function databaseUrlFrom(value) {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed ? trimmed : undefined;
+}
 
 /**
  * The `_migrations` key for a migration path (or bare filename).

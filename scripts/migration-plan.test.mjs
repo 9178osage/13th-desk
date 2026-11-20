@@ -81,3 +81,25 @@ test("the copy check reads both files and catches an edit", () => {
   const drifted = authSchemaCopy(root);
   assert.notEqual(drifted.copy, drifted.source);
 });
+
+test("DATABASE_URL: blank means unset and values are trimmed, for the migrator and db.ts alike", async () => {
+  const { databaseUrlFrom } = await import("./migration-plan.mjs");
+  for (const blank of [undefined, null, "", " ", "\t\n  "])
+    assert.equal(databaseUrlFrom(blank), undefined);
+  assert.equal(databaseUrlFrom("  postgres://u@h/db \n"), "postgres://u@h/db");
+  const migrate = readFileSync(new URL("./migrate.mjs", import.meta.url), "utf8");
+  assert.match(migrate, /const databaseUrl = databaseUrlFrom\(process\.env\.DATABASE_URL\);/);
+  const db = readFileSync(new URL("../src/lib/db.ts", import.meta.url), "utf8");
+  assert.match(db, /const databaseUrl = databaseUrlFrom\(/);
+  assert.doesNotMatch(db, /rawDatabaseUrl/);
+});
+
+test("the migrator skips a whitespace-only DATABASE_URL instead of opening a pool", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const result = spawnSync(process.execPath, [new URL("./migrate.mjs", import.meta.url).pathname], {
+    env: { ...process.env, DATABASE_URL: "   " },
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /DATABASE_URL not set — skipping/);
+});
