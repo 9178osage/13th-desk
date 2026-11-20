@@ -1,0 +1,20 @@
+{
+  "public/__grok/icon-180.png": "3cf5d17d294b51c6cca6c86070309b88554b7ad702b0412e8e2709a01990bc8a",
+  "public/__grok/install/assets/homescreen/glass-puzzle.svg": "a677c9356c23d1e699559ddbffac97cd135c2782cd893fb34f3738f6d11bee17",
+  "public/__grok/install/assets/homescreen/glass-share.svg": "efad1b4b507a68c1f1af4aad2c93e8c24076224aa593da86677697f543d026d6",
+  "public/__grok/install/assets/homescreen/logo-grok.svg": "0654e3e59cce69856f38525cbfe4ab3a9ef52d4b64c8532dd0bc1a3f34fcb5b1",
+  "public/__grok/install/assets/homescreen/ob-ipad.png": "4c9b09a4660c662b394597d551a04124293b0e37a7a7c72271dd2948c4499a14",
+  "public/__grok/install/assets/homescreen/ob-phone.png": "80e0a5ede614d9b920c67d7cb79c80a79134687b1fc9f560384e896a88e302db",
+  "public/__grok/install/assets/homescreen/plus.svg": "c2c94be46aa2c3c2fda95d7c6f2fc6d0b656d1f5847828d5d95b5a81a6f4f20d",
+  "public/__grok/install/styles.css": "7e8e881302f58e54a9c07e7be395692d3de20fdaa27ce358531cc8dcca472cb6",
+  "scripts/grok-pwa-plugin.mjs": "36331d0bc0664debb5068bd6869d3089dc41555b7770c9ccb577d8845958835c",
+  "scripts/grok-pwa-plugin.test.mjs": "8405c80743973686ef8020d3880a95449fd09dec2c133a888351fa80b66983d4",
+  "scripts/grok-pwa-shared.d.mts": "f4db33fcf35ef3f25fca05d1b42494b6f607c44a4d728ed3e989e65a3a1ea9d0",
+  "scripts/grok-pwa-shared.mjs": "01c8b3a93719c6c21f7c321b6af2dd719a3395af359d1af7d25bb900dcf4e0e6",
+  "server/middleware/grok-pwa.ts": "340f1fed44355a61fefdaf29a752c524ac029afb00bea3f40cc996cdb289d2f8",
+  "server/middleware/security-headers.ts": "0e19850a6e99c79cc8acee3db9dd01ee144ff00673dd04e346a8382499753835",
+  "server/virtual-grok-og-identity.d.ts": "74847f2b2bade154ac07dabb239c4718a745c095df530e78b8f1ef9f053edfa2",
+  "src/components/preview-host-bridge.tsx": "0cbbad1a1d70651bb0f64e61665c0458300dcf11956338819230f3c276d76b67",
+  "src/components/site-analytics.tsx": "b36d0e5e2c9283fa4f42fc31802f9a12f93ecc0380b1543bc2922986b92eeab3",
+  "src/lib/preview-host-bridge.ts": "49e563cbee72a79156cfff0c0d4367927e4f6d6cf3aa5dc4fe05f2a19d16a02a"
+}

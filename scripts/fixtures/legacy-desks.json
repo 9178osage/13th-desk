@@ -1,0 +1,200 @@
+{
+  "single-bucket save (oldest format, no stages, no version)": {
+    "kind": "stored",
+    "value": {
+      "state": {
+        "lang": "zh",
+        "langSet": true,
+        "notes": [{ "id": "n1", "text": "Buy textbooks", "done": false }],
+        "grades": [{ "id": "g1", "title": "WR 121", "credits": 4, "grade": "A-" }],
+        "schedule": [
+          {
+            "id": "c1",
+            "day": "mon",
+            "start": "10:00",
+            "end": "11:20",
+            "title": "MATH 251",
+            "place": "Fenton 110"
+          }
+        ]
+      }
+    },
+    "counts": { "uni": { "notes": 1, "schedule": 1, "grades": 1 } }
+  },
+  "stage save without row keys, with duplicate and blank ids": {
+    "kind": "stored",
+    "value": {
+      "state": {
+        "lang": "en",
+        "langSet": true,
+        "level": "high",
+        "levelSet": true,
+        "earlyStart": false,
+        "district": null,
+        "buckets": {
+          "uni": {
+            "notes": [
+              { "id": "n", "text": "one", "done": false },
+              { "id": "n", "text": "two", "done": true },
+              { "id": "", "text": "blank id", "done": false }
+            ],
+            "grades": [
+              { "id": "g", "title": "Math", "credits": 4, "grade": "A", "boost": false },
+              { "id": "g", "title": "Bio", "credits": 3, "grade": "B", "boost": false }
+            ],
+            "schedule": [
+              {
+                "id": "s",
+                "day": "fri",
+                "start": "09:00",
+                "end": "10:00",
+                "title": "Calc",
+                "place": "A1"
+              },
+              {
+                "id": "s",
+                "day": "fri",
+                "start": "11:00",
+                "end": "12:00",
+                "title": "Chem",
+                "place": "B2"
+              }
+            ]
+          },
+          "high": {
+            "notes": [{ "id": "h1", "text": "AP Bio lab", "done": false }],
+            "grades": [{ "id": "", "title": "AP Bio", "credits": 1, "grade": "B+", "boost": true }]
+          }
+        }
+      },
+      "version": 0
+    },
+    "counts": {
+      "uni": { "notes": 3, "schedule": 2, "grades": 2 },
+      "high": { "notes": 1, "schedule": 0, "grades": 1 }
+    }
+  },
+  "save written by the 2026-11-20 build (row keys)": {
+    "kind": "stored",
+    "value": {
+      "state": {
+        "lang": "ko",
+        "langSet": true,
+        "level": "uni",
+        "levelSet": true,
+        "earlyStart": true,
+        "district": null,
+        "buckets": {
+          "uni": {
+            "favs": ["knight-library"],
+            "checks": [],
+            "priorGpa": "3.5",
+            "priorWeighted": "",
+            "priorCredits": "30",
+            "notes": [
+              { "id": "a", "text": "Call advisor", "done": false, "rowKey": "legacy:uni:notes:1:0" }
+            ],
+            "grades": [
+              {
+                "id": "b",
+                "title": "CS 210",
+                "credits": 4,
+                "grade": "A",
+                "boost": false,
+                "rowKey": "k-b"
+              }
+            ],
+            "schedule": [
+              {
+                "id": "c",
+                "day": "tue",
+                "start": "14:00",
+                "end": "15:20",
+                "title": "CS 210",
+                "place": "Deschutes",
+                "pinned": true,
+                "rowKey": "k-c"
+              }
+            ]
+          }
+        }
+      },
+      "version": 0
+    },
+    "counts": { "uni": { "notes": 1, "schedule": 1, "grades": 1 } }
+  },
+  "backup file exported before row keys": {
+    "kind": "backup",
+    "value": {
+      "app": "Eugene Desk",
+      "formatVersion": 1,
+      "exportedAt": "2026-10-01T17:00:00.000Z",
+      "storageKey": "13th-desk-v1",
+      "state": {
+        "lang": "es",
+        "langSet": true,
+        "level": "uni",
+        "levelSet": true,
+        "earlyStart": false,
+        "district": null,
+        "buckets": {
+          "elem": {
+            "favs": [],
+            "notes": [],
+            "checks": [],
+            "grades": [],
+            "priorGpa": "",
+            "priorWeighted": "",
+            "priorCredits": "",
+            "schedule": []
+          },
+          "mid": {
+            "favs": [],
+            "notes": [],
+            "checks": [],
+            "grades": [],
+            "priorGpa": "",
+            "priorWeighted": "",
+            "priorCredits": "",
+            "schedule": []
+          },
+          "high": {
+            "favs": [],
+            "notes": [],
+            "checks": [],
+            "grades": [],
+            "priorGpa": "",
+            "priorWeighted": "",
+            "priorCredits": "",
+            "schedule": []
+          },
+          "uni": {
+            "favs": [],
+            "notes": [
+              { "id": "x", "text": "Repaso", "done": false },
+              { "id": "x", "text": "Repaso 2", "done": false }
+            ],
+            "checks": [],
+            "grades": [
+              { "id": "y", "title": "SPAN 101", "credits": 4, "grade": "A", "boost": false }
+            ],
+            "priorGpa": "",
+            "priorWeighted": "",
+            "priorCredits": "",
+            "schedule": [
+              {
+                "id": "z",
+                "day": "wed",
+                "start": "08:00",
+                "end": "09:00",
+                "title": "SPAN 101",
+                "place": ""
+              }
+            ]
+          }
+        }
+      }
+    },
+    "counts": { "uni": { "notes": 2, "schedule": 1, "grades": 1 } }
+  }
+}
