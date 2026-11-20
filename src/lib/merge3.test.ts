@@ -57,17 +57,26 @@ test("merge3 ignores inherited fields when deciding whether a JSON field was rem
   });
 });
 
-test("audit repro: one side deletes A, the other edits B (same id) — B's edit survives", () => {
-  const row = (rowKey: string, text: string) => ({ id: "x", text, done: false, rowKey });
-  const base = { notes: [row("ka", "A"), row("kb", "B")] };
-  const deletedA = { notes: [row("kb", "B")] };
-  const editedB = { notes: [row("ka", "A"), row("kb", "B2")] };
-  assert.deepEqual(merge3(base, editedB, deletedA), { notes: [row("kb", "B2")] });
-  assert.deepEqual(merge3(base, deletedA, editedB), { notes: [row("kb", "B2")] });
+test("audit repro: one side deletes A, the other edits B (same id) — B's edit survives", async () => {
+  const { withStableIds } = await import("./desk-records.ts");
+  // The old save repeats id "x"; every side of the merge is read through the one
+  // identity migration, so A and B are "x" and "x~1" on every side.
+  const read = (texts: [string, string][]) =>
+    withStableIds({
+      notes: texts.map(([id, text]) => ({ id, text, done: false })),
+    }) as { notes: { id: string; text: string }[] };
+  const base = read([
+    ["x", "A"],
+    ["x", "B"],
+  ]);
+  const deletedA = { notes: [base.notes[1]] };
+  const editedB = { notes: [base.notes[0], { ...base.notes[1], text: "B2" }] };
+  assert.deepEqual(merge3(base, editedB, deletedA), { notes: [editedB.notes[1]] });
+  assert.deepEqual(merge3(base, deletedA, editedB), { notes: [editedB.notes[1]] });
 });
 
-test("audit repro on an old save without row keys: keys derived per tab still pair rows", async () => {
-  const { withRowKeys } = await import("./desk-records.ts");
+test("audit repro on an old save with repeated ids: ids derived per tab still pair rows", async () => {
+  const { withStableIds } = await import("./desk-records.ts");
   const legacy = {
     buckets: {
       uni: {
@@ -78,19 +87,19 @@ test("audit repro on an old save without row keys: keys derived per tab still pa
       },
     },
   };
-  // Both tabs read the same old save and derive the same keys independently.
-  const tab1 = withRowKeys(structuredClone(legacy));
-  const tab2 = withRowKeys(structuredClone(legacy));
+  // Both tabs read the same old save and derive the same ids independently.
+  const tab1 = withStableIds(structuredClone(legacy));
+  const tab2 = withStableIds(structuredClone(legacy));
   assert.deepEqual(tab1, tab2);
-  const [a, b] = tab1.buckets.uni.notes as unknown as { rowKey: string }[];
-  assert.notEqual(a.rowKey, b.rowKey);
+  const [a, b] = tab1.buckets.uni.notes;
+  assert.notEqual(a.id, b.id);
   // Tab 2 deletes A and saves; tab 1 edited B meanwhile and merges onto that save.
   const theirs = { buckets: { uni: { notes: [tab2.buckets.uni.notes[1]] } } };
   const ours = structuredClone(tab1);
-  (ours.buckets.uni.notes[1] as { text: string }).text = "B2";
-  const merged = merge3(withRowKeys(legacy), ours, theirs) as typeof legacy;
+  ours.buckets.uni.notes[1].text = "B2";
+  const merged = merge3(withStableIds(legacy), ours, theirs) as typeof legacy;
   assert.deepEqual(
-    merged.buckets.uni.notes.map((note) => note.text),
-    ["B2"],
+    merged.buckets.uni.notes.map((note) => `${note.id}:${note.text}`),
+    ["x~1:B2"],
   );
 });

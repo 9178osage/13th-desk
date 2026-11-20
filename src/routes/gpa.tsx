@@ -140,7 +140,7 @@ function GpaPage() {
 
   function startEdit(row: GradeRow) {
     setEditing({
-      key: row.rowKey,
+      key: row.id,
       grade: row.grade,
       credits: String(row.credits),
       boost: row.boost,
@@ -167,7 +167,7 @@ function GpaPage() {
   }
 
   function remove(row: GradeRow) {
-    const removed = removeGrade({ key: row.rowKey });
+    const removed = removeGrade({ key: row.id });
     if (!removed) return;
     setEditing((current) => refAfterRemove(current, removed));
     setDeleted({ removed, level });
@@ -656,8 +656,8 @@ function GpaPage() {
           {grades.length > 0 ? (
             <ul className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-card shadow-paper">
               {grades.map((row) =>
-                editing?.key === row.rowKey ? (
-                  <li key={row.rowKey} className="px-4 py-3">
+                editing?.key === row.id ? (
+                  <li key={row.id} className="px-4 py-3">
                     <GradeEditor
                       lang={lang}
                       level={level}
@@ -669,7 +669,7 @@ function GpaPage() {
                     />
                   </li>
                 ) : (
-                  <li key={row.rowKey} className="flex items-center gap-1 px-4 py-2">
+                  <li key={row.id} className="flex items-center gap-1 px-4 py-2">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-ink">{row.title || row.grade}</p>
                       <p className="text-sm text-muted">
@@ -865,7 +865,7 @@ const REMOVE: Copy = {
   ja: "削除",
 };
 
-/** `key` is the edited row's persisted rowKey (see row-ref.ts), never id or position. */
+/** `key` is the edited row's id (see row-ref.ts), never its position. */
 type GradeDraft = { key: string; grade: string; credits: string; boost: boolean };
 
 const selectClass =

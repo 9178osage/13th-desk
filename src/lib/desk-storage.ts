@@ -10,6 +10,23 @@ import {
 /** Bump only with an explicit migration; the level/schema contract is tested. */
 export const DESK_STORAGE_VERSION = 0;
 
+/**
+ * Identity marker, saved next to `version` (`{ state, version: 0, identity: 1 }`). Builds
+ * that write it keep every note, grade and class id unique (`withStableIds`). Older builds
+ * still read these saves (they ignore the field) but drop it when they save, so a save
+ * without it that appears while this tab is open was written by an older version in
+ * another tab. `version` itself stays 0 so older tabs and backups keep loading.
+ */
+export const DESK_IDENTITY = 1;
+
+/**
+ * Saving is paused, never resolved automatically:
+ * - `old-tab`: an older version of the app saved in another tab (no identity marker);
+ * - `identity`: a save that claims unique ids still needed ids changed, so which row is
+ *   which cannot be trusted.
+ */
+export type DeskConflict = "old-tab" | "identity";
+
 export type SaveStatus = "ready" | "failed";
 export type DeskStorageEnvironment<T = unknown> = {
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -26,7 +43,7 @@ export type DeskStorageEnvironment<T = unknown> = {
   validate?: (value: unknown) => boolean;
   /**
    * Optional: applied to every parsed state (load, merge base, other tabs' saves) so that
-   * all three sides of a merge use the same row keys. Must be deterministic.
+   * all three sides of a merge use the same row ids. Must be deterministic.
    */
   normalize?: (state: T) => T;
   /**
@@ -39,6 +56,8 @@ export type DeskStorageEnvironment<T = unknown> = {
   now?: () => number;
   /** Called after this tab wrote a recovery copy, so the copies list can refresh. */
   recoveryChanged?: () => void;
+  /** Saving paused (`kind`) or resumed (`null`); see `DeskConflict`. */
+  conflict?: (kind: DeskConflict | null) => void;
 };
 
 /** The one part of `LockManager` the adapter uses. */
@@ -98,10 +117,16 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
   let lastWrite: { raw: string; base: string | null; at: number } | null = null;
   const now = env.now ?? (() => Date.now());
 
-  const parse = (raw: string | null): StorageValue<T> | null => {
+  /**
+   * A saved value, plus whether it carries the identity marker and whether its ids had to
+   * be changed (`withStableIds`) to load. Null for unreadable or unsupported values.
+   */
+  const read = (
+    raw: string | null,
+  ): { value: StorageValue<T>; marked: boolean; migrated: boolean } | null => {
     if (raw == null) return null;
     try {
-      const value = JSON.parse(raw) as StorageValue<T>;
+      const value = JSON.parse(raw) as StorageValue<T> & { identity?: unknown };
       if (
         !value ||
         typeof value !== "object" ||
@@ -110,15 +135,71 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
         typeof value.state !== "object" ||
         Array.isArray(value.state) ||
         (value.version !== undefined && value.version !== DESK_STORAGE_VERSION) ||
+        // A newer identity scheme than this build knows: hold it, like a newer version.
+        (value.identity !== undefined && value.identity !== DESK_IDENTITY) ||
         (env.validate && !env.validate(value))
       )
         return null;
       // Versionless legacy desks use the current schema, including during cross-tab merges.
       const state = env.normalize ? env.normalize(value.state) : value.state;
-      return { ...value, state, version: DESK_STORAGE_VERSION };
+      return {
+        value: { state, version: DESK_STORAGE_VERSION },
+        marked: value.identity === DESK_IDENTITY,
+        migrated: state !== value.state,
+      };
     } catch {
       return null;
     }
+  };
+  const parse = (raw: string | null): StorageValue<T> | null => read(raw)?.value ?? null;
+  /** What this build writes: the value plus the identity marker. */
+  const serialize = (value: StorageValue<T>): string =>
+    JSON.stringify({ state: value.state, version: value.version, identity: DESK_IDENTITY });
+
+  let conflict: DeskConflict | null = null;
+  // `identity`: the repaired desk that `repairIdentity()` writes when nothing newer is pending.
+  let conflictValue: StorageValue<T> | null = null;
+  /**
+   * Pause saving. `keep` (when given) is stored as a recovery copy first, so the desk that
+   * could otherwise be lost stays available under "Local recovery copies".
+   */
+  const enterConflict = (kind: DeskConflict, keep: string | null) => {
+    if (conflict) return;
+    conflict = kind;
+    if (keep !== null) {
+      try {
+        keepRecoveryCopy(env.storage, keep, kind, now());
+        env.recoveryChanged?.();
+      } catch {
+        /* quota: saving stays paused, so the desk in this tab is still not overwritten */
+      }
+    }
+    env.conflict?.(kind);
+  };
+  /**
+   * Classify a newer disk value written by someone else. Returns the value to merge or
+   * apply, or null after entering a hold or a conflict.
+   */
+  const fromOtherTab = (raw: string, firstRead = false): StorageValue<T> | null => {
+    const result = read(raw);
+    if (!result) {
+      hold();
+      return null;
+    }
+    // After a failed first read this is the desk this tab never managed to load, not a
+    // newer write: an unmarked (older) save is simply migrated, as on a normal load.
+    if (!result.marked && !firstRead) {
+      // An older version saved. Keep what this tab has, and stop writing.
+      const mine = pending ? serialize(pending) : base;
+      enterConflict("old-tab", mine !== null && mine !== raw ? mine : null);
+      return null;
+    }
+    if (result.migrated) {
+      conflictValue = result.value;
+      enterConflict("identity", raw);
+      return null;
+    }
+    return result.value;
   };
   const hold = () => {
     readFailed = true;
@@ -143,19 +224,20 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
   /** Read–merge–write. Runs under the shared save lock whenever the browser has one. */
   const flushNow = () => {
     // Before the first read (hydration) a snapshot holds defaults, not the saved desk.
-    if (!pending || !initialized || readFailed) return;
+    if (!pending || !initialized || readFailed || conflict) return;
     try {
       let next = pending;
-      let raw = JSON.stringify(next);
+      let raw = serialize(next);
       const current = env.storage.getItem(name);
       const changed = current !== base && current !== raw;
-      const disk = changed ? parse(current) : null;
+      // A newer unreadable/unsupported save must survive, even before its event arrives;
+      // so must a save from an older version (see `fromOtherTab`).
+      const disk =
+        changed && current !== null
+          ? fromOtherTab(current, initialReadError && base === null)
+          : null;
       let merged = false;
-      if (changed && current !== null && !disk) {
-        // A newer unreadable/unsupported save must survive, even before its event arrives.
-        hold();
-        return;
-      }
+      if (changed && current !== null && !disk) return;
       if (disk && disk.version === next.version) {
         // Another tab saved after our last sync and its event has not arrived yet.
         // After a failed first read there is no trustworthy base for this tab, so the
@@ -164,8 +246,8 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
           initialReadError && base === null
             ? { ...next, state: merge3(undefined, disk.state, next.state) as T }
             : mergeOnto(disk, next);
-        raw = JSON.stringify(next);
-        merged = raw !== JSON.stringify(pending);
+        raw = serialize(next);
+        merged = raw !== serialize(pending);
       }
       // Unchanged content: skip the write (and the storage event it would send).
       if (current !== raw) {
@@ -247,14 +329,22 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
         return null;
       }
       initialized = true;
-      const value = parse(raw);
-      if (raw !== null && !value) {
+      const result = read(raw);
+      if (raw !== null && !result) {
         // Readable but unusable/unsupported: hold the original bytes.
         hold();
         return null;
       }
       base = raw;
-      return value;
+      if (result && result.marked && result.migrated) {
+        // Ids were already migrated once, yet need changing again: do not guess. Show the
+        // repaired desk, keep the original, and wait for an explicit repair.
+        conflictValue = result.value;
+        enterConflict("identity", raw);
+      }
+      // An unmarked (older) save with repeated or blank ids is the one deterministic
+      // migration: it loads with fixed ids, and the next save writes them with the marker.
+      return result?.value ?? null;
     },
     setItem(_name, value) {
       // State applied from another tab is already on disk; writing it back could ping-pong.
@@ -286,7 +376,7 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
      * applying, and for removed values. Unreadable/unsupported saves enter a recovery hold.
      */
     syncFrom(raw: string | null, apply: (value: StorageValue<T>) => void): boolean {
-      if (!initialized || readFailed || applying || raw == null) return false;
+      if (!initialized || readFailed || applying || raw == null || conflict) return false;
       let latest: string | null;
       try {
         latest = env.storage.getItem(name);
@@ -296,11 +386,8 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
         return false;
       }
       if (latest == null || latest === base) return false;
-      let value = parse(latest);
-      if (!value) {
-        hold();
-        return false;
-      }
+      let value = fromOtherTab(latest);
+      if (!value) return false;
       keepConflictCopy(value);
       if (pending && pending.version === value.version) {
         // A failed save is still waiting: keep it on top of the newer desk. If the first
@@ -332,6 +419,26 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
         return replaceNow(value);
       }
     },
+    /** The current pause, if any (see `DeskConflict`). */
+    conflict: () => conflict,
+    /**
+     * Explicit "repair and continue" for an `identity` conflict: write the desk with the
+     * repaired ids (or this tab's newer edits) and resume saving. The original was kept as
+     * a recovery copy when the conflict began.
+     */
+    repairIdentity(apply?: (value: StorageValue<T>) => void): boolean {
+      if (conflict !== "identity") return false;
+      const value = pending ?? conflictValue;
+      const hadPending = pending !== null;
+      conflict = null;
+      conflictValue = null;
+      env.conflict?.(null);
+      if (!value) return true;
+      if (!hadPending) applyLocal(value, apply);
+      pending = value;
+      flush();
+      return true;
+    },
     dispose() {},
   };
 
@@ -344,9 +451,15 @@ export function createDeskStorage<T>(env: DeskStorageEnvironment<T>) {
         keepRecoveryCopy(env.storage, previous, "unreadable", now());
         archived = true;
       }
-      const raw = JSON.stringify(value);
+      const raw = serialize(value);
       env.storage.setItem(name, raw);
       base = raw;
+      // An explicit import or restore is the visitor's decision: saving resumes.
+      if (conflict) {
+        conflict = null;
+        conflictValue = null;
+        env.conflict?.(null);
+      }
       initialized = true;
       readFailed = false;
       initialReadError = false;

@@ -1,6 +1,6 @@
 import { asStoredCredits, isLetter } from "./gpa.ts";
 import type { Bucket } from "./desk-records.ts";
-import { asHm, parseBucket as parseBucketShared, withRowKeys } from "./desk-records.ts";
+import { asHm, parseBucket as parseBucketShared, withStableIds } from "./desk-records.ts";
 import { DESK_READ_CAP } from "./desk-limits.ts";
 import { LEVEL_IDS as LEVELS, isLevel, type Level } from "./levels.ts";
 import { isDistrict, type DistrictId } from "../data/districts.ts";
@@ -109,8 +109,8 @@ export function parsePersistedDesk(
   let bucketsRaw = raw.buckets;
   if (bucketsRaw === undefined && stored) bucketsRaw = { uni: raw }; // legacy single bucket
   if (!bucketsRaw || typeof bucketsRaw !== "object" || Array.isArray(bucketsRaw)) return null;
-  // Saves and backups from before row keys (and hand-edited duplicates) get unique keys.
-  const keyed = (withRowKeys({ buckets: bucketsRaw }) as { buckets: Record<string, unknown> })
+  // Repeated or blank ids (older saves, hand-edited backups) get deterministic unique ids.
+  const keyed = (withStableIds({ buckets: bucketsRaw }) as { buckets: Record<string, unknown> })
     .buckets;
   // A newer/hand-edited stage must not silently vanish when this version saves again.
   for (const key of Object.keys(keyed)) {

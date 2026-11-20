@@ -4,8 +4,7 @@
  * tab's save is lost:
  *  - a value only one side changed takes that side's change;
  *  - plain objects merge key by key;
- *  - arrays merge as sets keyed by `rowKey` (objects; `id` for unkeyed legacy objects)
- *    or by value (strings, numbers):
+ *  - arrays merge as sets keyed by `id` (objects) or by value (strings, numbers):
  *    items either side added are kept, items either side removed from `base`
  *    are dropped, items both sides kept are merged recursively;
  *  - a scalar both sides changed differently goes to `ours` (this tab's latest edit).
@@ -38,12 +37,11 @@ export function merge3(base: unknown, ours: unknown, theirs: unknown): unknown {
 
 function mergeArrays(base: unknown[], ours: unknown[], theirs: unknown[]): unknown[] {
   /**
-   * Index each record by its persisted `rowKey`. Notes, grades and classes all carry one
-   * (desk-records.ts `withRowKeys`), and it is unique across the desk, so a delete on one
-   * side and an edit on the other always pair the same rows, even when visible ids are
-   * duplicated or blank. Only items without a key (strings, unkeyed objects) fall back to
-   * id/value plus an occurrence number, which keeps every stored item instead of
-   * collapsing duplicates into one.
+   * Index each record by its `id`. Every side of a desk merge has been through
+   * `withStableIds` (desk-records.ts), so ids are unique within a list and a delete on one
+   * side and an edit on the other always pair the same rows. The occurrence number only
+   * matters for values (strings) and for raw input that skipped that step: it keeps
+   * every stored item instead of collapsing duplicates into one.
    */
   const index = (list: unknown[]) => {
     const map = new Map<string, unknown>();
@@ -76,7 +74,6 @@ function mergeArrays(base: unknown[], ours: unknown[], theirs: unknown[]): unkno
 }
 
 function keyOf(item: unknown): string {
-  if (isObject(item) && typeof item.rowKey === "string" && item.rowKey) return `key:${item.rowKey}`;
   if (isObject(item) && typeof item.id === "string") return `id:${item.id}`;
   return `v:${JSON.stringify(item)}`;
 }

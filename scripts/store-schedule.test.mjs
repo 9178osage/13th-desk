@@ -64,7 +64,6 @@ test("real timetable edits preserve imported text without relaxing creation or s
       start: "09:00",
       end: "10:00",
       pinned: true,
-      rowKey: "s-legacy",
     };
     async function importRows(rows) {
       const snapshot = structuredClone(empty);
@@ -74,7 +73,9 @@ test("real timetable edits preserve imported text without relaxing creation or s
       assert.equal(await replacePersistedDeskState(parsed.backup.state), true);
     }
     const row = () => useDesk.getState().buckets.uni.schedule[0];
-    const first = { key: "s-legacy" };
+    // A blank id is migrated once, deterministically, when the desk is read.
+    const loaded = { ...legacy, id: "row~1" };
+    const first = { key: loaded.id };
     const assertSaved = () =>
       assert.deepEqual(JSON.parse(data.get(key)).state.buckets, getPersistedDeskState().buckets);
 
@@ -86,7 +87,7 @@ test("real timetable edits preserve imported text without relaxing creation or s
           useDesk.getState().updateScheduleBlock(first, { ...row(), start: "9:30", day: "tue" }),
           true,
         );
-        const expected = { ...legacy, start: "09:30", day: "tue" };
+        const expected = { ...loaded, start: "09:30", day: "tue" };
         assert.deepEqual(row(), expected);
         assertSaved();
         await useDesk.persist.rehydrate();
@@ -129,7 +130,7 @@ test("real timetable edits preserve imported text without relaxing creation or s
             false,
           );
           assert.equal(data.get(key), before);
-          assert.deepEqual(row(), legacy);
+          assert.deepEqual(row(), loaded);
         }
       },
     );
@@ -140,7 +141,6 @@ test("real timetable edits preserve imported text without relaxing creation or s
         ...Array.from({ length: DESK_LIMITS.schedule - 1 }, (_, i) => ({
           ...legacy,
           id: `other-${i}`,
-          rowKey: `s-other-${i}`,
         })),
       ];
       await importRows(rows);
@@ -162,23 +162,27 @@ test("real timetable edits preserve imported text without relaxing creation or s
         start: "13:00",
         end: "14:00",
         place: "B",
-        rowKey: "s-twin",
       };
-      const third = { ...legacy, id: "", title: "Third", pinned: false, rowKey: "s-third" };
+      const third = { ...legacy, id: "", title: "Third", pinned: false };
       await importRows([legacy, twin, third]);
       const api = () => useDesk.getState();
       const rows = () => api().buckets.uni.schedule;
+      assert.deepEqual(
+        rows().map((row) => row.id),
+        ["row~1", "row~2", "row~3"],
+        "three blank ids become three unique ids",
+      );
       assert.equal(api().updateScheduleBlock(first, { ...legacy, title: "Edited" }), true);
-      assert.deepEqual(rows()[1], twin, "the second blank-ID row is untouched");
-      assert.deepEqual(rows()[2], third);
-      api().toggleSchedulePin({ key: "s-third" });
+      assert.deepEqual(rows()[1], { ...twin, id: "row~2" }, "the second blank-ID row is untouched");
+      assert.deepEqual(rows()[2], { ...third, id: "row~3" });
+      api().toggleSchedulePin({ key: "row~3" });
       assert.equal(rows()[2].pinned, true);
       assert.equal(rows()[0].pinned, legacy.pinned);
-      // A ref whose row is gone (or a blank key) does nothing.
+      // A ref whose row is gone (or a blank id) does nothing.
       assert.equal(api().updateScheduleBlock({ key: "gone" }, { ...twin, title: "No" }), false);
       assert.equal(api().removeScheduleBlock({ key: "" }), null);
-      const removed = api().removeScheduleBlock({ key: "s-twin" });
-      assert.deepEqual(removed, { row: twin, index: 1 });
+      const removed = api().removeScheduleBlock({ key: "row~2" });
+      assert.deepEqual(removed, { row: { ...twin, id: "row~2" }, index: 1 });
       assert.deepEqual(
         rows().map((row) => row.title),
         ["Edited", "Third"],
@@ -193,24 +197,26 @@ test("real timetable edits preserve imported text without relaxing creation or s
       assertSaved();
     });
 
-    await t.test("an old backup row without a row key gets one and stays editable", async () => {
-      const { rowKey: _drop, ...old } = legacy;
-      await importRows([old, { ...old, title: "Same id twin" }]);
-      const keys = useDesk.getState().buckets.uni.schedule.map((item) => item.rowKey);
-      assert.ok(keys.every((item) => typeof item === "string" && item.startsWith("legacy:")));
-      assert.notEqual(keys[0], keys[1]);
-      assert.equal(
-        useDesk
-          .getState()
-          .updateScheduleBlock({ key: keys[1] }, { ...row(), title: "Edited twin" }),
-        true,
-      );
-      assert.deepEqual(
-        useDesk.getState().buckets.uni.schedule.map((item) => item.title),
-        [old.title, "Edited twin"],
-      );
-      assertSaved();
-    });
+    await t.test(
+      "an old backup with a repeated id gets unique ids and stays editable",
+      async () => {
+        const old = { ...legacy, id: "same" };
+        await importRows([old, { ...old, title: "Same id twin" }]);
+        const ids = useDesk.getState().buckets.uni.schedule.map((item) => item.id);
+        assert.deepEqual(ids, ["same", "same~1"]);
+        assert.equal(
+          useDesk
+            .getState()
+            .updateScheduleBlock({ key: ids[1] }, { ...row(), title: "Edited twin" }),
+          true,
+        );
+        assert.deepEqual(
+          useDesk.getState().buckets.uni.schedule.map((item) => item.title),
+          [old.title, "Edited twin"],
+        );
+        assertSaved();
+      },
+    );
 
     await t.test("new courses still use the existing 60-character creation limits", async () => {
       await importRows([]);
@@ -218,7 +224,6 @@ test("real timetable edits preserve imported text without relaxing creation or s
       assert.equal(row().title, legacy.title.trim().slice(0, 60));
       assert.equal(row().place, legacy.place.trim().slice(0, 60));
       assert.notEqual(row().id, "");
-      assert.ok(row().rowKey && row().rowKey !== row().id, "a fresh, separate row key");
       assertSaved();
     });
   } finally {

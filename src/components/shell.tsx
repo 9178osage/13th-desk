@@ -17,7 +17,13 @@ import { DistrictBar } from "@/components/district-bar";
 import { LoadBoundary } from "@/components/load-boundary";
 import { useRetryableLazy } from "@/lib/retryable-lazy";
 import { LEVELS, isLevel } from "@/lib/levels";
-import { ensureDeskHydrated, useDesk, useLang, useStorageStatus } from "@/lib/store";
+import {
+  ensureDeskHydrated,
+  repairDeskIdentity,
+  useDesk,
+  useLang,
+  useStorageStatus,
+} from "@/lib/store";
 import { LANGS, isLang, tr } from "@/lib/text";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { hasDeskOverflow } from "@/lib/desk-limits";
@@ -58,6 +64,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const failed = useStorageStatus((s) => s.failed);
   const overflow = useDesk((s) => hasDeskOverflow(s.buckets));
   const otherTabs = useStorageStatus((s) => s.otherTabs);
+  const oldTabs = useStorageStatus((s) => s.oldTabs);
+  const conflict = useStorageStatus((s) => s.conflict);
   // Dismissed until the other pages close; a later second tab shows it again.
   const [tabNoticeDismissed, setTabNoticeDismissed] = useState(false);
   // Re-arm once the other pages close (adjusted during render, not in an effect).
@@ -228,6 +236,27 @@ export function Shell({ children }: { children: ReactNode }) {
         {failed && (
           <div className="storage-alert" role="alert">
             {c(lang, "storageError")}
+          </div>
+        )}
+        {conflict === "old-tab" && (
+          <div className="storage-alert conflict-alert" role="alert">
+            <span>{c(lang, "oldTabWrote")}</span>
+            <button type="button" className="conflict-action" onClick={() => location.reload()}>
+              {c(lang, "reloadTab")}
+            </button>
+          </div>
+        )}
+        {conflict === "identity" && (
+          <div className="storage-alert conflict-alert" role="alert">
+            <span>{c(lang, "identityConflict")}</span>
+            <button type="button" className="conflict-action" onClick={() => repairDeskIdentity()}>
+              {c(lang, "repairContinue")}
+            </button>
+          </div>
+        )}
+        {oldTabs && !conflict && (
+          <div className="tab-notice" role="status">
+            <span>{c(lang, "oldTabOpen")}</span>
           </div>
         )}
         {otherTabs && !tabNoticeDismissed && (

@@ -99,6 +99,17 @@ test("every older save and backup format still loads through parsePersistedDesk"
       assert.equal(bucket.schedule.length, counts.schedule, `${name}: ${stage} classes kept`);
       assert.equal(bucket.grades.length, counts.grades, `${name}: ${stage} grades kept`);
     }
+    // Repeated or blank ids come out unique, so every row can be edited on its own.
+    for (const bucket of Object.values(state.buckets)) {
+      for (const list of [bucket.notes, bucket.schedule, bucket.grades]) {
+        const ids = list.map((row) => row.id);
+        assert.ok(
+          ids.every((id) => id.trim()),
+          `${name}: no blank ids`,
+        );
+        assert.equal(new Set(ids).size, ids.length, `${name}: unique ids`);
+      }
+    }
     // Loading the loaded result again changes nothing: one migration, then stable.
     assert.deepEqual(parsePersistedDesk(state, "stored"), state, `${name}: stable`);
   }

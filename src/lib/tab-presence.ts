@@ -17,6 +17,13 @@ export type TabPresenceEnvironment = {
   setInterval?: (fn: () => void, ms: number) => unknown;
   clearInterval?: (handle: unknown) => void;
   onChange: (othersOpen: boolean) => void;
+  /**
+   * This build's identity marker (see `DESK_IDENTITY` in desk-storage.ts), sent with every
+   * presence message. Older builds send none, so a peer without it runs an older version.
+   */
+  identity?: number;
+  /** True while at least one open peer tab runs an older version (no `identity`). */
+  onOldTabs?: (oldOpen: boolean) => void;
 };
 
 const PREFIX = "13th-desk-v1:tab:";
@@ -27,6 +34,9 @@ const RECHECK_MS = [300, 1500];
 export function createTabPresence(env: TabPresenceEnvironment) {
   const now = env.now ?? Date.now;
   const peers = new Map<string, number>();
+  // Peers that did not announce an identity marker: an older build of the app.
+  const oldPeers = new Map<string, number>();
+  let reportedOld: boolean | null = null;
   const own = PREFIX + env.id;
   const canQuery = typeof env.locks?.query === "function";
   let lockOthers = false;
@@ -38,6 +48,12 @@ export function createTabPresence(env: TabPresenceEnvironment) {
     if (disposed) return;
     const t = now();
     for (const [id, seen] of peers) if (t - seen > PRESENCE_EXPIRE_MS) peers.delete(id);
+    for (const [id, seen] of oldPeers) if (t - seen > PRESENCE_EXPIRE_MS) oldPeers.delete(id);
+    const old = oldPeers.size > 0;
+    if (old !== reportedOld && (old || reportedOld !== null)) {
+      reportedOld = old;
+      env.onOldTabs?.(old);
+    }
     const others = canQuery ? lockOthers : peers.size > 0;
     if (others !== reported) {
       reported = others;
@@ -58,7 +74,11 @@ export function createTabPresence(env: TabPresenceEnvironment) {
 
   const post = (type: "hello" | "here" | "bye") => {
     try {
-      env.channel?.postMessage({ type, id: env.id });
+      env.channel?.postMessage(
+        env.identity === undefined
+          ? { type, id: env.id }
+          : { type, id: env.id, identity: env.identity },
+      );
     } catch {
       /* channel closed */
     }
@@ -79,11 +99,15 @@ export function createTabPresence(env: TabPresenceEnvironment) {
   };
 
   env.channel?.addEventListener("message", (event) => {
-    const data = event.data as { type?: unknown; id?: unknown } | null;
+    const data = event.data as { type?: unknown; id?: unknown; identity?: unknown } | null;
     if (!data || typeof data.id !== "string" || data.id === env.id) return;
-    if (data.type === "bye") peers.delete(data.id);
-    else if (data.type === "hello" || data.type === "here") {
+    if (data.type === "bye") {
+      peers.delete(data.id);
+      oldPeers.delete(data.id);
+    } else if (data.type === "hello" || data.type === "here") {
       peers.set(data.id, now());
+      if (env.identity !== undefined && data.identity === undefined) oldPeers.set(data.id, now());
+      else oldPeers.delete(data.id);
       if (data.type === "hello") post("here");
     }
     refresh();

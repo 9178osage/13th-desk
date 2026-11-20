@@ -158,3 +158,37 @@ test("dispose cancels the pending lock rechecks it scheduled", async () => {
   await new Promise((r) => setTimeout(r, 1700));
   assert.equal(queries, settled, "a disposed tab must not query locks again");
 });
+
+test("a peer tab without the identity marker is reported as an older version", () => {
+  const listeners: ((event: { data: unknown }) => void)[] = [];
+  const sent: unknown[] = [];
+  const channel = {
+    postMessage: (message: unknown) => void sent.push(message),
+    addEventListener: (_type: "message", listener: (event: { data: unknown }) => void) =>
+      void listeners.push(listener),
+    close() {},
+  };
+  const old: boolean[] = [];
+  let clock = 0;
+  const presence = createTabPresence({
+    id: "me",
+    channel,
+    now: () => clock,
+    identity: 1,
+    onChange() {},
+    onOldTabs: (value) => void old.push(value),
+  });
+  assert.deepEqual(sent[0], { type: "hello", id: "me", identity: 1 }, "this build announces it");
+  const deliver = (data: unknown) => listeners.forEach((listener) => listener({ data }));
+  deliver({ type: "hello", id: "new-tab", identity: 1 });
+  assert.deepEqual(old, [], "same version: no notice");
+  deliver({ type: "here", id: "old-tab" }); // older builds send no identity
+  assert.deepEqual(old, [true]);
+  deliver({ type: "bye", id: "old-tab" });
+  assert.deepEqual(old, [true, false]);
+  deliver({ type: "here", id: "old-2" });
+  clock += 60_000; // never heard from again: expires like any peer
+  presence.refresh();
+  assert.deepEqual(old, [true, false, true, false]);
+  presence.dispose();
+});

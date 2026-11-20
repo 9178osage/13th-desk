@@ -78,7 +78,8 @@ test("real store preserves merged overflow through edits, reload, export and res
       assert.equal(await replacePersistedDeskState(base), true);
       const theirs = structuredClone(base);
       theirs.buckets.uni[kind].push(make(kind, "other-tab"));
-      data.set(key, JSON.stringify({ state: theirs, version: 0 })); // queued event, not delivered
+      // Another tab of this build saved (identity marker); its event is queued, not delivered.
+      data.set(key, JSON.stringify({ state: theirs, version: 0, identity: 1 }));
       const api = useDesk.getState();
       if (kind === "notes") assert.equal(api.addNote("my-tab"), true);
       if (kind === "grades")
@@ -114,14 +115,14 @@ test("real store preserves merged overflow through edits, reload, export and res
       if (kind === "favs") useDesk.getState().toggleFav("blocked");
       if (kind === "checks") useDesk.getState().toggleCheck("blocked");
       if (kind === "notes")
-        useDesk.getState().toggleNote({ key: getPersistedDeskState().buckets.uni.notes[0].rowKey });
+        useDesk.getState().toggleNote({ key: getPersistedDeskState().buckets.uni.notes[0].id });
       assert.equal(getPersistedDeskState().buckets.uni[kind].length, DESK_LIMITS[kind] + 1);
       for (const item of getPersistedDeskState().buckets.uni[kind].slice(0, 2)) {
         const api = useDesk.getState();
         // Each pass removes the current head row.
-        if (kind === "notes") api.removeNote({ key: item.rowKey });
-        if (kind === "grades") api.removeGrade({ key: item.rowKey });
-        if (kind === "schedule") api.removeScheduleBlock({ key: item.rowKey });
+        if (kind === "notes") api.removeNote({ key: item.id });
+        if (kind === "grades") api.removeGrade({ key: item.id });
+        if (kind === "schedule") api.removeScheduleBlock({ key: item.id });
         if (kind === "favs") api.toggleFav(item);
         if (kind === "checks") api.toggleCheck(item);
       }

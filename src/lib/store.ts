@@ -3,7 +3,9 @@ import { create } from "zustand";
 import { persist, type StorageValue } from "zustand/middleware";
 import {
   createDeskStorage,
+  DESK_IDENTITY,
   DESK_STORAGE_VERSION,
+  type DeskConflict,
   type DeskLocks,
   type SaveStatus,
 } from "@/lib/desk-storage";
@@ -29,9 +31,9 @@ import {
   emptyBucket,
   insertAt,
   isWeekDay,
-  newRowKey,
+  newRowId,
   parseBucket,
-  withRowKeys,
+  withStableIds,
 } from "./desk-records.ts";
 import { parsePersistedDesk, type PersistedDeskLike } from "@/lib/desk-backup";
 import { notifyRecoveryListeners } from "@/lib/recovery-copies";
@@ -159,13 +161,21 @@ type PersistedDesk = {
   buckets: Record<Level, Bucket>;
 };
 
-export const useStorageStatus = create<{ failed: boolean; reason: SaveStatus; otherTabs: boolean }>(
-  () => ({
-    failed: false,
-    reason: "ready",
-    otherTabs: false,
-  }),
-);
+export const useStorageStatus = create<{
+  failed: boolean;
+  reason: SaveStatus;
+  otherTabs: boolean;
+  /** Another open tab runs an older version of the app (it does not announce `identity`). */
+  oldTabs: boolean;
+  /** Saving is paused until the visitor acts (see `DeskConflict` in desk-storage.ts). */
+  conflict: DeskConflict | null;
+}>(() => ({
+  failed: false,
+  reason: "ready",
+  otherTabs: false,
+  oldTabs: false,
+  conflict: null,
+}));
 function webLocks(): DeskLocks | null {
   try {
     const locks = typeof navigator === "undefined" ? undefined : navigator.locks;
@@ -188,9 +198,10 @@ const deskStorage =
         },
         status: (reason) => useStorageStatus.setState({ failed: reason !== "ready", reason }),
         recoveryChanged: notifyRecoveryListeners,
+        conflict: (conflict) => useStorageStatus.setState({ conflict }),
         validate: storedDeskIsUsable,
-        // Row keys before any merge, so base/disk/this tab pair rows by the same keys.
-        normalize: withRowKeys,
+        // Stable ids before any merge, so base/disk/this tab pair rows by the same ids.
+        normalize: withStableIds,
         // One shared lock serializes every tab's read–merge–write (audit: lost saves).
         locks: webLocks(),
         // A save was merged with a newer save from another tab: show the merged desk.
@@ -264,10 +275,7 @@ const deskStore = create<DeskState>()(
             ...buckets,
             [level]: {
               ...bucket,
-              notes: [
-                { id: crypto.randomUUID(), text: clean, done: false, rowKey: newRowKey() },
-                ...bucket.notes,
-              ],
+              notes: [{ id: newRowId(), text: clean, done: false }, ...bucket.notes],
             },
           },
         });
@@ -311,12 +319,11 @@ const deskStore = create<DeskState>()(
         const bucket = buckets[level];
         if (bucket.grades.length >= DESK_LIMITS.grades) return;
         const next: GradeRow = {
-          id: crypto.randomUUID(),
+          id: newRowId(),
           title: row.title.trim().slice(0, 80),
           credits,
           grade: row.grade,
           boost: level === "high" && row.boost,
-          rowKey: newRowKey(),
         };
         set({
           buckets: {
@@ -387,14 +394,13 @@ const deskStore = create<DeskState>()(
         const bucket = buckets[level];
         if (bucket.schedule.length >= DESK_LIMITS.schedule) return false;
         const next: ScheduleBlock = {
-          id: crypto.randomUUID(),
+          id: newRowId(),
           day: row.day,
           start,
           end,
           title,
           place: row.place.trim().slice(0, 60),
           pinned: false,
-          rowKey: newRowKey(),
         };
         set({
           buckets: {
@@ -482,8 +488,8 @@ const deskStore = create<DeskState>()(
       }),
       merge: (persisted, current) => {
         if (!persisted || typeof persisted !== "object") return current;
-        // Older saves have no row keys yet: derive them the same way every tab does.
-        const raw = withRowKeys(persisted) as Record<string, unknown>;
+        // Older saves may repeat or blank ids: fix them the same way every tab does.
+        const raw = withStableIds(persisted) as Record<string, unknown>;
         // Prefer in-memory choices made before rehydrate finishes (fast lang switch).
         const langSet = current.langSet || raw.langSet === true;
         // Never chosen? Keep the Chinese-first default instead of flipping to English
@@ -660,6 +666,8 @@ if (typeof window !== "undefined") {
       setInterval: (fn, ms) => window.setInterval(fn, ms),
       clearInterval: (handle) => window.clearInterval(handle as number),
       onChange: (otherTabs) => useStorageStatus.setState({ otherTabs }),
+      identity: DESK_IDENTITY,
+      onOldTabs: (oldTabs) => useStorageStatus.setState({ oldTabs }),
     });
   } catch {
     presence = null;
@@ -687,6 +695,14 @@ if (typeof window !== "undefined") {
       presence?.dispose();
     });
   }
+}
+
+/**
+ * "Repair and continue" after an `identity` conflict: save the desk with repaired ids and
+ * resume saving. The original save was already kept as a recovery copy.
+ */
+export function repairDeskIdentity(): boolean {
+  return deskStorage?.repairIdentity(applyStoredDesk) ?? false;
 }
 
 /** Language saved under `13th-desk-v1`, read without touching the store. */
@@ -729,7 +745,7 @@ export async function replacePersistedDeskState(next: PersistedDeskLike): Promis
     earlyStart: next.earlyStart,
     district: next.district,
     // Every written row has a unique key, even if a caller skipped the backup parser.
-    buckets: withRowKeys({ buckets: structuredClone(next.buckets) }).buckets,
+    buckets: withStableIds({ buckets: structuredClone(next.buckets) }).buckets,
   };
   if (
     !deskStorage ||

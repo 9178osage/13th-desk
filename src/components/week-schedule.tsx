@@ -352,7 +352,7 @@ function ScheduleEditor() {
             return (
               <div
                 className={`class-row${inConflict || conflictsDraft ? " class-row-conflict" : ""}`}
-                key={row.rowKey}
+                key={row.id}
               >
                 <div className="class-time">
                   <strong>{row.start}</strong>

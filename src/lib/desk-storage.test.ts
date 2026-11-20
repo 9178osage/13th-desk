@@ -7,6 +7,8 @@ const KEY = "13th-desk-v1";
 type Desk = { notes: string[] };
 const value = (...notes: string[]) => ({ state: { notes }, version: 0 });
 const saved = (data: Map<string, string>) => JSON.parse(data.get(KEY)!).state.notes;
+/** A save written by this build in another tab (it carries the identity marker). */
+const disk = (...notes: string[]) => JSON.stringify({ ...value(...notes), identity: 1 });
 
 /** Shared localStorage plus a `storage` event bus, like tabs of one browser. */
 function environment() {
@@ -331,15 +333,17 @@ test("interleaved deletes and adds across tabs keep every save", async () => {
   assert.deepEqual(b.memory(), ["y", "z"]);
 });
 
-test("old saves without any new field still load and save unchanged", async () => {
+test("old saves still load; the next save adds only the identity marker", async () => {
   const env = queuedEnvironment();
   env.data.set(KEY, JSON.stringify(value("old")));
   const a = env.open();
   await a.hydrate();
   assert.deepEqual(a.memory(), ["old"]);
   a.add("new");
-  assert.deepEqual(Object.keys(JSON.parse(env.data.get(KEY)!)).sort(), ["state", "version"]);
-  assert.equal(JSON.parse(env.data.get(KEY)!).version, 0);
+  const written = JSON.parse(env.data.get(KEY)!);
+  assert.deepEqual(Object.keys(written).sort(), ["identity", "state", "version"]);
+  assert.equal(written.version, 0, "older builds, which check version 0, still load it");
+  assert.equal(written.identity, 1);
 });
 
 test("a parsed save that would lose records is held, not overwritten (defect 3)", async () => {
@@ -439,11 +443,12 @@ test("a corrupt storage event enters the same recovery hold instead of reporting
 
 test("legacy saves without a version are normalized and still merge with version zero", async () => {
   const env = environment();
+  env.data.set(KEY, JSON.stringify({ state: { notes: ["legacy"] } }));
   const tab = env.open();
   await tab.hydrate();
-  env.data.set(KEY, JSON.stringify({ state: { notes: ["legacy"] } }));
   tab.add("mine");
   assert.deepEqual(saved(env.data), ["legacy", "mine"]);
+  assert.equal(JSON.parse(env.data.get(KEY)!).version, 0);
   assert.equal(tab.status(), "ready");
 });
 
@@ -550,7 +555,7 @@ test("with Web Locks, the read–merge–write runs inside one shared lock (audi
   adapter.storage.setItem(KEY, value("mine 1", "mine 2"));
   assert.equal(data.get(KEY), undefined, "nothing is read or written without the lock");
   // The other tab finishes its write, then releases the lock.
-  data.set(KEY, JSON.stringify(value("theirs")));
+  data.set(KEY, disk("theirs"));
   locks.release();
   assert.deepEqual(new Set(saved(data)), new Set(["theirs", "mine 1", "mine 2"]));
   assert.ok(locks.names.length >= 1);
@@ -633,7 +638,7 @@ test("without Web Locks, a racing save that drops this tab's write leaves a reco
     adapter.storage.setItem(KEY, value("start", "mine"));
     // The other tab read "start" before this write and saved over it.
     clock += delay;
-    const raw = JSON.stringify(value(...theirs));
+    const raw = disk(...theirs);
     data.set(KEY, raw);
     let shown: string[] = [];
     adapter.syncFrom(raw, (v) => {
@@ -672,4 +677,161 @@ test("recovery copies carry their time and reason; bare copies from older builds
   // A damaged envelope keeps its bytes; unknown fields do not invent a time or reason.
   const odd = JSON.stringify({ eugeneDeskRecovery: 1, createdAt: "soon", source: "x", raw });
   assert.deepEqual(unwrapRecoveryCopy(odd), { createdAt: null, source: "unknown", raw });
+});
+
+/** One tab's adapter on a shared Map, recording conflicts and recovery copies. */
+function identityTab<S>(data: Map<string, string>, normalize?: (state: S) => S) {
+  const conflicts: (string | null)[] = [];
+  let status: SaveStatus = "ready";
+  const adapter = createDeskStorage<S>({
+    storage: {
+      getItem: (key) => data.get(key) ?? null,
+      setItem: (key, raw) => void data.set(key, raw),
+      removeItem: (key) => void data.delete(key),
+    },
+    status: (next) => {
+      status = next;
+    },
+    conflict: (kind) => void conflicts.push(kind),
+    normalize,
+  });
+  const copies = () =>
+    [...data.keys()]
+      .filter((key) => key.startsWith(`${KEY}:recovery:`))
+      .map((key) => unwrapRecoveryCopy(data.get(key)!));
+  return { adapter, conflicts, copies, status: () => status };
+}
+
+test("an older version saving in another tab pauses saving here and keeps this tab's desk", async () => {
+  const data = new Map<string, string>([[KEY, disk("start")]]);
+  const tab = identityTab<Desk>(data);
+  await tab.adapter.storage.getItem(KEY);
+  tab.adapter.storage.setItem(KEY, value("start", "mine"));
+  assert.equal(JSON.parse(data.get(KEY)!).identity, 1, "this build marks its saves");
+  // The old build in another tab loaded "start" and saved without the marker.
+  const old = JSON.stringify(value("start", "old tab"));
+  data.set(KEY, old);
+  let applied = false;
+  assert.equal(
+    tab.adapter.syncFrom(old, () => {
+      applied = true;
+    }),
+    false,
+  );
+  assert.equal(applied, false, "the old tab's save is not merged into this tab");
+  assert.deepEqual(tab.conflicts, ["old-tab"]);
+  assert.equal(tab.adapter.conflict(), "old-tab");
+  const [copy] = tab.copies();
+  assert.equal(copy.source, "old-tab");
+  assert.deepEqual(JSON.parse(copy.raw).state.notes, ["start", "mine"], "this tab's desk is kept");
+  assert.ok(copy.createdAt);
+  // Paused: later edits and the pagehide flush write nothing.
+  tab.adapter.storage.setItem(KEY, value("start", "mine", "more"));
+  tab.adapter.flushBeforeUnload();
+  assert.equal(data.get(KEY), old, "neither version overwrites the other");
+  assert.equal(
+    tab.adapter.syncFrom(old, () => assert.fail("synced while paused")),
+    false,
+  );
+  // Only an explicit import or restore resumes saving.
+  assert.equal(await tab.adapter.replace(value("restored")), true);
+  assert.deepEqual(tab.conflicts, ["old-tab", null]);
+  assert.deepEqual(saved(data), ["restored"]);
+});
+
+test("an older version's save found before its storage event also pauses the next save", async () => {
+  const data = new Map<string, string>([[KEY, disk("start")]]);
+  const tab = identityTab<Desk>(data);
+  await tab.adapter.storage.getItem(KEY);
+  const old = JSON.stringify(value("start", "old tab"));
+  data.set(KEY, old);
+  tab.adapter.storage.setItem(KEY, value("start", "mine"));
+  assert.equal(data.get(KEY), old);
+  assert.deepEqual(tab.conflicts, ["old-tab"]);
+  assert.deepEqual(JSON.parse(tab.copies()[0].raw).state.notes, ["start", "mine"]);
+});
+
+type Row = { id: string; text: string };
+type RowsDesk = { notes: Row[] };
+const rowsSave = (notes: [string, string][], identity?: number) =>
+  JSON.stringify({
+    state: { notes: notes.map(([id, text]) => ({ id, text })) },
+    version: 0,
+    ...(identity === undefined ? {} : { identity }),
+  });
+
+test("an old save with repeated or blank ids is migrated once and written with the marker", async () => {
+  const { withStableIds } = await import("./desk-records.ts");
+  const data = new Map<string, string>([
+    [
+      KEY,
+      rowsSave([
+        ["x", "A"],
+        ["x", "B"],
+        ["", "C"],
+      ]),
+    ],
+  ]);
+  const tab = identityTab<RowsDesk>(data, withStableIds);
+  const loaded = await tab.adapter.storage.getItem(KEY);
+  assert.deepEqual(
+    loaded?.state.notes.map((row) => row.id),
+    ["x", "x~1", "row~1"],
+  );
+  assert.deepEqual(tab.conflicts, [], "an unmarked save is the one expected migration");
+  tab.adapter.storage.setItem(KEY, loaded!);
+  const written = JSON.parse(data.get(KEY)!);
+  assert.equal(written.identity, 1);
+  assert.deepEqual(
+    written.state.notes.map((row: Row) => row.id),
+    ["x", "x~1", "row~1"],
+  );
+  // A second tab reading the migrated save changes nothing and sees no conflict.
+  const second = identityTab<RowsDesk>(data, withStableIds);
+  const again = await second.adapter.storage.getItem(KEY);
+  assert.deepEqual(again?.state, written.state);
+  assert.deepEqual(second.conflicts, []);
+});
+
+test("a marked save whose ids would change again is a conflict, repaired only on request", async () => {
+  const { withStableIds } = await import("./desk-records.ts");
+  const raw = rowsSave(
+    [
+      ["x", "A"],
+      ["x", "B"],
+    ],
+    1,
+  );
+  const data = new Map<string, string>([[KEY, raw]]);
+  const tab = identityTab<RowsDesk>(data, withStableIds);
+  const loaded = await tab.adapter.storage.getItem(KEY);
+  assert.deepEqual(
+    loaded?.state.notes.map((row) => row.id),
+    ["x", "x~1"],
+    "the desk is shown with repaired ids",
+  );
+  assert.deepEqual(tab.conflicts, ["identity"]);
+  assert.equal(tab.copies()[0].source, "identity");
+  assert.equal(tab.copies()[0].raw, raw, "the original save is kept verbatim");
+  tab.adapter.storage.setItem(KEY, loaded!);
+  assert.equal(data.get(KEY), raw, "no automatic overwrite");
+  assert.equal(tab.adapter.repairIdentity(), true);
+  assert.deepEqual(tab.conflicts, ["identity", null]);
+  const written = JSON.parse(data.get(KEY)!);
+  assert.deepEqual(
+    written.state.notes.map((row: Row) => row.id),
+    ["x", "x~1"],
+  );
+  assert.equal(written.identity, 1);
+  assert.equal(tab.adapter.repairIdentity(), false, "nothing left to repair");
+});
+
+test("a save from a newer identity scheme is held like a newer version", async () => {
+  const raw = JSON.stringify({ ...value("future"), identity: 2 });
+  const data = new Map<string, string>([[KEY, raw]]);
+  const tab = identityTab<Desk>(data);
+  assert.equal(await tab.adapter.storage.getItem(KEY), null);
+  assert.equal(tab.status(), "failed");
+  tab.adapter.storage.setItem(KEY, value("mine"));
+  assert.equal(data.get(KEY), raw);
 });

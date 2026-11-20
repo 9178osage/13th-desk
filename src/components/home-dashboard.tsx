@@ -152,7 +152,7 @@ function TaskList() {
       ) : (
         <ul className="desk-tasks">
           {visible.map((note) => (
-            <li key={note.rowKey} className={note.done ? "is-done" : ""}>
+            <li key={note.id} className={note.done ? "is-done" : ""}>
               <label className="task-check">
                 <input
                   type="checkbox"

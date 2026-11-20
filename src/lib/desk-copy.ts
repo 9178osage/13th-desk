@@ -1124,6 +1124,46 @@ const copy = {
     "Không xóa được bản sao này. Hãy thử lại.",
     "このコピーを削除できませんでした。もう一度お試しください。",
   ],
+  oldTabWrote: [
+    "An older version of Eugene Desk saved this desk in another tab. Saving here is paused so neither version overwrites the other, and this tab's desk was kept under Local recovery copies. Refresh or close the other Eugene Desk tabs, then reload this one.",
+    "另一个标签页中的旧版 Eugene Desk 保存了书桌。为避免新旧版本互相覆盖，这里已暂停保存，并把本标签页的书桌保留在“本地恢复副本”中。请先刷新或关闭其他 Eugene Desk 标签页，再重新加载本页。",
+    "Una versión anterior de Eugene Desk guardó este escritorio en otra pestaña. Aquí se pausó el guardado para que ninguna versión sobrescriba a la otra, y el escritorio de esta pestaña quedó en Copias de recuperación locales. Actualiza o cierra las otras pestañas de Eugene Desk y luego recarga esta.",
+    "다른 탭의 이전 버전 Eugene Desk가 책상을 저장했어요. 서로 덮어쓰지 않도록 여기서는 저장을 멈췄고, 이 탭의 책상은 '로컬 복구 사본'에 보관했어요. 다른 Eugene Desk 탭을 새로고침하거나 닫은 뒤 이 탭을 다시 불러오세요.",
+    "Một phiên bản cũ của Eugene Desk đã lưu bàn học ở tab khác. Việc lưu ở đây đã tạm dừng để hai phiên bản không ghi đè nhau, và bàn học của tab này đã được giữ trong Bản sao khôi phục cục bộ. Hãy tải lại hoặc đóng các tab Eugene Desk khác, rồi tải lại tab này.",
+    "別のタブの旧バージョンの Eugene Desk がデスクを保存しました。互いに上書きしないよう、ここでは保存を一時停止し、このタブのデスクを「ローカル復元コピー」に保管しました。ほかの Eugene Desk タブを再読み込みするか閉じてから、このタブを再読み込みしてください。",
+  ],
+  identityConflict: [
+    "Some saved to-dos, classes or grades share an ID, so saving is paused instead of guessing which is which. The saved desk was kept under Local recovery copies.",
+    "部分已保存的待办、课程或成绩使用了相同的 ID。为避免猜错，已暂停保存，并把已保存的书桌保留在“本地恢复副本”中。",
+    "Algunas tareas, clases o notas guardadas comparten un ID, así que se pausó el guardado en lugar de adivinar cuál es cuál. El escritorio guardado quedó en Copias de recuperación locales.",
+    "저장된 할 일, 수업 또는 성적 일부가 같은 ID를 쓰고 있어서, 추측하지 않고 저장을 멈췄어요. 저장된 책상은 '로컬 복구 사본'에 보관했어요.",
+    "Một số việc cần làm, lớp học hoặc điểm đã lưu trùng ID, nên việc lưu đã tạm dừng thay vì đoán. Bàn học đã lưu được giữ trong Bản sao khôi phục cục bộ.",
+    "保存済みのやること・授業・成績の一部が同じIDを使っているため、推測せずに保存を一時停止しました。保存済みのデスクは「ローカル復元コピー」に保管しました。",
+  ],
+  oldTabOpen: [
+    "An older version of Eugene Desk is open in another tab. Refresh that tab so both use the same version.",
+    "另一个标签页中开着旧版 Eugene Desk。请刷新那个标签页，让两边使用同一版本。",
+    "Hay una versión anterior de Eugene Desk abierta en otra pestaña. Actualiza esa pestaña para que ambas usen la misma versión.",
+    "다른 탭에 이전 버전 Eugene Desk가 열려 있어요. 그 탭을 새로고침해 같은 버전을 쓰게 해 주세요.",
+    "Một phiên bản cũ của Eugene Desk đang mở ở tab khác. Hãy tải lại tab đó để cả hai dùng cùng phiên bản.",
+    "別のタブで旧バージョンの Eugene Desk が開いています。そのタブを再読み込みして、同じバージョンにしてください。",
+  ],
+  reloadTab: [
+    "Reload this tab",
+    "重新加载本页",
+    "Recargar esta pestaña",
+    "이 탭 다시 불러오기",
+    "Tải lại tab này",
+    "このタブを再読み込み",
+  ],
+  repairContinue: [
+    "Repair and continue",
+    "修复并继续",
+    "Reparar y continuar",
+    "복구하고 계속",
+    "Sửa và tiếp tục",
+    "修復して続ける",
+  ],
 } as const satisfies Record<string, readonly [string, string, string, string, string, string]>;
 
 const index: Record<Lang, number> = { en: 0, zh: 1, es: 2, ko: 3, vi: 4, ja: 5 };

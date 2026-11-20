@@ -7,6 +7,9 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
 const root = join(import.meta.dirname, "..");
+const { withStableIds } = await import("../src/lib/desk-records.ts");
+/** Rows as the store holds them after loading: through the one identity migration. */
+const loaded = (rows) => withStableIds({ notes: rows }).notes;
 const require = createRequire(import.meta.url);
 const compiled = new Map();
 
@@ -360,7 +363,6 @@ function gpaFixture(count = 0) {
             credits: 4,
             grade: "A",
             boost: false,
-            rowKey: `g${i}`,
           })),
           priorGpa: "",
           priorWeighted: "",
@@ -523,7 +525,7 @@ test("GPA rows: delete then undo puts the class back in place, in all six langua
   assert.equal(f.status(), "Restored.");
   f.click("Remove: Class");
   // Restored elsewhere (another tab): undo refuses with the shared copy.
-  f.state.buckets.uni.grades = [{ id: "0", rowKey: "g0" }, ...f.state.buckets.uni.grades];
+  f.state.buckets.uni.grades = [{ id: "0" }, ...f.state.buckets.uni.grades];
   const expected = [
     "Couldn't undo: it is already back, or the list is over its limit.",
     "无法撤销：这一项已经恢复，或列表已超出上限。",
@@ -544,10 +546,7 @@ test("GPA rows: inline edit saves grade and credits, and a vanished row says so"
   f.click("Edit: Class");
   const editor = f.editor();
   assert.ok(editor, "the first row turned into the editor");
-  assert.deepEqual(
-    { ...editor.props.draft },
-    { key: "g0", grade: "A", credits: "4", boost: false },
-  );
+  assert.deepEqual({ ...editor.props.draft }, { key: "0", grade: "A", credits: "4", boost: false });
   editor.props.onChange({ ...editor.props.draft, grade: "B+", credits: "3" });
   f.render();
   f.editor().props.onSubmit({ preventDefault() {} });
@@ -558,7 +557,6 @@ test("GPA rows: inline edit saves grade and credits, and a vanished row says so"
     credits: 3,
     grade: "B+",
     boost: false,
-    rowKey: "g0",
   });
   assert.equal(f.editor(), undefined);
   assert.equal(f.status(), "Class updated.");
@@ -596,22 +594,24 @@ function scheduleFixture(count = 1) {
     hydrated: true,
     buckets: {
       uni: {
-        schedule: Array.from({ length: count }, (_, i) => ({
-          id: i ? `other-${i}` : "",
-          title: i ? `Other ${i}` : "Blank ID course",
-          day: i ? "tue" : "mon",
-          start: "09:00",
-          end: "10:00",
-          place: "",
-          pinned: false,
-          rowKey: `s${i}`,
-        })),
+        // The first course was saved with a blank id; loading gave it "row~1".
+        schedule: loaded(
+          Array.from({ length: count }, (_, i) => ({
+            id: i ? `other-${i}` : "",
+            title: i ? `Other ${i}` : "Blank ID course",
+            day: i ? "tue" : "mon",
+            start: "09:00",
+            end: "10:00",
+            place: "",
+            pinned: false,
+          })),
+        ),
       },
     },
     addScheduleBlock(row) {
       calls.push(["add"]);
       if (state.buckets.uni.schedule.length >= 40) return false;
-      state.buckets.uni.schedule.push({ ...row, id: "new", pinned: false, rowKey: "s-new" });
+      state.buckets.uni.schedule.push({ ...row, id: "new", pinned: false });
       return true;
     },
     updateScheduleBlock(ref, patch) {
@@ -718,9 +718,9 @@ test("timetable: a blank ID opens Edit and saves exactly one existing course", (
   const submit = nodes(f.tree()).find((n) => n.props?.type === "submit");
   assert.equal(text(submit), "Save changes");
   f.submit();
-  assert.deepEqual(f.calls, [["update", "s0"]]);
+  assert.deepEqual(f.calls, [["update", "row~1"]]);
   assert.equal(f.state.buckets.uni.schedule.length, 1);
-  assert.equal(f.state.buckets.uni.schedule[0].id, "");
+  assert.equal(f.state.buckets.uni.schedule[0].id, "row~1");
   assert.equal(f.status(), "Timetable updated.");
 });
 
@@ -728,15 +728,15 @@ test("timetable: blank-ID edits work at the cap and a vanished row is not a cap 
   const f = scheduleFixture(40);
   f.edit();
   f.submit();
-  assert.deepEqual(f.calls, [["update", "s0"]]);
+  assert.deepEqual(f.calls, [["update", "row~1"]]);
   assert.equal(f.state.buckets.uni.schedule.length, 40);
   assert.equal(f.status(), "Timetable updated.");
   f.edit();
-  f.state.buckets.uni.schedule = f.state.buckets.uni.schedule.filter((row) => row.id !== "");
+  f.state.buckets.uni.schedule = f.state.buckets.uni.schedule.filter((row) => row.id !== "row~1");
   f.submit();
   assert.deepEqual(f.calls, [
-    ["update", "s0"],
-    ["update", "s0"],
+    ["update", "row~1"],
+    ["update", "row~1"],
   ]);
   assert.equal(
     f.status(),
@@ -760,16 +760,17 @@ test("timetable: null editing state still adds a new course", () => {
 
 test("timetable: with two blank-ID courses, Edit and Delete touch only the chosen row", () => {
   const f = scheduleFixture();
+  // Both courses were saved with a blank id; loading gave them "row~1" and "row~2".
   const twin = {
     ...f.state.buckets.uni.schedule[0],
+    id: "",
     title: "Blank twin",
     day: "mon",
     start: "11:00",
     end: "12:00",
     place: "Room 2",
-    rowKey: "s-twin",
   };
-  f.state.buckets.uni.schedule.push(twin);
+  f.state.buckets.uni.schedule = loaded([{ ...f.state.buckets.uni.schedule[0], id: "" }, twin]);
   f.render();
   f.edit();
   nodes(f.tree())
@@ -780,8 +781,8 @@ test("timetable: with two blank-ID courses, Edit and Delete touch only the chose
   assert.deepEqual(
     f.state.buckets.uni.schedule.map((row) => [row.id, row.title, row.start, row.place]),
     [
-      ["", "Edited first", "09:00", ""],
-      ["", "Blank twin", "11:00", "Room 2"],
+      ["row~1", "Edited first", "09:00", ""],
+      ["row~2", "Blank twin", "11:00", "Room 2"],
     ],
   );
   nodes(f.tree())
@@ -796,11 +797,13 @@ test("timetable: with two blank-ID courses, Edit and Delete touch only the chose
 
 test("GPA rows: duplicate IDs edit and remove only the chosen row, and undo puts it back", () => {
   const f = gpaFixture(3);
-  f.state.buckets.uni.grades = f.state.buckets.uni.grades.map((row, i) => ({
-    ...row,
-    id: "dup",
-    title: `Class ${i}`,
-  }));
+  f.state.buckets.uni.grades = loaded(
+    f.state.buckets.uni.grades.map((row, i) => ({
+      ...row,
+      id: "dup",
+      title: `Class ${i}`,
+    })),
+  );
   f.render();
   f.click("Remove: Class 1");
   assert.deepEqual(
@@ -830,11 +833,13 @@ for (const ids of [
 ]) {
   test(`GPA rows (${JSON.stringify(ids)}): the open editor stays on its row when another row is deleted or restored`, () => {
     const f = gpaFixture(3);
-    f.state.buckets.uni.grades = f.state.buckets.uni.grades.map((row, i) => ({
-      ...row,
-      id: ids[i],
-      title: `Class ${i}`,
-    }));
+    f.state.buckets.uni.grades = loaded(
+      f.state.buckets.uni.grades.map((row, i) => ({
+        ...row,
+        id: ids[i],
+        title: `Class ${i}`,
+      })),
+    );
     f.render();
     f.click("Edit: Class 1");
     f.click("Remove: Class 0");
@@ -858,12 +863,15 @@ for (const ids of [
 
   test(`timetable (${JSON.stringify(ids)}): editing one class while another is deleted and restored saves that class`, () => {
     const f = scheduleFixture(3);
-    f.state.buckets.uni.schedule = f.state.buckets.uni.schedule.map((row, i) => ({
-      ...row,
-      id: ids[i],
-      title: `Course ${i}`,
-      day: "mon",
-    }));
+    f.state.buckets.uni.schedule = loaded(
+      f.state.buckets.uni.schedule.map((row, i) => ({
+        ...row,
+        id: ids[i],
+        title: `Course ${i}`,
+        day: "mon",
+      })),
+    );
+    const course1 = f.state.buckets.uni.schedule[1].id;
     f.state.buckets.uni.schedule.forEach((row, i) => {
       row.start = ["08:00", "10:00", "12:00"][i];
       row.end = ["09:00", "11:00", "13:00"][i];
@@ -885,7 +893,7 @@ for (const ids of [
     f.render();
     click("Delete: Course 0");
     f.submit();
-    assert.deepEqual(f.calls.at(-1), ["update", "s1"]);
+    assert.deepEqual(f.calls.at(-1), ["update", course1]);
     assert.deepEqual(
       f.state.buckets.uni.schedule.map((row) => row.title),
       ["Course 1", "Course 2"],
