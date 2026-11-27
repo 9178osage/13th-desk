@@ -414,6 +414,7 @@ const sharedDates: Deadline[] = [
   {
     id: "k-conf",
     ymd: "2026-11-23",
+    endYmd: "2026-11-27",
     title: { en: "Conferences, then Thanksgiving", zh: "家长会，然后感恩节" },
     detail: {
       en: "4J is out November 23–27. Conference sign-up is per school.",
@@ -427,6 +428,7 @@ const sharedDates: Deadline[] = [
   {
     id: "k-winter",
     ymd: "2026-12-21",
+    endYmd: "2027-01-04",
     title: { en: "Winter break", zh: "寒假" },
     detail: {
       en: "4J is out December 21 through January 4. Classes resume after the planning day.",
@@ -526,6 +528,7 @@ const sharedDates: Deadline[] = [
   {
     id: "k-spring",
     ymd: "2027-03-22",
+    endYmd: "2027-03-29",
     title: { en: "Spring break", zh: "春假" },
     detail: {
       en: "4J is out March 22–29: spring break, then a teacher planning day. Classes resume March 30.",

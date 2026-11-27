@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { ExternalLink, Heart, MapPinned, Search } from "lucide-react";
-import { areaName, forLevel, places, type AreaId, type Place } from "@/data/places";
+import { areaName, forLevel, places, savedPlacesFor, type AreaId, type Place } from "@/data/places";
 import { Card, Chip, EmptyState, Input, SectionHeader } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { useDesk, useLang } from "@/lib/store";
@@ -53,30 +53,31 @@ export function PlaceBrowser({
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return places
-      .filter((place) => place.page === page)
-      .filter((place) => forLevel(place, level))
-      .filter((place) => {
-        if (cat === "all") return true;
-        if (cat === "saved") return favs.includes(place.id);
-        return place.cat === cat;
-      })
-      .filter((place) => {
-        if (!q) return true;
-        // Fold exactly like the query above: mixing toLowerCase() with
-        // toLocaleLowerCase() makes a few characters (e.g. "İ") stop matching.
-        const hay = [
-          place.name,
-          ...Object.values(place.blurb),
-          tr(lang, place.blurb),
-          ...Object.values(areaName[place.area]),
-          tr(lang, areaName[place.area]),
-          place.hours ? placeHours(lang, place.hours) : "",
-        ]
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(q);
-      });
+    // "Saved" lists every saved place for the level, campus and town alike (grouped by
+    // area below), so it matches the home "Saved" count wherever it is opened.
+    const scoped =
+      cat === "saved"
+        ? savedPlacesFor(favs, level)
+        : places
+            .filter((place) => place.page === page)
+            .filter((place) => forLevel(place, level))
+            .filter((place) => cat === "all" || place.cat === cat);
+    return scoped.filter((place) => {
+      if (!q) return true;
+      // Fold exactly like the query above: mixing toLowerCase() with
+      // toLocaleLowerCase() makes a few characters (e.g. "İ") stop matching.
+      const hay = [
+        place.name,
+        ...Object.values(place.blurb),
+        tr(lang, place.blurb),
+        ...Object.values(areaName[place.area]),
+        tr(lang, areaName[place.area]),
+        place.hours ? placeHours(lang, place.hours) : "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
   }, [page, cat, query, favs, level, lang]);
 
   const grouped = useMemo(() => {

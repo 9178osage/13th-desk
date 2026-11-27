@@ -37,3 +37,13 @@ export function watchForecastAge(
     stop();
   };
 }
+
+/**
+ * Whether a failed forecast request should show the error and "Try again". Only a card
+ * that already shows a forecast keeps it quietly; the module-level cache does not count,
+ * because an expired cached forecast is never put on screen (audit 2026-11-27 P2-03: the
+ * card used to stay on "Checking the sky…" forever after returning past the cache window).
+ */
+export function weatherFailureShown(cardShowsForecast: boolean): boolean {
+  return !cardShowsForecast;
+}

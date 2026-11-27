@@ -19,6 +19,7 @@ import {
   pointsTenths,
   type GpaFigure,
   type GpaInput,
+  targetOutlook,
 } from "@/lib/gpa";
 import type { Level } from "@/lib/levels";
 import { refAfterRemove, rowAt, type RemovedRow } from "@/lib/row-ref";
@@ -407,17 +408,46 @@ function GpaPage() {
               </select>
             </label>
           </div>
-          {whatIfMet ? (
-            <p className="mt-3 text-sm text-ink" role="status">
-              {tr(lang, {
-                en: "Your current GPA already meets or beats that target.",
-                zh: "当前累计绩点已达到或超过该目标。",
-                es: "Tu GPA actual ya alcanza o supera ese objetivo.",
-                ko: "현재 누적 GPA가 이미 목표에 도달했거나 넘었어요.",
-                vi: "GPA tích lũy hiện tại đã đạt hoặc vượt mục tiêu này.",
-                ja: "現在の累積GPAはすでに目標に達しているか、上回っています。",
-              })}
-            </p>
+          {whatIfMet && whatIfHint != null ? (
+            <div className="mt-3 text-sm text-ink" role="status">
+              <p>
+                {tr(lang, {
+                  en: "Your current GPA already meets or beats that target.",
+                  zh: "当前累计绩点已达到或超过该目标。",
+                  es: "Tu GPA actual ya alcanza o supera ese objetivo.",
+                  ko: "현재 누적 GPA가 이미 목표에 도달했거나 넘었어요.",
+                  vi: "GPA tích lũy hiện tại đã đạt hoặc vượt mục tiêu này.",
+                  ja: "現在の累積GPAはすでに目標に達しているか、上回っています。",
+                })}
+              </p>
+              {targetOutlook(estimate) === "keep-any" ? (
+                <p className="mt-1">
+                  {tr(lang, {
+                    en: "Even the lowest grades on the next credits would keep you at or above it.",
+                    zh: "后续学分即使拿到最低成绩，累计绩点也不会低于目标。",
+                    es: "Aunque saques las notas más bajas en los próximos créditos, seguirías en el objetivo o por encima.",
+                    ko: "다음 학점에서 가장 낮은 성적을 받아도 목표 이상을 유지해요.",
+                    vi: "Dù các tín chỉ sắp tới bị điểm thấp nhất, bạn vẫn giữ được mức mục tiêu trở lên.",
+                    ja: "今後の単位が最低評点でも、目標以上を保てます。",
+                  })}
+                </p>
+              ) : (
+                <p className="mt-1">
+                  {tr(lang, {
+                    en: "To stay at or above it after the next credits, you’d need at least about",
+                    zh: "若要修完后续学分后仍不低于目标，这些学分的平均绩点至少需要约",
+                    es: "Para mantenerte en el objetivo o por encima tras los próximos créditos, necesitarías al menos unos",
+                    ko: "다음 학점을 들은 뒤에도 목표 이상을 유지하려면 그 학점에서 최소 약",
+                    vi: "Để vẫn đạt mục tiêu trở lên sau các tín chỉ sắp tới, bạn cần ít nhất khoảng",
+                    ja: "今後の単位を終えても目標以上を保つには、その単位で少なくとも約",
+                  })}{" "}
+                  <span className="font-display text-xl text-moss tabular-nums">
+                    {whatIfHint.toFixed(2)}
+                  </span>{" "}
+                  {tr(lang, { en: "GPA on those credits (estimate).", zh: "（估算）。" })}
+                </p>
+              )}
+            </div>
           ) : whatIfHint != null ? (
             <p className="mt-3 text-sm text-ink" role="status">
               {tr(lang, {

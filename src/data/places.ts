@@ -478,3 +478,14 @@ const AUDIENCE: Record<string, Level[]> = {
 export function forLevel(place: Place, level: Level): boolean {
   return (AUDIENCE[place.id] ?? ["uni"]).includes(level);
 }
+
+/**
+ * Every saved place the visitor can see at this level, campus and town alike. The home
+ * "Saved" card counts exactly these, and the "Saved" filter on either places page lists
+ * exactly these, so the number and the list always agree (audit 2026-11-27 P2-05).
+ * Ids of places that no longer exist or do not apply to the level are not counted.
+ */
+export function savedPlacesFor(favs: readonly string[], level: Level): Place[] {
+  const saved = new Set(favs);
+  return places.filter((place) => saved.has(place.id) && forLevel(place, level));
+}

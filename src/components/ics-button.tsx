@@ -23,6 +23,7 @@ export function IcsButton({ items, lang, href }: { items: Deadline[]; lang: Lang
               items.map((item) => ({
                 id: item.id,
                 ymd: item.ymd,
+                endYmd: item.endYmd,
                 time: item.time,
                 title: tr(lang, item.title),
                 detail: tr(lang, item.detail),

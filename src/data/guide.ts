@@ -5,6 +5,12 @@ export type Bilingual = Copy;
 export type Deadline = {
   id: string;
   ymd: string;
+  /**
+   * Inclusive last day, only for an entry that really is a span of days off (a break).
+   * Single-day milestones ("registration opens", "finals begin") leave it out. Expiry and
+   * calendar export use the last day; lists still sort by the first.
+   */
+  endYmd?: string;
   time?: string;
   title: Bilingual;
   detail: Bilingual;
@@ -57,6 +63,7 @@ export const deadlines: Deadline[] = [
   {
     id: "thanks",
     ymd: "2026-11-26",
+    endYmd: "2026-11-27",
     title: { en: "Thanksgiving break", zh: "感恩节假期" },
     detail: {
       en: "November 26–27. Campus goes quiet. The town does not fully close, and the bus might.",
@@ -138,6 +145,7 @@ export const deadlines: Deadline[] = [
   {
     id: "w-spring",
     ymd: "2027-03-20",
+    endYmd: "2027-03-28",
     title: { en: "Spring break", zh: "春假" },
     detail: {
       en: "UO spring vacation runs March 20–28. Spring classes begin March 29.",

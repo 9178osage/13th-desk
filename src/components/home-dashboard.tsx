@@ -17,6 +17,7 @@ import { Button, Input } from "@/components/ui";
 import { WeekSchedule } from "@/components/week-schedule";
 import { WeatherCard } from "@/components/weather";
 import { deadlines } from "@/data/guide";
+import { savedPlacesFor } from "@/data/places";
 import { fourJEarlyReleaseToday, fourJHalfDayToday, halfDayLine, releaseLine } from "@/data/k12";
 import { quickLinks } from "@/data/quick-links";
 import { useDesk, useLang, weekdayToScheduleDay, type Note } from "@/lib/store";
@@ -209,6 +210,8 @@ export function HomeDashboard() {
   const level = useDesk((s) => s.level);
   const district = useDesk((s) => s.district);
   const bucket = useDesk((s) => s.buckets[s.level]);
+  // Same scope as the "Saved" filter it opens (campus and town places for this level).
+  const savedCount = savedPlacesFor(bucket.favs, level).length;
   const hydrated = useDesk((s) => s.hydrated);
   const langSet = useDesk((s) => s.langSet);
   const levelSet = useDesk((s) => s.levelSet);
@@ -275,11 +278,11 @@ export function HomeDashboard() {
           <span>{c(lang, "classes")}</span>
           <ArrowRight size={16} className="stat-arrow" />
         </a>
-        <Link to="/town">
+        <Link to="/town" search={savedCount > 0 ? { cat: "saved" } : {}}>
           <span className="stat-icon">
             <Heart size={21} />
           </span>
-          <strong>{hydrated ? bucket.favs.length : "—"}</strong>
+          <strong>{hydrated ? savedCount : "—"}</strong>
           <span>{c(lang, "saved")}</span>
           <ArrowRight size={16} className="stat-arrow" />
         </Link>

@@ -232,3 +232,24 @@ export function formatCredits(creditHundredths: number): string {
   const n = creditHundredths / 100;
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
+
+/**
+ * What the target planner should say, kept apart so "already there" never hides what the
+ * next credits still need (audit 2026-11-27 P2-06):
+ * - `keep-any`: at or above the target now, and even 0.00 on the next credits stays there;
+ * - `keep-min`: at or above the target now, but the next credits need at least `needed`;
+ * - `reach`: below the target; `needed` on the next credits gets there;
+ * - `out-of-reach`: below the target and `needed` is above the scale's ceiling;
+ * - `unknown`: not enough input.
+ */
+export type TargetOutlook = "unknown" | "keep-any" | "keep-min" | "reach" | "out-of-reach";
+
+export function targetOutlook(estimate: {
+  ceiling: number;
+  needed: number | null;
+  met: boolean;
+}): TargetOutlook {
+  if (estimate.needed == null) return "unknown";
+  if (estimate.met) return estimate.needed <= 0 ? "keep-any" : "keep-min";
+  return estimate.needed > estimate.ceiling ? "out-of-reach" : "reach";
+}

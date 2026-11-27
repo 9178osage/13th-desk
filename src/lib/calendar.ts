@@ -13,14 +13,10 @@ import { deadlinesFor as k12DeadlinesFor } from "../data/k12.ts";
 import type { DistrictId } from "../data/districts.ts";
 import type { Level } from "./levels.ts";
 import type { Copy } from "./text.ts";
-import { eugeneClock, hmToMin, type EugeneClock } from "./time.ts";
+import { eugeneClock, type EugeneClock } from "./time.ts";
 
-export function deadlinePassed(item: { ymd: string; time?: string }, clock: EugeneClock) {
-  if (item.ymd > clock.ymd) return false;
-  if (item.ymd < clock.ymd) return true;
-  if (!item.time) return false;
-  return clock.minutes >= hmToMin(item.time);
-}
+export { deadlinePassed, lastDayOf } from "./deadline-days.ts";
+import { deadlinePassed } from "./deadline-days.ts";
 
 /** UO term snapshot — update these fields each term (see README / REDESIGN). */
 export const uoAcademicTerm = {

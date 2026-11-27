@@ -8,6 +8,11 @@ export type IcsEvent = {
   id: string;
   /** Eugene calendar day, YYYY-MM-DD. */
   ymd: string;
+  /**
+   * Inclusive last day of a multi-day all-day event (a break). The exported DTEND is the
+   * day after it, because an all-day DTEND is exclusive (RFC 5545 §3.6.1).
+   */
+  endYmd?: string;
   /** Optional Eugene wall-clock time, HH:MM (24h). Without it the event is all-day. */
   time?: string;
   title: string;
@@ -137,8 +142,12 @@ export function buildIcs(events: IcsEvent[], now = new Date()): string {
         `DTEND;TZID=${TZID}:${endDay}T${pad(Math.floor((endMin % 1440) / 60))}${pad(endMin % 60)}00`,
       );
     } else {
+      const last =
+        event.endYmd && validYmd(event.endYmd) && event.endYmd > event.ymd
+          ? event.endYmd
+          : event.ymd;
       lines.push(`DTSTART;VALUE=DATE:${day}`);
-      lines.push(`DTEND;VALUE=DATE:${nextDay(event.ymd).replace(/-/g, "")}`);
+      lines.push(`DTEND;VALUE=DATE:${nextDay(last).replace(/-/g, "")}`);
     }
     lines.push(`SUMMARY:${icsEscape(event.title)}`);
     if (event.detail) lines.push(`DESCRIPTION:${icsEscape(event.detail)}`);

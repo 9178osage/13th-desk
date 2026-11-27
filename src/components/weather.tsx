@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, Sun } from "lucide-react";
 import { useDesk, useLang } from "@/lib/store";
 import type { Level } from "@/lib/levels";
@@ -6,7 +6,7 @@ import { tr, type Copy, type Lang } from "@/lib/text";
 import { formatWhen } from "@/lib/time";
 import { Button } from "@/components/ui";
 import { asForecast, type Forecast } from "@/lib/forecast";
-import { watchForecastAge } from "@/lib/forecast-age";
+import { watchForecastAge, weatherFailureShown } from "@/lib/forecast-age";
 
 import { skyAdvice, type Kind } from "@/lib/sky-advice";
 
@@ -73,6 +73,12 @@ export function WeatherCard() {
   const [fetchedAt, setFetchedAt] = useState<number | null>(() =>
     cachedForecast() && lastForecast ? lastForecast.fetchedAt : null,
   );
+  // Whether THIS card has a forecast on screen. The module cache may still hold an expired
+  // forecast this card never showed; that must not hide the error and "Try again".
+  const shownRef = useRef(data !== null);
+  useEffect(() => {
+    shownRef.current = data !== null;
+  }, [data]);
 
   useEffect(() => {
     // Back on a page within the cache window: keep the forecast, skip the request.
@@ -99,9 +105,10 @@ export function WeatherCard() {
         }
       })
       .catch(() => {
-        // A failed background refresh keeps the last forecast on screen; the next
-        // focus or return to the tab tries again. Only an empty card shows the error.
-        if (!gone && !lastForecast) setFailed(true);
+        // A failed background refresh keeps the forecast already on screen; the next
+        // focus or return to the tab tries again. A card with nothing to show (including
+        // one that came back after the cache expired) shows the error and "Try again".
+        if (!gone && weatherFailureShown(shownRef.current)) setFailed(true);
       })
       .finally(() => clearTimeout(timer));
     return () => {
