@@ -12,6 +12,7 @@ import {
   importUndoOffered,
   parseDeskBackup,
   writePreImportSnapshot,
+  type BackupFlagProblem,
   type BackupParseError,
   type BackupSummary,
   type PersistedDeskLike,
@@ -31,7 +32,7 @@ import {
   useDesk,
   useLang,
 } from "@/lib/store";
-import { tr } from "@/lib/text";
+import { tr, type Lang } from "@/lib/text";
 
 const ERROR_COPY: Record<BackupParseError, DeskCopyKey> = {
   json: "importBadJson",
@@ -41,6 +42,13 @@ const ERROR_COPY: Record<BackupParseError, DeskCopyKey> = {
   times: "importBadTimes",
   grades: "importBadGrades",
   overflow: "importTooMany",
+  flag: "importBadShape",
+};
+
+const FLAG_COPY: Record<BackupFlagProblem["list"], DeskCopyKey> = {
+  notes: "importBadFlagNotes",
+  grades: "importBadFlagGrades",
+  schedule: "importBadFlagSchedule",
 };
 
 type PendingImport = {
@@ -66,6 +74,8 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
   const hintId = useId();
   const undoTitleId = useId();
   const [message, setMessage] = useState<DeskCopyKey | null>(null);
+  // Where the bad yes/no field is; only read while one of the FLAG_COPY messages shows.
+  const [flagProblem, setFlagProblem] = useState<BackupFlagProblem | null>(null);
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [undoAsk, setUndoAsk] = useState<UndoAsk | null>(null);
   // One shared snapshot state for the sidebar and footer copies (see pre-import-state.ts).
@@ -121,7 +131,8 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
       }
       const result = parseDeskBackup(outcome.text);
       if (!result.ok) {
-        setMessage(ERROR_COPY[result.error]);
+        setFlagProblem(result.flag ?? null);
+        setMessage(result.flag ? FLAG_COPY[result.flag.list] : ERROR_COPY[result.error]);
         return;
       }
       setPending({ state: result.backup.state, summary: result.summary, fileName });
@@ -321,7 +332,7 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
       )}
       {/* Always mounted so screen readers announce export/import/undo results. */}
       <div className="inline-feedback backup-feedback" role="status">
-        {message && <span>{c(lang, message)}</span>}
+        {message && <span>{messageText(lang, message, flagProblem)}</span>}
         {showUndo && (
           <span className="backup-undo-bar">
             <button
@@ -346,6 +357,12 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
       </div>
     </div>
   );
+}
+
+function messageText(lang: Lang, key: DeskCopyKey, flag: BackupFlagProblem | null): string {
+  if (!flag || key !== FLAG_COPY[flag.list]) return c(lang, key);
+  const level = LEVELS.find((item) => item.id === flag.level);
+  return c(lang, key, { row: flag.row, level: level ? tr(lang, level) : flag.level });
 }
 
 /** Whole-desk counts for the undo confirmation (every stage, like the import preview). */

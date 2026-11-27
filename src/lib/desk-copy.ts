@@ -805,6 +805,31 @@ const copy = {
     "Có mục điểm không hợp lệ trong bản sao lưu. Chưa thay đổi gì.",
     "バックアップに無効な成績があります。データは変更していません。",
   ],
+  // A yes/no field in a backup row that is not true/false; {row} is 1-based, field names stay literal.
+  importBadFlagNotes: [
+    'Task {row} in {level} has a "done" value that isn\'t true or false. Nothing was changed.',
+    '{level}的第 {row} 条待办里，"done" 的值不是 true 或 false。当前数据未改动。',
+    'La tarea {row} de {level} tiene un valor "done" que no es true ni false. No se cambió nada.',
+    '{level}의 {row}번째 할 일에 있는 "done" 값이 true나 false가 아니에요. 데이터는 그대로예요.',
+    'Việc {row} trong {level} có giá trị "done" không phải true hoặc false. Chưa thay đổi gì.',
+    "{level}の {row} 件目のタスクの「done」が true でも false でもありません。データは変更していません。",
+  ],
+  importBadFlagGrades: [
+    'Grade {row} in {level} has a "boost" value that isn\'t true or false. Nothing was changed.',
+    '{level}的第 {row} 条成绩里，"boost" 的值不是 true 或 false。当前数据未改动。',
+    'La nota {row} de {level} tiene un valor "boost" que no es true ni false. No se cambió nada.',
+    '{level}의 {row}번째 성적에 있는 "boost" 값이 true나 false가 아니에요. 데이터는 그대로예요.',
+    'Điểm {row} trong {level} có giá trị "boost" không phải true hoặc false. Chưa thay đổi gì.',
+    "{level}の {row} 件目の成績の「boost」が true でも false でもありません。データは変更していません。",
+  ],
+  importBadFlagSchedule: [
+    'Class {row} in {level} has a "pinned" value that isn\'t true or false. Nothing was changed.',
+    '{level}的第 {row} 节课里，"pinned" 的值不是 true 或 false。当前数据未改动。',
+    'La clase {row} de {level} tiene un valor "pinned" que no es true ni false. No se cambió nada.',
+    '{level}의 {row}번째 수업에 있는 "pinned" 값이 true나 false가 아니에요. 데이터는 그대로예요.',
+    'Lớp {row} trong {level} có giá trị "pinned" không phải true hoặc false. Chưa thay đổi gì.',
+    "{level}の {row} 件目の授業の「pinned」が true でも false でもありません。データは変更していません。",
+  ],
   // Small section kickers on Today (were English-only).
   eyebrowTasks: [
     "ONE THING AT A TIME",

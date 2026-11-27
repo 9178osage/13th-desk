@@ -49,11 +49,52 @@ export type BackupSummary = {
 };
 
 export type BackupParseError =
-  "json" | "shape" | "version" | "stages" | "times" | "grades" | "overflow";
+  "json" | "shape" | "version" | "stages" | "times" | "grades" | "overflow" | "flag";
+
+/** Where a yes/no field in a backup is not a real boolean (row is 1-based, as shown). */
+export type BackupFlagProblem = {
+  level: Level;
+  list: "notes" | "grades" | "schedule";
+  row: number;
+  field: "done" | "boost" | "pinned";
+};
 
 export type BackupParseResult =
   | { ok: true; backup: DeskBackupFile; summary: BackupSummary }
-  | { ok: false; error: BackupParseError };
+  | { ok: false; error: BackupParseError; flag?: BackupFlagProblem };
+
+/**
+ * The yes/no fields on saved rows. The save loader reads them leniently (an old save keeps
+ * loading), but a backup is a file someone may have edited or generated: `"false"` would
+ * read as done and `"true"` as no boost, so import refuses anything but true/false. A
+ * missing field is fine — older exports simply lack it and it means false.
+ */
+const ROW_FLAGS = [
+  ["notes", "done"],
+  ["grades", "boost"],
+  ["schedule", "pinned"],
+] as const;
+
+export function findMalformedFlag(buckets: unknown): BackupFlagProblem | null {
+  if (!buckets || typeof buckets !== "object" || Array.isArray(buckets)) return null;
+  for (const level of LEVELS) {
+    const bucket = (buckets as Record<string, unknown>)[level];
+    if (!bucket || typeof bucket !== "object" || Array.isArray(bucket)) continue;
+    for (const [list, field] of ROW_FLAGS) {
+      const rows = (bucket as Record<string, unknown>)[list];
+      if (!Array.isArray(rows) || rows.length > DESK_READ_CAP) continue;
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || typeof row !== "object" || !(field in row)) continue;
+        const flag = (row as Record<string, unknown>)[field];
+        if (flag !== undefined && typeof flag !== "boolean") {
+          return { level, list, row: i + 1, field };
+        }
+      }
+    }
+  }
+  return null;
+}
 
 /**
  * One bucket from a backup file. Import accepts exactly what the save loader accepts, so a
@@ -213,6 +254,14 @@ export function parseDeskBackup(raw: string): BackupParseResult {
   if (file.formatVersion !== DESK_BACKUP_FORMAT) {
     if (typeof file.formatVersion === "number") return { ok: false, error: "version" };
     return { ok: false, error: "shape" };
+  }
+  const rawBuckets =
+    file.state && typeof file.state === "object"
+      ? (file.state as Record<string, unknown>).buckets
+      : undefined;
+  if (rawBuckets && typeof rawBuckets === "object" && !bucketsOverReadCap(rawBuckets)) {
+    const flag = findMalformedFlag(rawBuckets);
+    if (flag) return { ok: false, error: "flag", flag };
   }
   const state = parseState(file.state);
   if (!state) {
