@@ -11,6 +11,12 @@ import { grokPwaPlugin } from "./scripts/grok-pwa-plugin.mjs";
 // @ts-expect-error JS plugin alongside the TS vite config
 import { appEnvPlugin } from "./scripts/app-env-plugin.mjs";
 import { isMigrationFile } from "./scripts/migration-plan.mjs";
+import {
+  DEV_FS_DENY,
+  DEV_PORT,
+  devHost,
+  previewContentSecurityPolicy,
+} from "./scripts/dev-server-policy.mjs";
 
 /** The files `src/lib/db.ts` globs — same directory, same non-recursive scope. */
 function hasGlobbedMigrations(root: string): boolean {
@@ -154,7 +160,8 @@ function securityHeadersPlugin(headers: Record<string, string>): Plugin {
   };
 }
 
-// `0.0.0.0:8080` is the live-preview contract — don't change host/port.
+// `0.0.0.0:8080` is the live-preview contract inside the App Builder sandbox — kept there
+// (see scripts/dev-server-policy.mjs); a personal checkout listens on loopback by default.
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
 const securityHeaders = {
@@ -181,31 +188,22 @@ function productionContentSecurityPolicy(): string | undefined {
 
 const previewSecurityHeaders = {
   ...securityHeaders,
-  "Content-Security-Policy": productionContentSecurityPolicy() ?? "frame-ancestors 'self'",
+  // Same policy as production, minus `upgrade-insecure-requests`: the preview is plain
+  // HTTP on loopback, and WebKit would otherwise upgrade every asset to a missing HTTPS.
+  "Content-Security-Policy":
+    previewContentSecurityPolicy(productionContentSecurityPolicy()) ?? "frame-ancestors 'self'",
 };
 
 export default defineConfig(({ command, isPreview }) => ({
   server: {
-    host: "0.0.0.0",
-    port: 8080,
+    host: devHost(),
+    port: DEV_PORT,
     strictPort: true,
     headers: securityHeaders,
     fs: {
-      // The dev server can listen on 0.0.0.0. Never serve private or repo-internal
-      // files from the project root to the network (Vite's defaults are kept first).
-      deny: [
-        ".env",
-        ".env.*",
-        "*.{crt,pem}",
-        "**/.git/**",
-        "**/申请材料/**",
-        "**/attachments/**",
-        "**/.grok/**",
-        "**/.app-builder/**",
-        "**/AGENTS.md",
-        "**/*.md",
-        "**/package-lock.json",
-      ],
+      // Replaces Vite's defaults, so the list starts with all of them, then adds this
+      // project's private, local-only folders (scripts/dev-server-policy.mjs).
+      deny: DEV_FS_DENY,
     },
   },
   preview: {

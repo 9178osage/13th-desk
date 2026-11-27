@@ -62,7 +62,7 @@ npm run dev:local
 
 先启用 Node 26；使用 fnm 时可运行 `fnm install`、`fnm use`，读取本仓库的 `.nvmrc`，无需替换其他项目的系统 Node。
 
-开发地址为 `http://127.0.0.1:8080`。`dev:local` 只监听本机；`npm run dev` 监听所有接口，供预览沙盒使用。开发与构建都经过 `scripts/with-app-env.mjs`，读取 `.app-builder/app-env.json`，不要直接调用 Vite。当前配置关闭认证和业务数据库，无需为书桌功能创建 `.env`。
+开发地址为 `http://127.0.0.1:8080`。`npm run dev` 和 `dev:local` 默认都只监听本机；只有预览沙盒（或显式执行 `npm run dev:network`）才监听所有接口，私人资料目录也不会经开发服务器提供。开发与构建都经过 `scripts/with-app-env.mjs`，读取 `.app-builder/app-env.json`，不要直接调用 Vite。当前配置关闭认证和业务数据库，无需为书桌功能创建 `.env`。
 
 首次运行完整测试前，安装海报 PDF 二维码校验所需的 Chromium：
 
@@ -178,7 +178,7 @@ The visual system uses a cream paper background, navy ink, electric-blue accents
 
 ### Run locally
 
-Use **Node.js 26** from `.nvmrc`. `dev:local` binds to this computer only; `npm run dev` is for the preview sandbox. Authentication and the business database are disabled; no `.env` is needed for desk features.
+Use **Node.js 26** from `.nvmrc`. `npm run dev` and `dev:local` bind to this computer only; only the preview sandbox (or an explicit `npm run dev:network`) listens on every interface, and private local folders are never served by the dev server. Authentication and the business database are disabled; no `.env` is needed for desk features.
 
 Install Chromium once for the full test suite (`npx playwright install chromium`). See the [shared command reference](#本地运行) and [script index](scripts/README.md).
 
@@ -278,7 +278,7 @@ La imagen visual usa fondo de papel crema, tinta navy, acentos azul eléctrico, 
 
 ### Ejecutar en local
 
-Usa **Node.js 26** según `.nvmrc`. `dev:local` solo escucha en este equipo; `npm run dev` es para el entorno de vista previa. No hace falta crear `.env` para el escritorio.
+Usa **Node.js 26** según `.nvmrc`. `npm run dev` y `dev:local` solo escuchan en este equipo; solo el entorno de vista previa (o `npm run dev:network`, de forma explícita) escucha en todas las interfaces, y el servidor de desarrollo nunca sirve carpetas privadas locales. No hace falta crear `.env` para el escritorio.
 
 Instala Chromium una vez para las pruebas completas: `npx playwright install chromium`. Consulta los [comandos compartidos](#本地运行) y el [índice de scripts](scripts/README.md).
 
@@ -376,7 +376,7 @@ Debes estar autenticado y vinculado al mismo proyecto de Vercel.
 
 ### 로컬 실행
 
-`.nvmrc`의 **Node.js 26**을 사용하세요. `dev:local`은 이 컴퓨터에서만 접속하며 `npm run dev`는 프리뷰 환경용입니다. 데스크 기능에 `.env`는 필요 없습니다.
+`.nvmrc`의 **Node.js 26**을 사용하세요. `npm run dev`와 `dev:local`은 이 컴퓨터에서만 접속할 수 있어요. 모든 인터페이스에서 듣는 건 프리뷰 환경(또는 명시적으로 실행한 `npm run dev:network`)뿐이고, 개발 서버는 로컬 개인 폴더를 제공하지 않아요. 데스크 기능에 `.env`는 필요 없습니다.
 
 전체 테스트를 위해 Chromium을 한 번 설치하세요: `npx playwright install chromium`. [공통 명령](#本地运行)과 [스크립트 안내](scripts/README.md)를 참고하세요.
 
@@ -474,7 +474,7 @@ Giao diện dùng nền giấy kem, mực navy, điểm nhấn xanh điện, cù
 
 ### Chạy trên máy
 
-Dùng **Node.js 26** theo `.nvmrc`. `dev:local` chỉ lắng nghe trên máy này; `npm run dev` dành cho môi trường xem trước. Bàn học không cần tệp `.env`.
+Dùng **Node.js 26** theo `.nvmrc`. `npm run dev` và `dev:local` chỉ lắng nghe trên máy này; chỉ môi trường xem trước (hoặc khi chạy rõ ràng `npm run dev:network`) mới lắng nghe trên mọi giao diện, và máy chủ phát triển không bao giờ phục vụ các thư mục riêng tư cục bộ. Bàn học không cần tệp `.env`.
 
 Cài Chromium một lần cho bộ kiểm thử đầy đủ: `npx playwright install chromium`. Xem [lệnh dùng chung](#本地运行) và [chỉ mục script](scripts/README.md).
 
@@ -572,7 +572,7 @@ Bạn cần đã đăng nhập và liên kết cùng một dự án Vercel.
 
 ### ローカル実行
 
-`.nvmrc` の **Node.js 26** を使います。`dev:local` はこの端末だけで接続でき、`npm run dev` はプレビュー環境用です。デスク機能に `.env` は不要です。
+`.nvmrc` の **Node.js 26** を使います。`npm run dev` と `dev:local` はこの端末からのみ接続できます。すべてのインターフェースで待ち受けるのはプレビュー環境（または明示的に実行した `npm run dev:network`）だけで、開発サーバーはローカルの個人フォルダーを配信しません。デスク機能に `.env` は不要です。
 
 全テスト用にChromiumを一度インストールします：`npx playwright install chromium`。[共通コマンド](#本地运行)と[スクリプト一覧](scripts/README.md)も参照してください。
 

@@ -9,4 +9,5 @@ fi
 if curl -sf -o /dev/null --max-time 2 http://127.0.0.1:8080/; then
   exit 0
 fi
-npm run dev >>/tmp/app-startup.log 2>&1 &
+# The live-preview proxy discovers 0.0.0.0:8080 (AGENTS.md); `npm run dev` alone binds loopback.
+EUGENE_DEV_HOST=0.0.0.0 npm run dev >>/tmp/app-startup.log 2>&1 &
