@@ -35,7 +35,7 @@ import {
   parseBucket,
   withStableIds,
 } from "./desk-records.ts";
-import { parsePersistedDesk, type PersistedDeskLike } from "@/lib/desk-backup";
+import { deskFingerprint, parsePersistedDesk, type PersistedDeskLike } from "@/lib/desk-backup";
 import { notifyRecoveryListeners } from "@/lib/recovery-copies";
 import {
   EMPTY_PREFS,
@@ -701,8 +701,8 @@ if (typeof window !== "undefined") {
  * "Repair and continue" after an `identity` conflict: save the desk with repaired ids and
  * resume saving. The original save was already kept as a recovery copy.
  */
-export function repairDeskIdentity(): boolean {
-  return deskStorage?.repairIdentity(applyStoredDesk) ?? false;
+export async function repairDeskIdentity(): Promise<boolean> {
+  return (await deskStorage?.repairIdentity(applyStoredDesk)) ?? false;
 }
 
 /** Language saved under `13th-desk-v1`, read without touching the store. */
@@ -759,6 +759,35 @@ export async function replacePersistedDeskState(next: PersistedDeskLike): Promis
     hydrated: true,
   });
   return true;
+}
+
+/**
+ * "Undo import": put `previous` back, but only while the desk still fingerprints as
+ * `expected` (the version the visitor saw and, if it had changed, chose to keep a copy
+ * of). Checked under the save lock against the saved desk and this tab's unsaved edits.
+ */
+export async function undoImportTo(
+  previous: PersistedDeskLike,
+  expected: string,
+): Promise<"ok" | "changed" | "failed"> {
+  if (!deskStorage) return "failed";
+  const payload: PersistedDeskLike = {
+    ...previous,
+    buckets: withStableIds({ buckets: structuredClone(previous.buckets) }).buckets,
+  };
+  const matches = (value: StorageValue<PersistedDesk> | null) => {
+    if (!value) return false;
+    const state = parsePersistedDesk(value.state, "stored");
+    return state !== null && deskFingerprint(state) === expected;
+  };
+  const result = await deskStorage.replaceIf(
+    { state: payload as PersistedDesk, version: DESK_STORAGE_VERSION },
+    (saved, unsaved) => (unsaved ? matches(unsaved) : matches(saved)),
+  );
+  if (result !== "ok") return result;
+  preHydrationDistrict = { set: false, value: null };
+  useDesk.setState({ ...payload, hydrated: true });
+  return "ok";
 }
 
 let hydratePromise: Promise<void> | null = null;

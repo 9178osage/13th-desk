@@ -17,8 +17,9 @@ export const RECOVERY_EVENT = "eugene-desk-recovery" as const;
  * - `unreadable`: an unreadable save that an import or restore replaced.
  * - `old-tab`: an older version of the app saved in another tab; this tab's desk was kept.
  * - `identity`: a save whose item ids could not be trusted; it was kept before repair.
+ * - `undo`: the desk as it was when "Undo import" replaced it (it had changed since).
  */
-export const RECOVERY_SOURCES = ["conflict", "unreadable", "old-tab", "identity"] as const;
+export const RECOVERY_SOURCES = ["conflict", "unreadable", "old-tab", "identity", "undo"] as const;
 export type RecoverySource = (typeof RECOVERY_SOURCES)[number];
 
 export type RecoveryEnvelope = {

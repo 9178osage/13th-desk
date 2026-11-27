@@ -39,6 +39,7 @@ const groups = [
       "src/lib/tab-presence.test.ts",
       "src/lib/channels.test.ts",
       "src/lib/recovery-copies.test.ts",
+      "src/lib/undo-import.test.ts",
       "src/lib/chunk-reload.test.ts",
       "src/lib/app-data/app-data.test.ts",
       "src/lib/app-data/readiness-schedule.test.ts",

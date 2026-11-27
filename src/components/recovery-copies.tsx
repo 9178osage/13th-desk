@@ -1,15 +1,19 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { LifeBuoy } from "lucide-react";
 import { Button } from "@/components/ui";
 import {
   beforeImportFileName,
   DESK_PRE_IMPORT_KEY,
+  deskFingerprint,
   downloadDeskBackupFile,
+  readPreImportRecord,
   writePreImportSnapshot,
 } from "@/lib/desk-backup";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { LEVELS } from "@/lib/levels";
 import { LOCALE } from "@/lib/locale";
+import { useModalFocus } from "@/lib/modal-focus";
+import { setPreImportRecord } from "@/lib/pre-import-state";
 import {
   deleteRecoveryCopy,
   downloadRecoveryCopy,
@@ -26,6 +30,7 @@ const SOURCE_COPY: Record<RecoveryCopy["source"], DeskCopyKey> = {
   unreadable: "recoveryFromUnreadable",
   "old-tab": "recoveryFromOldTab",
   identity: "recoveryFromIdentity",
+  undo: "recoveryFromUndo",
   unknown: "recoveryFromUnknown",
 };
 
@@ -93,16 +98,21 @@ export function RecoveryCopies({
   }, []);
 
   const shown = open && copies.length > 0;
+  const askingRef = useRef(asking);
   useEffect(() => {
-    if (!shown) return;
-    const opener = openerRef.current;
-    const panel = panelRef.current;
-    titleRef.current?.focus();
-    return () => {
-      const active = document.activeElement;
-      if (!active || active === document.body || panel?.contains(active)) opener?.focus();
-    };
-  }, [shown]);
+    askingRef.current = asking;
+  });
+  // Focus starts on the title; Tab and Shift+Tab (including the first Shift+Tab from the
+  // title) stay in the dialog, Escape works wherever focus is, and focus returns to the
+  // "Local recovery copies" button afterwards.
+  useModalFocus(shown, panelRef, {
+    initial: titleRef,
+    returnTo: openerRef,
+    onEscape: () => {
+      if (askingRef.current) setAsking(null);
+      else close();
+    },
+  });
 
   if (copies.length === 0) return null;
 
@@ -110,27 +120,6 @@ export function RecoveryCopies({
     setOpen(false);
     setAsking(null);
     setPreviewing(null);
-  }
-
-  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      if (asking) setAsking(null);
-      else close();
-      return;
-    }
-    if (event.key !== "Tab" || !panelRef.current) return;
-    const focusable = [...panelRef.current.querySelectorAll<HTMLElement>("button:not(:disabled)")];
-    if (focusable.length === 0) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
   }
 
   async function restore(copy: RecoveryCopy) {
@@ -141,7 +130,7 @@ export function RecoveryCopies({
     const before = getPersistedDeskState();
     const previousSnapshot = readPreviousSnapshot();
     downloadDeskBackupFile(before, beforeImportFileName());
-    const kept = writePreImportSnapshot(before);
+    const kept = writePreImportSnapshot(before, copy.state);
     const saved = await replacePersistedDeskState(copy.state);
     setBusy(false);
     setAsking(null);
@@ -152,9 +141,12 @@ export function RecoveryCopies({
       } catch {
         /* the downloaded file still holds the desk */
       }
+      setPreImportRecord(readPreImportRecord());
       onMessage("importSaveFailed");
       return;
     }
+    // Undo after a restore works like undo after an import (memory copy if storage was full).
+    setPreImportRecord({ state: before, importedFingerprint: deskFingerprint(copy.state) });
     close();
     onMessage(kept ? "recoveryRestored" : "beforeImportStorageFail");
   }
@@ -189,7 +181,6 @@ export function RecoveryCopies({
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            onKeyDown={onKeyDown}
           >
             <h2 id={titleId} ref={titleRef} tabIndex={-1} className="recovery-title">
               {c(lang, "recoveryTitle")}

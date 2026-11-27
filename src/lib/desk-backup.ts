@@ -280,6 +280,16 @@ export function importUndoOffered(hasSnapshot: boolean): boolean {
   return hasSnapshot;
 }
 
+/** The current desk, downloaded before "Undo import" replaces it. */
+export function beforeUndoFileName(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `eugene-desk-before-undo-${y}-${m}-${d}-${hh}${mm}.json`;
+}
+
 export function beforeImportFileName(date = new Date()): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -314,16 +324,72 @@ function notifyPreImportListeners() {
   }
 }
 
-export function readPreImportSnapshot(): PersistedDeskLike | null {
+/** JSON with object keys sorted, so equal desks always serialize to equal text. */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .filter((key) => record[key] !== undefined)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
+
+/**
+ * A short fingerprint of a whole desk (every stage, preference and record), read through
+ * the same reader as a save so the in-memory desk and its saved copy fingerprint alike.
+ * Used to tell whether the desk changed after an import before "Undo import" replaces it.
+ */
+export function deskFingerprint(state: PersistedDeskLike): string {
+  const text = canonicalJson(parsePersistedDesk(state, "stored") ?? state);
+  // cyrb53: fast, dependency-free, 53-bit; collisions are irrelevant at this scale.
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `${text.length.toString(36)}-${(4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36)}`;
+}
+
+/**
+ * The desk before the last import, plus the fingerprint of the desk that import wrote.
+ * `importedFingerprint` is null for a snapshot saved by an older version: then nobody
+ * knows whether the desk changed since, so undo always asks first.
+ */
+export type PreImportRecord = { state: PersistedDeskLike; importedFingerprint: string | null };
+
+export function parsePreImportRecord(raw: string | null): PreImportRecord | null {
+  if (!raw) return null;
+  const parsed = parseDeskBackup(raw);
+  if (!parsed.ok) return null;
+  let importedFingerprint: string | null = null;
+  try {
+    const value = (JSON.parse(raw) as { importedFingerprint?: unknown }).importedFingerprint;
+    if (typeof value === "string" && value) importedFingerprint = value;
+  } catch {
+    /* parseDeskBackup already accepted the JSON */
+  }
+  return { state: parsed.backup.state, importedFingerprint };
+}
+
+export function readPreImportRecord(): PreImportRecord | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(DESK_PRE_IMPORT_KEY);
-    if (!raw) return null;
-    const parsed = parseDeskBackup(raw);
-    return parsed.ok ? parsed.backup.state : null;
+    return parsePreImportRecord(localStorage.getItem(DESK_PRE_IMPORT_KEY));
   } catch {
     return null;
   }
+}
+
+export function readPreImportSnapshot(): PersistedDeskLike | null {
+  return readPreImportRecord()?.state ?? null;
 }
 
 export function clearPreImportSnapshot(): void {
@@ -336,10 +402,20 @@ export function clearPreImportSnapshot(): void {
   notifyPreImportListeners();
 }
 
-/** Persist snapshot for undo-after-reload. Returns false when storage quota blocks the write. */
-export function writePreImportSnapshot(state: PersistedDeskLike): boolean {
+/**
+ * Persist snapshot for undo-after-reload. Returns false when storage quota blocks the write.
+ * `imported` is the desk the import (or restore) wrote; its fingerprint is kept next to the
+ * snapshot (an extra field older versions ignore) so undo can tell whether the desk changed.
+ */
+export function writePreImportSnapshot(
+  state: PersistedDeskLike,
+  imported?: PersistedDeskLike,
+): boolean {
   if (typeof window === "undefined") return false;
-  const payload = JSON.stringify(serializeDeskBackup(state));
+  const payload = JSON.stringify({
+    ...serializeDeskBackup(state),
+    ...(imported ? { importedFingerprint: deskFingerprint(imported) } : {}),
+  });
   try {
     localStorage.setItem(DESK_PRE_IMPORT_KEY, payload);
     notifyPreImportListeners();

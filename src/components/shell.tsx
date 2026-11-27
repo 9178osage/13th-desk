@@ -249,7 +249,11 @@ export function Shell({ children }: { children: ReactNode }) {
         {conflict === "identity" && (
           <div className="storage-alert conflict-alert" role="alert">
             <span>{c(lang, "identityConflict")}</span>
-            <button type="button" className="conflict-action" onClick={() => repairDeskIdentity()}>
+            <button
+              type="button"
+              className="conflict-action"
+              onClick={() => void repairDeskIdentity()}
+            >
               {c(lang, "repairContinue")}
             </button>
           </div>

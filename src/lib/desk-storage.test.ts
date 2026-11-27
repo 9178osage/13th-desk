@@ -815,7 +815,7 @@ test("a marked save whose ids would change again is a conflict, repaired only on
   assert.equal(tab.copies()[0].raw, raw, "the original save is kept verbatim");
   tab.adapter.storage.setItem(KEY, loaded!);
   assert.equal(data.get(KEY), raw, "no automatic overwrite");
-  assert.equal(tab.adapter.repairIdentity(), true);
+  assert.equal(await tab.adapter.repairIdentity(), true);
   assert.deepEqual(tab.conflicts, ["identity", null]);
   const written = JSON.parse(data.get(KEY)!);
   assert.deepEqual(
@@ -823,7 +823,7 @@ test("a marked save whose ids would change again is a conflict, repaired only on
     ["x", "x~1"],
   );
   assert.equal(written.identity, 1);
-  assert.equal(tab.adapter.repairIdentity(), false, "nothing left to repair");
+  assert.equal(await tab.adapter.repairIdentity(), false, "nothing left to repair");
 });
 
 test("a save from a newer identity scheme is held like a newer version", async () => {
@@ -834,4 +834,200 @@ test("a save from a newer identity scheme is held like a newer version", async (
   assert.equal(tab.status(), "failed");
   tab.adapter.storage.setItem(KEY, value("mine"));
   assert.equal(data.get(KEY), raw);
+});
+
+// Audit 2026-11-27 P1-02: a conflict that arrives from another tab must be repairable.
+function lockedIdentityTab(data: Map<string, string>, failWrites: { on: boolean }) {
+  const conflicts: (string | null)[] = [];
+  const lockNames: string[] = [];
+  let status: SaveStatus = "ready";
+  let shown: RowsDesk | null = null;
+  const adapter = createDeskStorage<RowsDesk>({
+    storage: {
+      getItem: (key) => data.get(key) ?? null,
+      setItem: (key, raw) => {
+        if (failWrites.on && key === KEY) throw new Error("quota");
+        data.set(key, raw);
+      },
+      removeItem: (key) => void data.delete(key),
+    },
+    status: (next) => {
+      status = next;
+    },
+    conflict: (kind) => void conflicts.push(kind),
+    locks: {
+      request: async (name, callback) => {
+        lockNames.push(name);
+        return callback();
+      },
+    },
+    normalize: (state) => {
+      const ids = new Map<string, number>();
+      let changed = false;
+      const notes = state.notes.map((row) => {
+        const n = ids.get(row.id) ?? 0;
+        ids.set(row.id, n + 1);
+        if (n === 0) return row;
+        changed = true;
+        return { ...row, id: `${row.id}~${n}` };
+      });
+      return changed ? { notes } : state;
+    },
+  });
+  const copies = () =>
+    [...data.keys()]
+      .filter((key) => key.startsWith(`${KEY}:recovery:`))
+      .map((key) => unwrapRecoveryCopy(data.get(key)!));
+  const apply = (v: { state: RowsDesk }) => {
+    shown = v.state;
+  };
+  return { adapter, conflicts, copies, lockNames, apply, shown: () => shown, status: () => status };
+}
+const ids = (raw: string | undefined) => JSON.parse(raw!).state.notes.map((row: Row) => row.id);
+
+test("P1-02: a duplicate-id save from another tab is repaired on disk and saving resumes", async () => {
+  const data = new Map<string, string>([[KEY, rowsSave([["a", "A"]], 1)]]);
+  const tab = lockedIdentityTab(data, { on: false });
+  await tab.adapter.storage.getItem(KEY);
+  const dup = rowsSave(
+    [
+      ["x", "A"],
+      ["x", "B"],
+    ],
+    1,
+  );
+  data.set(KEY, dup);
+  assert.equal(tab.adapter.syncFrom(dup, tab.apply), false);
+  assert.equal(tab.adapter.conflict(), "identity");
+  assert.equal(tab.copies().length, 1);
+  assert.equal(await tab.adapter.repairIdentity(tab.apply), true);
+  assert.equal(tab.adapter.conflict(), null, "the pause is really over");
+  assert.deepEqual(ids(data.get(KEY)), ["x", "x~1"], "the repaired ids are on disk");
+  assert.equal(tab.copies().length, 1, "the original is archived once, not again");
+  assert.ok(tab.lockNames.includes("13th-desk-v1:save"), "repair runs under the save lock");
+  assert.deepEqual(tab.conflicts, ["identity", null]);
+  // Normal saving works again.
+  tab.adapter.storage.setItem(KEY, {
+    state: {
+      notes: [
+        { id: "x", text: "A" },
+        { id: "x~1", text: "B" },
+        { id: "n", text: "new" },
+      ],
+    },
+    version: 0,
+  });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(ids(data.get(KEY)), ["x", "x~1", "n"]);
+  assert.equal(tab.adapter.conflict(), null);
+});
+
+test("P1-02: edits made during the pause are merged into the repaired desk", async () => {
+  const data = new Map<string, string>([[KEY, rowsSave([["a", "A"]], 1)]]);
+  const tab = lockedIdentityTab(data, { on: false });
+  await tab.adapter.storage.getItem(KEY);
+  const dup = rowsSave(
+    [
+      ["a", "A"],
+      ["x", "B"],
+      ["x", "C"],
+    ],
+    1,
+  );
+  data.set(KEY, dup);
+  tab.adapter.syncFrom(dup, tab.apply);
+  tab.adapter.storage.setItem(KEY, {
+    state: {
+      notes: [
+        { id: "a", text: "A" },
+        { id: "mine", text: "mine" },
+      ],
+    },
+    version: 0,
+  });
+  assert.equal(data.get(KEY), dup, "paused: nothing written yet");
+  assert.equal(await tab.adapter.repairIdentity(tab.apply), true);
+  assert.deepEqual(ids(data.get(KEY)).sort(), ["a", "mine", "x", "x~1"]);
+  assert.deepEqual(
+    tab
+      .shown()
+      ?.notes.map((row) => row.id)
+      .sort(),
+    ["a", "mine", "x", "x~1"],
+  );
+});
+
+test("P1-02: a newer write during the pause is classified again, never overwritten", async () => {
+  const data = new Map<string, string>([[KEY, rowsSave([["a", "A"]], 1)]]);
+  const tab = lockedIdentityTab(data, { on: false });
+  await tab.adapter.storage.getItem(KEY);
+  const dup = rowsSave(
+    [
+      ["x", "A"],
+      ["x", "B"],
+    ],
+    1,
+  );
+  data.set(KEY, dup);
+  tab.adapter.syncFrom(dup, tab.apply);
+  // Another untrusted save lands while the notice is up.
+  const dup2 = rowsSave(
+    [
+      ["y", "C"],
+      ["y", "D"],
+    ],
+    1,
+  );
+  data.set(KEY, dup2);
+  assert.equal(await tab.adapter.repairIdentity(tab.apply), false, "not a silent success");
+  assert.equal(tab.adapter.conflict(), "identity");
+  assert.equal(data.get(KEY), dup2, "the newer save is not overwritten");
+  assert.equal(tab.copies().length, 2, "the newer original is kept too");
+  // Repairing again now writes the newer value's repair.
+  assert.equal(await tab.adapter.repairIdentity(tab.apply), true);
+  assert.deepEqual(ids(data.get(KEY)), ["y", "y~1"]);
+  assert.equal(tab.copies().length, 2);
+
+  // A clean save from this build during a pause is kept as is.
+  const data2 = new Map<string, string>([[KEY, rowsSave([["a", "A"]], 1)]]);
+  const other = lockedIdentityTab(data2, { on: false });
+  await other.adapter.storage.getItem(KEY);
+  data2.set(KEY, dup);
+  other.adapter.syncFrom(dup, other.apply);
+  const clean = rowsSave(
+    [
+      ["x", "A"],
+      ["z", "B"],
+    ],
+    1,
+  );
+  data2.set(KEY, clean);
+  assert.equal(await other.adapter.repairIdentity(other.apply), true);
+  assert.equal(data2.get(KEY), clean);
+  assert.equal(other.adapter.conflict(), null);
+});
+
+test("P1-02: a failed repair write keeps the pause and reports failure", async () => {
+  const data = new Map<string, string>([[KEY, rowsSave([["a", "A"]], 1)]]);
+  const failing = { on: false };
+  const tab = lockedIdentityTab(data, failing);
+  await tab.adapter.storage.getItem(KEY);
+  const dup = rowsSave(
+    [
+      ["x", "A"],
+      ["x", "B"],
+    ],
+    1,
+  );
+  data.set(KEY, dup);
+  tab.adapter.syncFrom(dup, tab.apply);
+  failing.on = true;
+  assert.equal(await tab.adapter.repairIdentity(tab.apply), false);
+  assert.equal(tab.adapter.conflict(), "identity");
+  assert.equal(tab.status(), "failed");
+  assert.equal(data.get(KEY), dup);
+  failing.on = false;
+  assert.equal(await tab.adapter.repairIdentity(tab.apply), true);
+  assert.deepEqual(ids(data.get(KEY)), ["x", "x~1"]);
+  assert.equal(tab.copies().length, 1);
 });

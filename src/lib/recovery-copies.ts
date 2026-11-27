@@ -4,12 +4,14 @@ import {
   type BackupSummary,
   type PersistedDeskLike,
 } from "./desk-backup.ts";
-import { DESK_STORAGE_VERSION } from "./desk-storage.ts";
+import { DESK_IDENTITY, DESK_STORAGE_VERSION, storedEnvelopeSupported } from "./desk-storage.ts";
 import {
   isRecoveryKey,
+  newRecoveryId,
   RECOVERY_EVENT,
   RECOVERY_PREFIX,
   unwrapRecoveryCopy,
+  wrapRecoveryCopy,
   type RecoverySource,
 } from "./recovery-format.ts";
 
@@ -36,9 +38,10 @@ type ListStorage = Pick<Storage, "length" | "key" | "getItem">;
  */
 export function readRecoveryState(raw: string): PersistedDeskLike | null {
   try {
-    const value = JSON.parse(raw) as { state?: unknown; version?: unknown } | null;
-    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-    if (value.version !== undefined && value.version !== DESK_STORAGE_VERSION) return null;
+    const value: unknown = JSON.parse(raw);
+    // The same outer check as the save loader (version and identity marker): a copy from
+    // a newer format is offered for download only, never restored under this build's rules.
+    if (!storedEnvelopeSupported(value)) return null;
     return parsePersistedDesk(value.state, "stored");
   } catch {
     return null;
@@ -70,6 +73,27 @@ export function listRecoveryCopies(storage: ListStorage): RecoveryCopy[] {
     if (!a.createdAt && b.createdAt) return 1;
     return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
   });
+}
+
+/**
+ * Keep a desk as a recovery copy (for example the current desk before an undo replaces
+ * it). Stored in this build's own save format, so it can be restored later. False when
+ * storage refused the write (quota); the caller still has its downloaded file.
+ */
+export function saveRecoveryCopy(
+  storage: Pick<Storage, "setItem">,
+  state: PersistedDeskLike,
+  source: RecoverySource,
+  now = new Date(),
+): boolean {
+  const raw = JSON.stringify({ state, version: DESK_STORAGE_VERSION, identity: DESK_IDENTITY });
+  try {
+    storage.setItem(`${RECOVERY_PREFIX}${newRecoveryId()}`, wrapRecoveryCopy(raw, source, now));
+  } catch {
+    return false;
+  }
+  notifyRecoveryListeners();
+  return true;
 }
 
 /** Remove one copy. Refuses any key outside the recovery prefix. */
