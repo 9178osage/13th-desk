@@ -15,6 +15,8 @@ import {
   bodyTextPrefix,
   derivedPaths,
   exitCodeFor,
+  isSevereReason,
+  viewportProblems,
   normalizeBodyText,
   normalizedBodyTextHash,
   parseSmokeArgs,
@@ -150,11 +152,17 @@ try {
     }),
   );
   const verdict = { url, viewports, brandWarnings, authWarnings, verdictFile: outJson };
+  let comparison = null;
   if (baselineRequested) {
-    const { divergesFromBaseline, reasons } = compareAgainstBaseline(verdict);
-    verdict.divergesFromBaseline = divergesFromBaseline;
-    verdict.baselineReasons = reasons;
+    comparison = compareAgainstBaseline(verdict);
+    comparison.severe ??= comparison.reasons.some(isSevereReason);
+    verdict.divergesFromBaseline = comparison.divergesFromBaseline;
+    verdict.baselineReasons = comparison.reasons;
+    verdict.severeDivergence = Boolean(comparison.severe);
   }
+  verdict.problems = Object.entries(viewports).flatMap(([name, v]) =>
+    viewportProblems(v, args.allow).map((problem) => `${name}: ${problem}`),
+  );
 
   writeFileSync(outJson, JSON.stringify(verdict, null, 2));
   console.log(JSON.stringify(verdict, null, 2));
@@ -162,7 +170,11 @@ try {
   // Set the code rather than aborting the process so the `finally` browser
   // teardown always runs (agents typically smoke twice per turn; leaking
   // Chromium accumulates across retries).
-  process.exitCode = exitCodeFor(viewports);
+  for (const problem of verdict.problems) console.error(`PAGE PROBLEM ${problem}`);
+  if (verdict.severeDivergence && !args.allow.change) {
+    console.error("BASELINE: serious divergence (pass --allow-change if intended)");
+  }
+  process.exitCode = exitCodeFor(viewports, { allow: args.allow, baseline: comparison });
 } catch (err) {
   const failure = { ok: false, url, error: String(err?.message || err) };
   try {

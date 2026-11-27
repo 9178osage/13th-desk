@@ -5,7 +5,7 @@ import type { Level } from "@/lib/levels";
 import { tr, type Copy, type Lang } from "@/lib/text";
 import { formatWhen } from "@/lib/time";
 import { Button } from "@/components/ui";
-import { asForecast, type Forecast } from "@/lib/forecast";
+import { FORECAST_URL, asForecast, type Forecast } from "@/lib/forecast";
 import { watchForecastAge, weatherFailureShown } from "@/lib/forecast-age";
 
 import { skyAdvice, type Kind } from "@/lib/sky-advice";
@@ -87,9 +87,7 @@ export function WeatherCard() {
     const ctrl = new AbortController();
     let gone = false;
     const timer = setTimeout(() => ctrl.abort(), 8000);
-    const url =
-      "https://api.open-meteo.com/v1/forecast?latitude=44.0448&longitude=-123.0726&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=America%2FLos_Angeles&forecast_days=3&temperature_unit=fahrenheit";
-    fetch(url, { signal: ctrl.signal })
+    fetch(FORECAST_URL, { signal: ctrl.signal })
       .then((res) => {
         if (!res.ok) throw new Error(String(res.status));
         return res.json() as Promise<Forecast>;

@@ -10,6 +10,8 @@ on:
       - "src/data/**"
       - "src/lib/**"
       - "scripts/check-links.mjs"
+      - "scripts/link-extract.mjs"
+      - "src/components/**"
       - ".github/workflows/link-check.yml"
   workflow_dispatch:
 

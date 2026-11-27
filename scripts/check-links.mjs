@@ -18,6 +18,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describeError, outcomeFromAttempts } from "./link-outcome.mjs";
+import { extractUrls } from "./link-extract.mjs";
+import { FORECAST_URL, asForecast } from "../src/lib/forecast.ts";
 
 const root = resolve(import.meta.dirname, "..");
 const argv = process.argv.slice(2);
@@ -71,8 +73,8 @@ function collect() {
   const found = new Map();
   for (const file of sourceFiles(join(root, "src"))) {
     const text = readFileSync(file, "utf8");
-    for (const match of text.matchAll(/https?:\/\/[^\s"'`)\]},;]+/g)) {
-      const url = match[0].replace(/[.,;)]+$/, "");
+    // Commas are kept: they separate values inside real query strings (see link-extract.mjs).
+    for (const url of extractUrls(text)) {
       // Template expressions and local addresses are not external links.
       if (url.includes("${") || /127\.0\.0\.1|localhost|\[::1\]/.test(url)) continue;
       let host;
@@ -100,14 +102,38 @@ async function probeOnce(url) {
   return { status: response.status, finalUrl: response.url };
 }
 
+/**
+ * Requests whose answer the app parses: a 200 alone does not prove the parameters still
+ * produce data the app accepts, so the body must pass the app's own validator.
+ */
+const SHAPE_CHECKS = new Map([[FORECAST_URL, { name: "forecast", valid: asForecast }]]);
+
+async function shapeProblem(url) {
+  const check = SHAPE_CHECKS.get(url);
+  if (!check) return null;
+  try {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      headers: { "user-agent": UA, accept: "application/json" },
+    });
+    if (!response.ok) return `${check.name} answered ${response.status}`;
+    return check.valid(await response.json()) ? null : `${check.name} response shape not accepted`;
+  } catch (error) {
+    return `${check.name} body unreadable: ${describeError(error)}`;
+  }
+}
+
 async function probe(entry) {
   const attempts = [];
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const { status, finalUrl } = await probeOnce(entry.url);
       const redirect = finalUrl && finalUrl.replace(/\/$/, "") !== entry.url.replace(/\/$/, "");
-      if (status >= 200 && status < 400)
+      if (status >= 200 && status < 400) {
+        const shape = await shapeProblem(entry.url);
+        if (shape) return { ...entry, status, outcome: "fail", note: shape };
         return { ...entry, status, outcome: "ok", redirect: redirect ? finalUrl : null };
+      }
       if (status === 403 || status === 429)
         return { ...entry, status, outcome: "warn", note: "bot protection" };
       if (status === 401) return { ...entry, status, outcome: "warn", note: "needs sign-in" };
@@ -130,6 +156,13 @@ const targets = collect();
 if (targets.length === 0) {
   console.error("no external links found under src/ — the scan or the app changed shape");
   process.exit(2);
+}
+// Each parsed request must be found whole in the source, or the probe tests a different URL.
+for (const url of SHAPE_CHECKS.keys()) {
+  if (!targets.some((entry) => entry.url === url)) {
+    console.error(`the scan did not find ${url} whole under src/ — extraction is cutting it`);
+    process.exit(2);
+  }
 }
 
 const results = [];
@@ -167,7 +200,7 @@ if (JSON_OUT) {
   );
 } else {
   for (const r of failed)
-    console.log(`  FAIL  ${r.url}\n        ${r.status ?? r.note}  (${r.file})`);
+    console.log(`  FAIL  ${r.url}\n        ${r.note ?? r.status}  (${r.file})`);
   for (const r of timedOut) console.log(`  TIME  ${r.url}\n        ${r.note}  (${r.file})`);
   for (const r of warned)
     console.log(`  WARN  ${r.url}\n        ${r.status} ${r.note}  (${r.file})`);

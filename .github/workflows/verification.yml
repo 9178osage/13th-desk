@@ -84,6 +84,18 @@ jobs:
           assert.deepEqual(config.regions, ['pdx1']);
           console.log(`Verified deployed function runtime: ${config.runtime}`);
           NODE
+      - name: Every page renders on desktop and phone
+        id: routes
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.browser.outcome == 'success' }}
+        env:
+          VITE_AUTH_ENABLED: "false"
+        run: |
+          npm run preview -- --port 8081 --strictPort --host 127.0.0.1 > verification/preview.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf -o /dev/null http://127.0.0.1:8081/ && break
+            sleep 1
+          done
+          npm run smoke:routes 2>&1 | tee verification/routes.log
       - name: Publish verification summary
         if: always()
         env:
@@ -94,6 +106,7 @@ jobs:
           TYPE_RESULT: ${{ steps.types.outcome }}
           LINT_RESULT: ${{ steps.lint.outcome }}
           BUILD_RESULT: ${{ steps.build.outcome }}
+          ROUTES_RESULT: ${{ steps.routes.outcome }}
         run: |
           mkdir -p verification
           {
@@ -110,6 +123,7 @@ jobs:
             echo "| Type check | $TYPE_RESULT |"
             echo "| Lint | $LINT_RESULT |"
             echo "| Production build | $BUILD_RESULT |"
+            echo "| Every page renders (desktop + phone) | $ROUTES_RESULT |"
             echo
             echo 'Logs and source metadata are attached as a verification artifact (90-day retention, subject to repository policy).'
             echo 'These checks do not include real-device/browser QA and do not gate the independent Vercel deployment.'

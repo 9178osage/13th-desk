@@ -1,5 +1,13 @@
 import { isCalendarDay } from "./days.ts";
 
+/**
+ * The one forecast request the weather card makes (Open-Meteo, Eugene, Fahrenheit, three
+ * days). Kept here, not inline in the component, so scripts/check-links.mjs probes exactly
+ * this URL — commas and all — and checks that the answer still passes `asForecast`.
+ */
+export const FORECAST_URL =
+  "https://api.open-meteo.com/v1/forecast?latitude=44.0448&longitude=-123.0726&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=America%2FLos_Angeles&forecast_days=3&temperature_unit=fahrenheit";
+
 export type Forecast = {
   current: { temperature_2m: number; weather_code: number };
   daily: {

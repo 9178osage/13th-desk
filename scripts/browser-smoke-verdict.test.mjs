@@ -4,6 +4,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import {
+  MIN_VISIBLE_TEXT,
+  isSevereReason,
+  viewportProblems,
   baselineComparison,
   bodyTextPrefix,
   compareToBaseline,
@@ -281,6 +284,7 @@ test("parseSmokeArgs defaults", () => {
     url: "http://127.0.0.1:8080/",
     outPng: "/workspace/screenshots/app-builder-preview.png",
     baseline: "",
+    allow: { blank: false, overflow: false, change: false },
   });
 });
 
@@ -294,6 +298,7 @@ test("parseSmokeArgs consumes --baseline without shifting positionals", () => {
       url: "http://127.0.0.1:8081/",
       outPng: "/workspace/b.png",
       baseline: "/workspace/a.json",
+      allow: { blank: false, overflow: false, change: false },
     },
   );
 });
@@ -385,7 +390,10 @@ test("browser-smoke wires the guard and verdict helpers", () => {
   assert.match(src, /normalizedBodyTextHash\(/);
   assert.match(src, /bodyTextPrefix\(/);
   assert.match(src, /baselineComparison\(/);
-  assert.match(src, /process\.exitCode = exitCodeFor\(viewports\)/);
+  assert.match(
+    src,
+    /process\.exitCode = exitCodeFor\(viewports, \{ allow: args\.allow, baseline: comparison \}\)/,
+  );
   assert.match(src, /waitUntil: "domcontentloaded"/);
   assert.doesNotMatch(
     src,
@@ -413,4 +421,70 @@ test("browser-smoke file I/O only touches guarded paths", () => {
   assert.deepEqual(reads, ["baselinePath"]);
   const stats = [...src.matchAll(/statSync\(\s*([A-Za-z_$][\w$.]*)/g)].map((m) => m[1]);
   assert.deepEqual(stats, ["baselinePath"]);
+});
+
+// Audit 2026-11-27 P2-09: HTTP 200 with a clean console is not enough.
+test("exitCodeFor: a blank page fails with 3 unless it is a canvas page or allowed", () => {
+  assert.equal(exitCodeFor(verdict({ bodyTextLen: 0 }).viewports), 3);
+  assert.equal(exitCodeFor(verdict({}, { bodyTextLen: MIN_VISIBLE_TEXT - 1 }).viewports), 3);
+  assert.equal(exitCodeFor(verdict({ bodyTextLen: MIN_VISIBLE_TEXT }).viewports), 0);
+  assert.equal(exitCodeFor(verdict({ bodyTextLen: 0, hasCanvas: true }).viewports), 0);
+  assert.equal(exitCodeFor(verdict({ bodyTextLen: 0 }).viewports, { allow: { blank: true } }), 0);
+});
+
+test("exitCodeFor: page-level horizontal overflow fails with 3 unless allowed", () => {
+  assert.equal(exitCodeFor(verdict({}, { horizontalOverflow: true }).viewports), 3);
+  assert.equal(
+    exitCodeFor(verdict({}, { horizontalOverflow: true }).viewports, {
+      allow: { overflow: true },
+    }),
+    0,
+  );
+});
+
+test("exitCodeFor: serious baseline divergence fails with 4; ordinary edits do not", () => {
+  const base = verdict();
+  const collapsed = verdict({ bodyTextLen: 100, bodyTextHash: "bbb" });
+  const severe = compareToBaseline(collapsed, base);
+  assert.equal(severe.severe, true);
+  assert.equal(exitCodeFor(collapsed.viewports, { baseline: severe }), 4);
+  assert.equal(exitCodeFor(collapsed.viewports, { baseline: severe, allow: { change: true } }), 0);
+  const edited = verdict({ title: "New title", bodyTextHash: "ccc", bodyTextLen: 505 });
+  const mild = compareToBaseline(edited, base);
+  assert.equal(mild.divergesFromBaseline, true);
+  assert.equal(mild.severe, false);
+  assert.equal(exitCodeFor(edited.viewports, { baseline: mild }), 0);
+});
+
+test("navigation and console failures still win over content problems", () => {
+  assert.equal(exitCodeFor(verdict({ status: 500, bodyTextLen: 0 }).viewports), 1);
+  assert.equal(exitCodeFor(verdict({ pageErrors: ["x"], horizontalOverflow: true }).viewports), 2);
+});
+
+test("viewportProblems names what is wrong", () => {
+  assert.deepEqual(viewportProblems(viewport()), []);
+  assert.match(viewportProblems(viewport({ bodyTextLen: 3 }))[0], /blank page \(3 visible/);
+  assert.match(viewportProblems(viewport({ horizontalOverflow: true }))[0], /sideways/);
+});
+
+test("severity: broken page vs. changed page, and unreadable baselines", () => {
+  assert.equal(isSevereReason("desktop: HTTP status changed 200 -> 500"), true);
+  assert.equal(isSevereReason("mobile: horizontal overflow appeared"), true);
+  assert.equal(isSevereReason('desktop: title changed ("a" -> "b")'), false);
+  assert.equal(
+    isSevereReason("desktop: body text replaced (similar length, page start changed)"),
+    false,
+  );
+  assert.equal(baselineComparison(verdict(), "{").severe, true);
+});
+
+test("parseSmokeArgs reads the --allow-* opt-outs", () => {
+  const args = parseSmokeArgs(["--allow-blank", "http://127.0.0.1:8081/", "--allow-change"], {});
+  assert.equal(args.url, "http://127.0.0.1:8081/");
+  assert.deepEqual(args.allow, { blank: true, overflow: false, change: true });
+  assert.deepEqual(parseSmokeArgs(["--allow-overflow"], {}).allow, {
+    blank: false,
+    overflow: true,
+    change: false,
+  });
 });
