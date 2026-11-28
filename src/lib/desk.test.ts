@@ -2730,6 +2730,43 @@ test("an open weather card refreshes after the 15-minute cache, and on return to
   assert.equal(forecastIsStale(10, 5, TTL), true, "a clock moved backwards counts as stale");
 
   const src = readFileSync(join(import.meta.dirname, "../components/weather.tsx"), "utf8");
-  assert.match(src, /\}, \[attempt, refresh\]\);/);
+  assert.match(src, /\}, \[attempt, refresh, gate\]\);/);
   assert.match(src, /watchForecastAge\(fetchedAt, WEATHER_CACHE_MS/);
+});
+
+test("2026-11-28 P2-03: one weather refresh per wake, and °C from the unrounded °F", async () => {
+  const { createRefreshGate, fahrenheitToCelsius } = await import("./forecast-age.ts");
+  const gate = createRefreshGate();
+  let started = 0;
+  const wake = () => {
+    if (gate.open()) started++;
+  };
+  // focus + visibilitychange + the cache timer, all on one return to the tab.
+  wake();
+  wake();
+  wake();
+  assert.equal(started, 1);
+  assert.equal(gate.pending, true);
+  gate.close();
+  wake();
+  assert.equal(started, 2, "a later wake (e.g. after a failure) tries again");
+  // 50.5 °F is 10.28 °C. Rounding to 51 °F first used to show 11 °C.
+  assert.equal(fahrenheitToCelsius(50.5), 10);
+  assert.equal(fahrenheitToCelsius(32), 0);
+  assert.equal(fahrenheitToCelsius(-40), -40);
+  const ui = readFileSync(join(import.meta.dirname, "../components/weather.tsx"), "utf8");
+  assert.doesNotMatch(ui, /Math\.round\(\(\((hi|lo) - 32\)/, "daily highs/lows convert unrounded");
+  assert.match(ui, /if \(gate\.open\(\)\) setRefresh/);
+});
+
+test("2026-11-28 P2-04: the GPA chart tooltip stays inside the chart", async () => {
+  const { tooltipLeft } = await import("./chart-ticks.ts");
+  assert.equal(tooltipLeft(200, 100, 400), 150, "centred over the bar");
+  assert.equal(tooltipLeft(20, 100, 400), 0, "not past the left edge");
+  assert.equal(tooltipLeft(390, 100, 400), 300, "not past the right edge");
+  assert.equal(tooltipLeft(100, 300, 200), 0, "wider than the chart: pinned left");
+  const ui = readFileSync(join(import.meta.dirname, "../components/gpa-chart.tsx"), "utf8");
+  assert.doesNotMatch(ui, /role="img"\s+aria-label=\{summary\}/, "no focusable bars inside an img");
+  assert.match(ui, /role="group"/);
+  assert.match(ui, /tabIndex=\{0\}\s+role="img"/);
 });

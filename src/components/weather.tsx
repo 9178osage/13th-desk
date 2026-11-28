@@ -6,7 +6,12 @@ import { tr, type Copy, type Lang } from "@/lib/text";
 import { formatWhen } from "@/lib/time";
 import { Button } from "@/components/ui";
 import { FORECAST_URL, asForecast, type Forecast } from "@/lib/forecast";
-import { watchForecastAge, weatherFailureShown } from "@/lib/forecast-age";
+import {
+  createRefreshGate,
+  fahrenheitToCelsius,
+  watchForecastAge,
+  weatherFailureShown,
+} from "@/lib/forecast-age";
 
 import { skyAdvice, type Kind } from "@/lib/sky-advice";
 
@@ -76,6 +81,8 @@ export function WeatherCard() {
   // Whether THIS card has a forecast on screen. The module cache may still hold an expired
   // forecast this card never showed; that must not hide the error and "Try again".
   const shownRef = useRef(data !== null);
+  // At most one request in flight, however many wake events arrive together.
+  const [gate] = useState(createRefreshGate);
   useEffect(() => {
     shownRef.current = data !== null;
   }, [data]);
@@ -84,6 +91,7 @@ export function WeatherCard() {
     // Back on a page within the cache window: keep the forecast, skip the request.
     // "Try again" (attempt > 0) always goes to the network.
     if (attempt === 0 && cachedForecast()) return;
+    gate.open();
     const ctrl = new AbortController();
     let gone = false;
     const timer = setTimeout(() => ctrl.abort(), 8000);
@@ -108,18 +116,25 @@ export function WeatherCard() {
         // one that came back after the cache expired) shows the error and "Try again".
         if (!gone && weatherFailureShown(shownRef.current)) setFailed(true);
       })
-      .finally(() => clearTimeout(timer));
+      .finally(() => {
+        clearTimeout(timer);
+        if (!gone) gate.close();
+      });
     return () => {
       gone = true;
+      gate.close();
       clearTimeout(timer);
       ctrl.abort();
     };
-  }, [attempt, refresh]);
+  }, [attempt, refresh, gate]);
 
   // A page left open past the cache window refreshes on its own, and on return to the tab.
   useEffect(() => {
     if (fetchedAt === null) return;
-    return watchForecastAge(fetchedAt, WEATHER_CACHE_MS, () => setRefresh((n) => n + 1), {
+    const onStale = () => {
+      if (gate.open()) setRefresh((n) => n + 1);
+    };
+    return watchForecastAge(fetchedAt, WEATHER_CACHE_MS, onStale, {
       now: () => Date.now(),
       setTimer: (run, ms) => window.setTimeout(run, ms),
       clearTimer: (handle) => window.clearTimeout(handle as number),
@@ -133,7 +148,7 @@ export function WeatherCard() {
         };
       },
     });
-  }, [fetchedAt]);
+  }, [fetchedAt, gate]);
 
   return (
     <section className="desk-panel weather-panel">
@@ -181,7 +196,7 @@ export function WeatherCard() {
 
 function Sky({ data, lang, level }: { data: Forecast; lang: Lang; level: Level }) {
   const f = Math.round(data.current.temperature_2m);
-  const c = Math.round(((data.current.temperature_2m - 32) * 5) / 9);
+  const c = fahrenheitToCelsius(data.current.temperature_2m);
   const kind = kindOf(data.current.weather_code);
   const Icon = ICONS[kind];
   const metric = lang !== "en";
@@ -210,10 +225,10 @@ function Sky({ data, lang, level }: { data: Forecast; lang: Lang; level: Level }
           const DayIcon = ICONS[dayKind];
           const hiF = data.daily.temperature_2m_max[index];
           const loF = data.daily.temperature_2m_min[index];
-          const hi = finite(hiF) ? Math.round(hiF) : null;
-          const lo = finite(loF) ? Math.round(loF) : null;
-          const hiShow = hi == null ? null : metric ? Math.round(((hi - 32) * 5) / 9) : hi;
-          const loShow = lo == null ? null : metric ? Math.round(((lo - 32) * 5) / 9) : lo;
+          // Convert from the unrounded value, like the current temperature: rounding to
+          // whole °F first can land a degree off in °C (audit 2026-11-28 P2-03).
+          const hiShow = !finite(hiF) ? null : metric ? fahrenheitToCelsius(hiF) : Math.round(hiF);
+          const loShow = !finite(loF) ? null : metric ? fahrenheitToCelsius(loF) : Math.round(loF);
           const pops = Array.isArray(data.daily.precipitation_probability_max)
             ? data.daily.precipitation_probability_max
             : [];

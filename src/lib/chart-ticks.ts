@@ -9,3 +9,12 @@ export function chartTicks(max: number): number[] {
   for (let v = 0; v <= top + 1e-9; v += step) ticks.push(Math.round(v * 100) / 100);
   return ticks;
 }
+
+/**
+ * Where the tooltip's left edge goes: centred over the bar, but kept inside the chart so a
+ * long translated label never runs off a narrow phone screen (audit 2026-11-28 P2-04).
+ */
+export function tooltipLeft(center: number, tipWidth: number, chartWidth: number): number {
+  const max = Math.max(0, chartWidth - tipWidth);
+  return Math.min(Math.max(0, center - tipWidth / 2), max);
+}

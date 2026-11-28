@@ -47,3 +47,32 @@ export function watchForecastAge(
 export function weatherFailureShown(cardShowsForecast: boolean): boolean {
   return !cardShowsForecast;
 }
+
+/**
+ * One forecast refresh at a time. Coming back to a tab fires both `focus` and
+ * `visibilitychange`, and the cache timer can fire next to them; each used to start its
+ * own request, the later one aborting the earlier (audit 2026-11-28 P2-03).
+ */
+export function createRefreshGate() {
+  let pending = false;
+  return {
+    /** Mark a refresh as running; false when one already is (the caller then skips). */
+    open(): boolean {
+      if (pending) return false;
+      pending = true;
+      return true;
+    },
+    /** The refresh finished, failed or was cancelled. */
+    close(): void {
+      pending = false;
+    },
+    get pending(): boolean {
+      return pending;
+    },
+  };
+}
+
+/** Fahrenheit (as Open-Meteo sends it) to a whole Celsius degree, from the unrounded value. */
+export function fahrenheitToCelsius(f: number): number {
+  return Math.round(((f - 32) * 5) / 9);
+}
