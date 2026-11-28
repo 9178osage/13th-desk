@@ -42,7 +42,6 @@ export const DEV_FS_DENY = [
   "**/attachments/**",
   "**/artifacts/**",
   "**/verification/**",
-  "**/eugene-desk-all-code/**",
   "**/Eugene Desk Logo/**",
   "**/海报/**",
   "*.zip",

@@ -69,7 +69,6 @@ test("private local folders and secrets are denied; app sources are not", () => 
     "artifacts/README.md",
     "artifacts/delivery/old.zip",
     "verification/attachments/report.md",
-    "eugene-desk-all-code/1-app-code-1.txt",
     "申请材料/cv.pdf",
     "Eugene Desk Logo/logo.ai",
     "海报/poster-zh.png",

@@ -19,7 +19,6 @@ export default defineConfig(
       "screenshots/**",
       "artifacts/**",
       "verification/**",
-      "eugene-desk-all-code/**",
     ],
   },
   js.configs.recommended,
