@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CHANNELS, channelEntry, homeAliasPath, isChannel } from "./channels.ts";
+import { CHANNELS, channelEntry, homeAliasPath, isAnalyticsPath, isChannel } from "./channels.ts";
+import { SITE_PAGES } from "./site.ts";
 import { readFileSync } from "node:fs";
 
 test("only the listed channel slugs are entry paths", () => {
@@ -40,6 +41,16 @@ test("nav treats a channel path as the home tab", () => {
   assert.equal(homeAliasPath("/teacher"), "/");
   assert.equal(homeAliasPath("/guide"), "/guide");
   assert.equal(homeAliasPath("/"), "/");
+});
+
+test("only public pages and registered channels can be counted by analytics", () => {
+  for (const path of [...SITE_PAGES, ...CHANNELS.map((slug) => `/${slug}`)]) {
+    assert.equal(isAnalyticsPath(path), true, path);
+    if (path !== "/") assert.equal(isAnalyticsPath(path + "/"), true, path + "/");
+  }
+  for (const path of ["", "//", "/missing", "/guide/private", "/poster/extra", "/town//", "card"]) {
+    assert.equal(isAnalyticsPath(path), false, path);
+  }
 });
 
 test("analytics stays cookieless and manual: no auto-track, no Speed Insights", () => {

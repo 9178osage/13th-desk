@@ -1,10 +1,17 @@
 import { useEffect } from "react";
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  HeadContent,
+  Outlet,
+  Scripts,
+  useRouterState,
+} from "@tanstack/react-router";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { getCookie, setResponseHeader } from "@tanstack/react-start/server";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { SiteAnalytics } from "@/components/site-analytics";
+import { isAnalyticsPath } from "@/lib/channels";
 import { Shell } from "@/components/shell";
 import { PACK_SCRIPT_ID, htmlLang, inlinePackJson, loadLangPack, type Lang } from "@/lib/text";
 import { DEFAULT_LANG, DeskHintContext, useDesk, useLang } from "@/lib/store";
@@ -82,6 +89,7 @@ export const Route = createRootRoute({
 });
 
 function Root() {
+  const trackPage = useRouterState({ select: (state) => isAnalyticsPath(state.location.pathname) });
   const hint = Route.useLoaderData();
   const pageLang: Lang = hint.lang ?? DEFAULT_LANG;
   const packJson = inlinePackJson(pageLang);
@@ -114,7 +122,7 @@ function Root() {
           />
         )}
         <PreviewHostBridge />
-        <SiteAnalytics />
+        {trackPage && <SiteAnalytics />}
         <AuthProvider>
           <DeskHintContext.Provider value={hint}>
             <Shell>

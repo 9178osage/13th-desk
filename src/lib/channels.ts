@@ -1,3 +1,5 @@
+import { SITE_PAGES } from "./site.ts";
+
 /**
  * Channel entry paths (e.g. /card on a printed card, /isa in an email,
  * /poster in the QR code on the posters in public/posters/).
@@ -25,4 +27,12 @@ export function homeAliasPath(path: string): string {
 export function channelEntry(pathname: string): { record: string; then: "/" } | null {
   const slug = pathname.replace(/^\//, "").replace(/\/$/, "");
   return isChannel(slug) ? { record: `/${slug}`, then: "/" } : null;
+}
+
+/** Only public page names and registered channel paths may reach the analytics SDK. */
+export function isAnalyticsPath(pathname: string): boolean {
+  return (
+    SITE_PAGES.some((page) => pathname === page || (page !== "/" && pathname === page + "/")) ||
+    (pathname.startsWith("/") && channelEntry(pathname) !== null)
+  );
 }
