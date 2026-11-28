@@ -4,6 +4,8 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   DESK_PRE_IMPORT_EVENT,
   DESK_PRE_IMPORT_KEY,
@@ -17,7 +19,7 @@ import { createDeskStorage, storedEnvelopeSupported } from "./desk-storage.ts";
 import { readRecoveryState, saveRecoveryCopy } from "./recovery-copies.ts";
 import { unwrapRecoveryCopy } from "./recovery-format.ts";
 import { createPreImportState } from "./pre-import-state.ts";
-import { trappedTabTarget } from "./modal-focus.ts";
+import { isTabbable, trappedTabTarget, type TabbableCandidate } from "./modal-focus.ts";
 
 const KEY = "13th-desk-v1";
 
@@ -246,4 +248,121 @@ test("P2-04: the first Shift+Tab from the dialog title wraps to the last control
   assert.equal(trappedTabTarget(items, "outside", false, true), "last", "focus outside");
   assert.equal(trappedTabTarget(items, null, false, false), "first");
   assert.equal(trappedTabTarget([], "title", true, true), null);
+});
+
+test("2026-11-28 P2-05: the focus trap skips controls Tab cannot reach", () => {
+  const el = (
+    over: Partial<{
+      tabIndex: number;
+      disabled: boolean;
+      inert: boolean;
+      hidden: boolean;
+      rendered: boolean;
+    }> = {},
+  ): TabbableCandidate => {
+    const o = {
+      tabIndex: 0,
+      disabled: false,
+      inert: false,
+      hidden: false,
+      rendered: true,
+      ...over,
+    };
+    return {
+      tabIndex: o.tabIndex,
+      matches: (selector) => selector === ":disabled" && o.disabled,
+      closest: (selector) =>
+        (selector === "[inert]" && o.inert) || (selector === "[hidden]" && o.hidden) ? {} : null,
+      getClientRects: () => ({ length: o.rendered ? 1 : 0 }),
+    };
+  };
+  assert.equal(isTabbable(el()), true);
+  assert.equal(isTabbable(el({ tabIndex: -1 })), false, "tabindex=-1");
+  assert.equal(isTabbable(el({ disabled: true })), false, "disabled, also via a fieldset");
+  assert.equal(isTabbable(el({ inert: true })), false, "inside an inert subtree");
+  assert.equal(isTabbable(el({ hidden: true })), false, "inside a hidden subtree");
+  assert.equal(isTabbable(el({ rendered: false })), false, "display: none");
+  assert.equal(
+    isTabbable(el(), () => "hidden"),
+    false,
+    "visibility: hidden",
+  );
+  assert.equal(
+    isTabbable(el(), () => "visible"),
+    true,
+  );
+  const src = readFileSync(join(import.meta.dirname, "modal-focus.ts"), "utf8");
+  assert.match(src, /"a\[href\]"/);
+  assert.doesNotMatch(src, /'button:not\(:disabled\), \[href\]/, "a bare [href] matched <link>");
+});
+
+const component = (name: string) =>
+  readFileSync(join(import.meta.dirname, "../components", name), "utf8");
+const between = (text: string, start: string, end: string) => {
+  const from = text.indexOf(start);
+  assert.ok(from !== -1, start);
+  return text.slice(from, text.indexOf(end, from));
+};
+
+test("2026-11-28 P1-01: restoring a recovery copy writes the desk before its undo snapshot", () => {
+  const body = between(
+    component("recovery-copies.tsx"),
+    "async function restore(",
+    "function remove(",
+  );
+  assert.ok(body.indexOf("busyRef.current) return") !== -1, "a ref guards double clicks");
+  assert.ok(body.indexOf("busyRef.current = true") < body.indexOf("downloadDeskBackupFile("));
+  assert.ok(
+    body.indexOf("downloadDeskBackupFile(") < body.indexOf("replacePersistedDeskState("),
+    "the current desk is downloaded first",
+  );
+  assert.ok(
+    body.indexOf("replacePersistedDeskState(") < body.indexOf("writePreImportSnapshot("),
+    "the snapshot is written only after the restored desk is saved",
+  );
+  assert.ok(body.indexOf("if (!saved)") < body.indexOf("writePreImportSnapshot("));
+  assert.doesNotMatch(body, /\bbusy\) return/, "React state is not the double-click guard");
+});
+
+test("2026-11-28 P2-01: undo keeps its local recovery copy only after the undo is saved", () => {
+  const body = between(
+    component("desk-backup.tsx"),
+    "async function runUndo(",
+    "function dismissUndo(",
+  );
+  assert.ok(body.indexOf("downloadDeskBackupFile(keep") < body.indexOf("undoImportTo("));
+  assert.ok(body.indexOf("undoImportTo(") < body.indexOf("saveRecoveryCopy("));
+  assert.ok(body.indexOf('result === "failed"') < body.indexOf("saveRecoveryCopy("));
+  assert.ok(
+    body.indexOf("clearPreImportSnapshot()") < body.indexOf("saveRecoveryCopy("),
+    "the snapshot's space is freed first",
+  );
+});
+
+test("2026-11-28 P1-02: task undo shows only beside the deleted notice, as a plain button", () => {
+  for (const file of ["home-dashboard.tsx", "week-schedule.tsx"]) {
+    const ui = component(file);
+    assert.match(ui, /\{deleted && message === "deleted" && \(\s*<button\s+type="button"/, file);
+  }
+  for (const file of [
+    "home-dashboard.tsx",
+    "week-schedule.tsx",
+    "place-browser.tsx",
+    "desk-backup.tsx",
+    "recovery-copies.tsx",
+  ]) {
+    const ui = component(file);
+    for (const match of ui.matchAll(/<button\b/g)) {
+      // The opening tag ends at the first ">" outside a {…} expression (arrows contain ">").
+      let depth = 0;
+      let end = match.index;
+      for (; end < ui.length; end++) {
+        const ch = ui[end];
+        if (ch === "{") depth++;
+        else if (ch === "}") depth--;
+        else if (ch === ">" && depth === 0) break;
+      }
+      assert.match(ui.slice(match.index, end), /\stype=/, `${file}: <button> without a type`);
+    }
+  }
 });

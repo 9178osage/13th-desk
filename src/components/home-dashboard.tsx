@@ -188,8 +188,10 @@ function TaskList() {
       )}
       <div className="inline-feedback" role="status">
         {message && c(lang, message)}
-        {deleted && (
+        {/* Undo belongs to the "deleted" notice only, never beside another message. */}
+        {deleted && message === "deleted" && (
           <button
+            type="button"
             onClick={() => {
               if (restore(deleted.removed, deleted.level)) {
                 setDeleted(null);

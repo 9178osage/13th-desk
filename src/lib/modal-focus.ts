@@ -1,12 +1,57 @@
 import { useEffect, useRef, type RefObject } from "react";
 
-const TABBABLE =
-  'button:not(:disabled), [href], input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+const TABBABLE = [
+  "a[href]",
+  "area[href]",
+  "button",
+  'input:not([type="hidden"])',
+  "select",
+  "textarea",
+  "iframe",
+  "summary",
+  "audio[controls]",
+  "video[controls]",
+  '[contenteditable]:not([contenteditable="false"])',
+  "[tabindex]",
+].join(", ");
+
+/** What `isTabbable` reads from an element (a narrow shape so tests can fake it). */
+export type TabbableCandidate = {
+  tabIndex: number;
+  matches(selector: string): boolean;
+  closest(selector: string): unknown;
+  getClientRects(): { length: number };
+};
+
+/**
+ * Whether Tab can actually land on `item`: in the Tab order, enabled (including through a
+ * disabled `<fieldset>`), not inside an `inert` or `hidden` subtree, and rendered. A bare
+ * `[href]` match is not enough (a `<link>` or a `<use href>` is never focusable), and a
+ * `display: none` or `visibility: hidden` control must not become the wrap-around target
+ * (audit 2026-11-28 P2-05).
+ */
+export function isTabbable(
+  item: TabbableCandidate,
+  visibility: (item: TabbableCandidate) => string | null = () => null,
+): boolean {
+  if (item.tabIndex < 0) return false;
+  if (item.matches(":disabled")) return false;
+  if (item.closest("[inert]") || item.closest("[hidden]")) return false;
+  if (item.getClientRects().length === 0) return false;
+  const shown = visibility(item);
+  return shown !== "hidden" && shown !== "collapse";
+}
+
+function computedVisibility(item: TabbableCandidate): string | null {
+  if (typeof getComputedStyle !== "function" || typeof Element === "undefined") return null;
+  if (!(item instanceof Element)) return null;
+  return getComputedStyle(item).visibility;
+}
 
 /** Elements Tab can reach inside `panel`, in document order. */
 export function tabbableIn(panel: ParentNode): HTMLElement[] {
-  return [...panel.querySelectorAll<HTMLElement>(TABBABLE)].filter(
-    (item) => item.tabIndex >= 0 && !item.hasAttribute("inert"),
+  return [...panel.querySelectorAll<HTMLElement>(TABBABLE)].filter((item) =>
+    isTabbable(item, computedVisibility),
   );
 }
 

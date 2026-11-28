@@ -3,10 +3,8 @@ import { LifeBuoy } from "lucide-react";
 import { Button } from "@/components/ui";
 import {
   beforeImportFileName,
-  DESK_PRE_IMPORT_KEY,
   deskFingerprint,
   downloadDeskBackupFile,
-  readPreImportRecord,
   writePreImportSnapshot,
 } from "@/lib/desk-backup";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
@@ -42,14 +40,6 @@ function readCopies(): RecoveryCopy[] {
   }
 }
 
-function readPreviousSnapshot(): string | null {
-  try {
-    return localStorage.getItem(DESK_PRE_IMPORT_KEY);
-  } catch {
-    return null;
-  }
-}
-
 function copyDate(lang: Lang, createdAt: string | null): string {
   if (!createdAt) return c(lang, "recoveryUnknownDate");
   return new Intl.DateTimeFormat(LOCALE[lang], { dateStyle: "medium", timeStyle: "short" }).format(
@@ -77,6 +67,7 @@ export function RecoveryCopies({
   const [previewing, setPreviewing] = useState<string | null>(null);
   const [asking, setAsking] = useState<{ key: string; action: "restore" | "delete" } | null>(null);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const openerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -123,30 +114,29 @@ export function RecoveryCopies({
   }
 
   async function restore(copy: RecoveryCopy) {
-    if (!copy.state || busy) return;
+    // A ref, not the `busy` state: a double click lands before React re-renders, and the
+    // second call must not start a second download and write.
+    if (!copy.state || busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
-    // First keep the current desk: a downloaded file and the same undo snapshot an import
-    // leaves. If the restore then fails, the earlier undo snapshot is put back.
+    // Same order as an import: download the current desk, write the restored desk, and only
+    // then keep the undo snapshot. Writing the snapshot first would spend scarce storage on
+    // a second full copy before the write that matters (audit 2026-11-28 P1-01).
     const before = getPersistedDeskState();
-    const previousSnapshot = readPreviousSnapshot();
     downloadDeskBackupFile(before, beforeImportFileName());
-    const kept = writePreImportSnapshot(before, copy.state);
     const saved = await replacePersistedDeskState(copy.state);
+    busyRef.current = false;
     setBusy(false);
     setAsking(null);
     if (!saved) {
-      try {
-        if (previousSnapshot === null) localStorage.removeItem(DESK_PRE_IMPORT_KEY);
-        else localStorage.setItem(DESK_PRE_IMPORT_KEY, previousSnapshot);
-      } catch {
-        /* the downloaded file still holds the desk */
-      }
-      setPreImportRecord(readPreImportRecord());
+      // Nothing changed: the earlier undo snapshot (if any) is still the right one.
       onMessage("importSaveFailed");
       return;
     }
+    const restored = getPersistedDeskState();
+    const kept = writePreImportSnapshot(before, restored);
     // Undo after a restore works like undo after an import (memory copy if storage was full).
-    setPreImportRecord({ state: before, importedFingerprint: deskFingerprint(copy.state) });
+    setPreImportRecord({ state: before, importedFingerprint: deskFingerprint(restored) });
     close();
     onMessage(kept ? "recoveryRestored" : "beforeImportStorageFail");
   }

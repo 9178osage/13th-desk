@@ -133,7 +133,11 @@ export function PlaceBrowser({
 
       <div className="search-results">
         <span role="status">{c(lang, "results", { n: list.length })}</span>
-        {query && <button onClick={() => onQueryChange("")}>{c(lang, "clear")}</button>}
+        {query && (
+          <button type="button" onClick={() => onQueryChange("")}>
+            {c(lang, "clear")}
+          </button>
+        )}
       </div>
       {list.length === 0 ? (
         <EmptyState
@@ -169,7 +173,8 @@ export function PlaceBrowser({
                                 </Chip>
                               ) : null}
                             </div>
-                            <h2 className="font-display text-2xl text-ink">{place.name}</h2>
+                            {/* Under the area's h2 (SectionHeader), so each place is an h3. */}
+                            <h3 className="font-display text-2xl text-ink">{place.name}</h3>
                           </div>
                           <button
                             type="button"

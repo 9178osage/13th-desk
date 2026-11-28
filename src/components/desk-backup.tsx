@@ -188,11 +188,8 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
-    let kept = true;
-    if (keep) {
-      downloadDeskBackupFile(keep, beforeUndoFileName());
-      kept = saveRecoveryCopy(localStorage, keep, "undo");
-    }
+    // The file download comes first and always: it is the copy that cannot fail on storage.
+    if (keep) downloadDeskBackupFile(keep, beforeUndoFileName());
     const result = await undoImportTo(record.state, fingerprint);
     busyRef.current = false;
     setBusy(false);
@@ -206,8 +203,12 @@ export function DeskBackup({ compact = false }: { compact?: boolean }) {
       setMessage("importSaveFailed");
       return;
     }
+    // Only after the undo is saved, and after its snapshot is gone: the local recovery copy
+    // no longer competes with the undo write for storage, and a failed or refused undo
+    // leaves no stray copy behind (audit 2026-11-28 P2-01).
     clearPreImportSnapshot();
     setPreImportRecord(null);
+    const kept = keep ? saveRecoveryCopy(localStorage, keep, "undo") : true;
     setMessage(keep ? (kept ? "importUndoneKept" : "importUndoneDownloaded") : "importUndone");
   }
 

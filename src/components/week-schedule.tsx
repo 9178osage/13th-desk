@@ -383,6 +383,7 @@ function ScheduleEditor() {
                 </div>
                 <div className="class-actions">
                   <button
+                    type="button"
                     className="icon-button"
                     aria-pressed={row.pinned}
                     aria-label={c(lang, row.pinned ? "unpin" : "pin") + ": " + row.title}
@@ -394,6 +395,7 @@ function ScheduleEditor() {
                     <Star size={17} fill={row.pinned ? "currentColor" : "none"} />
                   </button>
                   <button
+                    type="button"
                     className="icon-button"
                     aria-label={c(lang, "edit") + ": " + row.title}
                     onClick={() => startEdit(row)}
@@ -401,6 +403,7 @@ function ScheduleEditor() {
                     <Pencil size={17} />
                   </button>
                   <button
+                    type="button"
                     className="icon-button"
                     aria-label={c(lang, "delete") + ": " + row.title}
                     onClick={() => {
