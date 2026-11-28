@@ -134,3 +134,29 @@ test("sign-in stays off: the flag defaults to off and no auth route ships", asyn
   assert.doesNotMatch(routeTree, /['"]\/api\//);
   assert.doesNotMatch(routeTree, /['"]\/auth\//);
 });
+
+test("2026-11-28 P2-07: the GitLab mirror job is read-only, time-boxed and keeps tokens out of URLs", () => {
+  const yml = readFileSync(new URL("../.github/workflows/mirror.yml", import.meta.url), "utf8");
+  assert.match(yml, /^permissions:\n {2}contents: read$/m);
+  assert.match(yml, /^ {4}timeout-minutes: \d+$/m);
+  assert.doesNotMatch(
+    yml,
+    /https:\/\/[^"\s]*\$\{\{?\s*(GH_TOKEN|GITLAB_TOKEN|secrets)/,
+    "token inside a URL",
+  );
+  assert.doesNotMatch(yml, /x-access-token:\$|oauth2:\$/, "token inside a URL");
+  assert.match(yml, /credential\.helper=/);
+});
+
+test("2026-11-28 P2-08: with auth off the dev server mounts no /auth/popup handler", () => {
+  const config = readFileSync(new URL("../vite.config.ts", import.meta.url), "utf8");
+  const plugin = config.slice(config.indexOf("function authPopupPlugin"));
+  const guard = plugin.indexOf(
+    "if (!authEnabledFromEnvValue(server.config.env.VITE_AUTH_ENABLED)) return;",
+  );
+  assert.ok(guard !== -1, "the popup middleware is gated on VITE_AUTH_ENABLED");
+  assert.ok(
+    guard < plugin.indexOf("server.middlewares.use("),
+    "gate runs before the middleware is added",
+  );
+});

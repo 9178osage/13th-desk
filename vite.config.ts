@@ -11,6 +11,7 @@ import { grokPwaPlugin } from "./scripts/grok-pwa-plugin.mjs";
 // @ts-expect-error JS plugin alongside the TS vite config
 import { appEnvPlugin } from "./scripts/app-env-plugin.mjs";
 import { isMigrationFile } from "./scripts/migration-plan.mjs";
+import { authEnabledFromEnvValue } from "./scripts/check-auth-invariant.mjs";
 import {
   DEV_FS_DENY,
   DEV_PORT,
@@ -72,6 +73,10 @@ function authPopupPlugin(): Plugin {
     name: "app-builder:auth-popup",
     apply: "serve",
     configureServer(server) {
+      // Auth is off (VITE_AUTH_ENABLED="false"): no popup handler, so `/auth/popup` is a
+      // plain 404 in dev exactly as in the deployed build, and the dormant auth modules are
+      // never loaded (audit 2026-11-28 P2-08).
+      if (!authEnabledFromEnvValue(server.config.env.VITE_AUTH_ENABLED)) return;
       // Register immediately (not in a returned post-hook) so we run BEFORE
       // TanStack Start / the SPA HTML fallback. A model-authored
       // `src/routes/auth/popup.tsx` React page must never win this path.

@@ -5,6 +5,11 @@ on:
   delete:
   workflow_dispatch:
 
+# The job reads this repository (with the workflow's own token) and pushes to GitLab with
+# its own secret; it never writes back to GitHub.
+permissions:
+  contents: read
+
 concurrency:
   group: gitlab-mirror
   cancel-in-progress: false
@@ -12,15 +17,26 @@ concurrency:
 jobs:
   mirror:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Push branches and tags to GitLab
         env:
           GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
           GH_TOKEN: ${{ github.token }}
+        # Tokens stay in the environment: git reads them through a credential helper, so
+        # they are never part of a URL, a command line, or the bare clone's config.
         run: |
           set -euo pipefail
+          if [ -z "${GITLAB_TOKEN}" ]; then
+            echo "::error::GITLAB_TOKEN secret is not set"
+            exit 1
+          fi
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
-          git clone --bare "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" repo.git
+          git -c credential.helper= \
+            -c credential.helper='!f() { echo username=x-access-token; echo "password=${GH_TOKEN}"; }; f' \
+            clone --bare "https://github.com/${GITHUB_REPOSITORY}.git" repo.git
           cd repo.git
-          git push --prune "https://oauth2:${GITLAB_TOKEN}@gitlab.com/personal-projects7420146/${REPO_NAME}.git" \
+          git -c credential.helper= \
+            -c credential.helper='!f() { echo username=oauth2; echo "password=${GITLAB_TOKEN}"; }; f' \
+            push --prune "https://gitlab.com/personal-projects7420146/${REPO_NAME}.git" \
             '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { callTool, failureMemoSize, isConnectorTokenReady } from "./client.server.ts";
 import { ConnectorType, GoogleCalendarTools } from "./types.ts";
 import type { ToolArgs } from "./types.ts";
-import { isLoginRequired, redirectToLoginIfRequired } from "./login.ts";
+import { isLoginRequired, redirectToLoginIfRequired, safeLoginUrl } from "./login.ts";
 import { classifyCallToolError } from "./errors.ts";
 import type { CallToolResult } from "./types.ts";
 
@@ -369,6 +369,43 @@ describe("redirectToLoginIfRequired", () => {
     );
     assert.equal(did, false);
     assert.equal(target, "");
+  });
+
+  it("never opens or assigns a loginUrl that is not https (2026-11-28 P2-08)", () => {
+    for (const loginUrl of [
+      "javascript:alert(1)",
+      "data:text/html,<script>alert(1)</script>",
+      "/__gate/signin",
+      "http://gate.grok.me/__gate/signin",
+      "ftp://gate.grok.me/x",
+      "not a url",
+    ]) {
+      let assigned = "";
+      let opened = "";
+      const framed = withWindow(
+        {
+          self: "frame",
+          top: "host",
+          open: (url) => {
+            opened = url;
+            return {};
+          },
+          location: {
+            assign: (u) => {
+              assigned = u;
+            },
+            href: "https://my-app.grok.me/current",
+          },
+        },
+        () => redirectToLoginIfRequired({ ok: false, data: null, loginRequired: true, loginUrl }),
+      );
+      assert.equal(framed, false, loginUrl);
+      assert.equal(assigned, "", loginUrl);
+      assert.equal(opened, "", loginUrl);
+    }
+    assert.equal(safeLoginUrl("http://127.0.0.1:8080/__gate"), "http://127.0.0.1:8080/__gate");
+    assert.equal(safeLoginUrl("http://localhost:8080/x"), "http://localhost:8080/x");
+    assert.equal(safeLoginUrl(undefined), null);
   });
 
   it("returns false on the server (no window)", () => {
