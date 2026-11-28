@@ -11,8 +11,14 @@ import {
   Search,
   ShieldCheck,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 import { DeskBackup } from "@/components/desk-backup";
+import {
+  backupSlots,
+  compactLayoutNow,
+  compactLayoutOnServer,
+  subscribeCompactLayout,
+} from "@/lib/compact-layout";
 import { DistrictBar } from "@/components/district-bar";
 import { LoadBoundary } from "@/components/load-boundary";
 import { useRetryableLazy } from "@/lib/retryable-lazy";
@@ -82,6 +88,10 @@ export function Shell({ children }: { children: ReactNode }) {
   });
   const label = (key: DeskCopyKey) =>
     c(lang, key === "campus" && level !== "uni" ? "schools" : key);
+  // One mounted copy of the backup controls once the layout is known (see compact-layout.ts).
+  const slots = backupSlots(
+    useSyncExternalStore(subscribeCompactLayout, compactLayoutNow, compactLayoutOnServer),
+  );
 
   useEffect(() => {
     void ensureDeskHydrated();
@@ -163,7 +173,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <ShieldCheck size={15} aria-hidden="true" />
             {c(lang, "local")}
           </span>
-          <DeskBackup />
+          {slots.sidebar && <DeskBackup />}
         </div>
         <div className="rail-footer">
           EUGENE DESK <span>EST. 2026</span>
@@ -283,7 +293,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <span>Eugene Desk</span>
           <span className="footer-local">
             {c(lang, "local")} · Eugene, OR
-            <DeskBackup compact />
+            {slots.footer && <DeskBackup compact />}
           </span>
           <span className="footer-stats">
             {c(lang, "stats")} {c(lang, "hostScript")}

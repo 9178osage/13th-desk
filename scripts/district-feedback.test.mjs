@@ -643,7 +643,7 @@ function scheduleFixture(count = 1) {
   };
   const { WeekSchedule } = load("src/components/week-schedule.tsx", {
     react: runner.hooks,
-    "lucide-react": Object.fromEntries(
+    "@/components/icons": Object.fromEntries(
       [
         "AlertTriangle",
         "CalendarDays",

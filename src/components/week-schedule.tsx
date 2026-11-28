@@ -9,7 +9,7 @@ import {
   Star,
   Trash2,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 import { LEVELS, type Level } from "@/lib/levels";
 import { refAfterRemove, refOf, rowAt, type RemovedRow, type RowRef } from "@/lib/row-ref";
 import { tr } from "@/lib/text";

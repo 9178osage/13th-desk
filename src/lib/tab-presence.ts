@@ -116,17 +116,30 @@ export function createTabPresence(env: TabPresenceEnvironment) {
     if (canQuery) for (const delay of RECHECK_MS) later(refresh, delay);
   });
 
-  if (canQuery) {
+  // Held for as long as this page is open and showing. Released on `leave()` (pagehide),
+  // so a page kept in the back/forward cache neither counts as an open tab for the others
+  // nor is refused by the cache for holding a lock; taken again on `wake()` (pageshow).
+  const holdLock = () => {
+    if (!canQuery || disposed || release) return;
+    let releaseThis: (() => void) | undefined;
+    const held = new Promise<void>((resolve) => {
+      releaseThis = resolve;
+    });
+    release = releaseThis;
     env
-      .locks!.request(
-        own,
-        () =>
-          new Promise<void>((resolve) => {
-            release = resolve;
-          }),
-      )
-      .catch(() => {});
-  }
+      .locks!.request(own, () => held)
+      .catch(() => {})
+      .finally(() => {
+        if (release === releaseThis) release = undefined;
+      });
+  };
+  const dropLock = () => {
+    const r = release;
+    release = undefined;
+    r?.();
+  };
+
+  holdLock();
   post("hello");
   refresh();
   const timer = env.setInterval?.(() => {
@@ -135,14 +148,20 @@ export function createTabPresence(env: TabPresenceEnvironment) {
   }, PRESENCE_HEARTBEAT_MS);
 
   return {
-    /** Page shown again (tab focus, back/forward cache). */
+    /** Page shown again (tab focus, back/forward cache): take the lock again if needed. */
     wake() {
+      holdLock();
       post("hello");
       refresh();
+      if (canQuery) for (const delay of RECHECK_MS) later(refresh, delay);
     },
-    /** Page going away: tell the others now rather than waiting for expiry. */
+    /**
+     * Page going away or into the back/forward cache: tell the others now rather than
+     * waiting for expiry, and let go of the presence lock (audit 2026-11-28 P2-09).
+     */
     leave() {
       post("bye");
+      dropLock();
     },
     refresh,
     dispose() {
@@ -152,7 +171,7 @@ export function createTabPresence(env: TabPresenceEnvironment) {
       for (const handle of timers) clearTimeout(handle as number);
       timers.clear();
       if (timer !== undefined) env.clearInterval?.(timer);
-      release?.();
+      dropLock();
       try {
         env.channel?.close();
       } catch {

@@ -192,3 +192,30 @@ test("a peer tab without the identity marker is reported as an older version", (
   assert.deepEqual(old, [true, false, true, false]);
   presence.dispose();
 });
+test("2026-11-28 P2-09: a page in the back/forward cache lets go of its lock and takes it back on return", async () => {
+  const join = bus();
+  const locks = lockManager();
+  const a = tab("a", { channel: join(), locks });
+  const b = tab("b", { channel: join(), locks });
+  await tick();
+  assert.equal(a.others(), true);
+  // b goes into the back/forward cache (pagehide, persisted): its lock is released.
+  b.presence.leave();
+  await new Promise((r) => setTimeout(r, 350));
+  assert.equal(a.others(), false, "a cached page is not an open tab");
+  const names = (await locks.query()).held.map((lock) => lock.name);
+  assert.deepEqual(names, ["13th-desk-v1:tab:a"], "b holds no lock while cached");
+  // b is shown again (pageshow, persisted): lock and hello come back.
+  b.presence.wake();
+  await new Promise((r) => setTimeout(r, 350));
+  assert.equal(a.others(), true, "a sees b again");
+  assert.equal(b.others(), true, "b sees a again");
+  // Waking an already visible page does not ask for a second lock.
+  b.presence.wake();
+  await tick();
+  assert.equal((await locks.query()).held.filter((l) => l.name.endsWith(":b")).length, 1);
+  b.presence.dispose();
+  await new Promise((r) => setTimeout(r, 350));
+  assert.equal(a.others(), false);
+  a.presence.dispose();
+});

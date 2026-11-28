@@ -2770,3 +2770,21 @@ test("2026-11-28 P2-04: the GPA chart tooltip stays inside the chart", async () 
   assert.match(ui, /role="group"/);
   assert.match(ui, /tabIndex=\{0\}\s+role="img"/);
 });
+
+test("2026-11-28 P2-09: one DeskBackup is mounted once the layout is known", async () => {
+  const { backupSlots, COMPACT_QUERY } = await import("./compact-layout.ts");
+  assert.deepEqual(backupSlots(null), { sidebar: true, footer: true }, "SSR/hydration: CSS picks");
+  assert.deepEqual(backupSlots(false), { sidebar: true, footer: false }, "desktop: sidebar only");
+  assert.deepEqual(backupSlots(true), { sidebar: false, footer: true }, "phone: footer only");
+  const css = readFileSync(join(import.meta.dirname, "../styles.css"), "utf8");
+  const width = COMPACT_QUERY.match(/max-width: (\d+)px/)?.[1];
+  // The compact copy is shown, and the sidebar hidden, at exactly this breakpoint.
+  const block = css.slice(css.indexOf(`@media (max-width: ${width}px)`));
+  assert.match(
+    block.slice(0, block.indexOf("\n}\n")),
+    /\.desk-backup-compact \{\s*display: inline-flex;/,
+  );
+  const shell = readFileSync(join(import.meta.dirname, "../components/shell.tsx"), "utf8");
+  assert.match(shell, /\{slots\.sidebar && <DeskBackup \/>\}/);
+  assert.match(shell, /\{slots\.footer && <DeskBackup compact \/>\}/);
+});

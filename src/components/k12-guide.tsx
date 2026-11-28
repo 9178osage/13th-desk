@@ -1,5 +1,5 @@
 import { useClock } from "@/lib/use-clock";
-import { Check, ExternalLink } from "lucide-react";
+import { Check, ExternalLink } from "@/components/icons";
 import { fourJBellLine, k12Checks, k12Links } from "@/data/k12";
 import { cn } from "@/lib/cn";
 import {

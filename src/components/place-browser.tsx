@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ExternalLink, Heart, MapPinned, Search } from "lucide-react";
+import { ExternalLink, Heart, MapPinned, Search } from "@/components/icons";
 import { areaName, forLevel, places, savedPlacesFor, type AreaId, type Place } from "@/data/places";
 import { Card, Chip, EmptyState, Input, SectionHeader } from "@/components/ui";
 import { cn } from "@/lib/cn";

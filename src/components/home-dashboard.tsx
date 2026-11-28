@@ -12,7 +12,7 @@ import {
   Plus,
   Star,
   Trash2,
-} from "lucide-react";
+} from "@/components/icons";
 import { Button, Input } from "@/components/ui";
 import { WeekSchedule } from "@/components/week-schedule";
 import { WeatherCard } from "@/components/weather";

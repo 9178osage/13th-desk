@@ -1,5 +1,5 @@
 import { useClock } from "@/lib/use-clock";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink } from "@/components/icons";
 import {
   elemBells,
   elemSchools,

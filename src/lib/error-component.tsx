@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import type { ErrorComponentProps } from "@tanstack/react-router";
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert } from "@/components/icons";
 import { ERROR_FALLBACK, ERROR_TITLE, errorPageLang, type Lang } from "@/lib/error-copy";
 
 function shownMessage(error: unknown, lang: Lang): string {

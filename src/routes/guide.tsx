@@ -1,7 +1,7 @@
 import { useClock } from "@/lib/use-clock";
 import { canonicalLink } from "@/lib/site";
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, ExternalLink } from "lucide-react";
+import { Check, ExternalLink } from "@/components/icons";
 import {
   around,
   arrival,

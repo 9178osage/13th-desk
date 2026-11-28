@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/components/icons";
 import { deskText as c } from "@/lib/desk-copy";
 import { useLang } from "@/lib/store";
 

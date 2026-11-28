@@ -2,7 +2,15 @@ import { Command } from "cmdk";
 import { useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight, CalendarDays, Compass, Languages, MapPin, Search, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarDays,
+  Compass,
+  Languages,
+  MapPin,
+  Search,
+  X,
+} from "@/components/icons";
 import { places, forLevel, areaName } from "@/data/places";
 import { ALL_QUICK_LINKS } from "@/data/quick-links";
 import { LEVELS } from "@/lib/levels";

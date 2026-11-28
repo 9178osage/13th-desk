@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { LifeBuoy } from "lucide-react";
+import { LifeBuoy } from "@/components/icons";
 import { Button } from "@/components/ui";
 import {
   beforeImportFileName,

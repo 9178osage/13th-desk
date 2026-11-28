@@ -160,3 +160,29 @@ test("2026-11-28 P2-08: with auth off the dev server mounts no /auth/popup handl
     "gate runs before the middleware is added",
   );
 });
+
+test("2026-11-28 P2-06: icons come one file each through src/components/icons.ts", () => {
+  const offenders = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(join(root, dir))) {
+      const path = `${dir}/${name}`;
+      if (statSync(join(root, path)).isDirectory()) walk(path);
+      else if (/\.(ts|tsx)$/.test(name) && path !== "src/components/icons.ts") {
+        // Type-only imports (src/lucide-icons.d.ts) load no code.
+        if (/^\s*(import|export) (?!type )[^;]*from "lucide-react"/m.test(read(path)))
+          offenders.push(path);
+      }
+    }
+  };
+  walk("src");
+  assert.deepEqual(
+    offenders,
+    [],
+    "import icons from @/components/icons, not the lucide-react barrel",
+  );
+  const icons = read("src/components/icons.ts");
+  const paths = [...icons.matchAll(/from "(lucide-react\/dist\/esm\/icons\/[a-z0-9-]+\.js)"/g)];
+  assert.ok(paths.length > 0);
+  for (const [, path] of paths) assert.ok(existsSync(join(root, "node_modules", path)), path);
+  assert.doesNotMatch(icons, /from "lucide-react";/);
+});

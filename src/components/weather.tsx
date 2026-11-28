@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, Sun } from "lucide-react";
+import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSnow, Sun } from "@/components/icons";
 import { useDesk, useLang } from "@/lib/store";
 import type { Level } from "@/lib/levels";
 import { tr, type Copy, type Lang } from "@/lib/text";

@@ -12,7 +12,7 @@ test("the real palette captures its opener and restores focus on close", async (
     "@radix-ui/react-dialog":
       'export const Root="Root", Portal="Portal", Overlay="Overlay", Content="Content", Title="Title", Close="Close";',
     "@tanstack/react-router": "export const useNavigate = () => () => {};",
-    "lucide-react":
+    "@/components/icons":
       'export const ArrowUpRight="Icon", CalendarDays="Icon", Compass="Icon", Languages="Icon", MapPin="Icon", Search="Icon", X="Icon";',
     "@/lib/store":
       'export const useLang=()=>"en"; export const useDesk=fn=>fn({level:"uni",district:null});',

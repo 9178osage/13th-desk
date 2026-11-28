@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarPlus } from "lucide-react";
+import { CalendarPlus } from "@/components/icons";
 import type { Deadline } from "@/data/guide";
 import { deskText as c, type DeskCopyKey } from "@/lib/desk-copy";
 import { buildIcs, downloadIcs } from "@/lib/ics";
