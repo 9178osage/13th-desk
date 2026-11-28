@@ -41,7 +41,7 @@
 
 - **Node.js 26**（`.nvmrc`、CI 与 Vercel 的 `engines.node` 保持一致）
 - **Vite** + **React 19**
-- **TanStack** Router / Start / Query
+- **TanStack** Router / Start
 - **Tailwind CSS 4**
 - **zustand**（persist → `13th-desk-v1`）
 - 手写 SVG（GPA 图，不用图表库）
@@ -168,7 +168,7 @@ Brand icons live in `public/brand/`; the favicon is `public/favicon.svg`, and sh
 
 - **Node.js 26** (`.nvmrc` / `engines.node`)
 - **Vite** + **React 19**
-- **TanStack** Router / Start / Query
+- **TanStack** Router / Start
 - **Tailwind CSS 4**
 - **zustand** for persisted state (`13th-desk-v1`)
 - Hand-drawn SVG for the GPA chart (no chart library)
@@ -268,7 +268,7 @@ Los iconos de marca están en `public/brand/`; el favicon es `public/favicon.svg
 
 - **Node.js 26** (`.nvmrc` / `engines.node`)
 - **Vite** + **React 19**
-- **TanStack** Router / Start / Query
+- **TanStack** Router / Start
 - **Tailwind CSS 4**
 - **zustand** para el estado persistente (`13th-desk-v1`)
 - SVG propio para el gráfico de GPA (sin librería de gráficos)
@@ -366,7 +366,7 @@ Debes estar autenticado y vinculado al mismo proyecto de Vercel.
 
 - **Node.js 26** (`.nvmrc` / `engines.node`)
 - **Vite** + **React 19**
-- **TanStack** Router / Start / Query
+- **TanStack** Router / Start
 - **Tailwind CSS 4**
 - **zustand** (persist → `13th-desk-v1`)
 - 직접 그린 SVG (GPA 차트, 차트 라이브러리 없음)
@@ -464,7 +464,7 @@ Biểu tượng thương hiệu ở `public/brand/`; favicon là `public/favicon
 
 - **Node.js 26** (`.nvmrc` / `engines.node`)
 - **Vite** + **React 19**
-- **TanStack** Router / Start / Query
+- **TanStack** Router / Start
 - **Tailwind CSS 4**
 - **zustand** (persist → `13th-desk-v1`)
 - SVG tự vẽ (biểu đồ GPA, không dùng thư viện biểu đồ)
@@ -562,7 +562,7 @@ Bạn cần đã đăng nhập và liên kết cùng một dự án Vercel.
 
 - **Node.js 26** (`.nvmrc` / `engines.node`)
 - **Vite** + **React 19**
-- **TanStack** Router / Start / Query
+- **TanStack** Router / Start
 - **Tailwind CSS 4**
 - **zustand**（persist → `13th-desk-v1`）
 - 手書き SVG（GPA チャート、グラフライブラリなし）

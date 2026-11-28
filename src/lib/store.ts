@@ -47,7 +47,7 @@ import {
   type PrefsHint,
 } from "@/lib/prefs-cookie";
 
-/** Chinese-first portal: the language used until a visitor picks one. */
+/** The language used until a visitor picks one. */
 export const DEFAULT_LANG: Lang = "en";
 export const DEFAULT_LEVEL: Level = "uni";
 
@@ -86,7 +86,6 @@ type DeskState = {
   setLang: (lang: Lang) => void;
   setLevel: (level: Level) => void;
   setSetup: (patch: { lang?: Lang; level?: Level }) => void;
-  setEarlyStart: (on: boolean) => void;
   setDistrict: (id: DistrictId | null) => void;
   toggleFav: (id: string) => void;
   addNote: (text: string) => boolean;
@@ -251,7 +250,6 @@ const deskStore = create<DeskState>()(
         }
         if (Object.keys(next).length) set(next);
       },
-      setEarlyStart: (on) => set({ earlyStart: on }),
       setDistrict: (id) => {
         if (id !== null && !isDistrict(id)) return;
         if (!get().hydrated) preHydrationDistrict = { set: true, value: id };
@@ -492,8 +490,8 @@ const deskStore = create<DeskState>()(
         const raw = withStableIds(persisted) as Record<string, unknown>;
         // Prefer in-memory choices made before rehydrate finishes (fast lang switch).
         const langSet = current.langSet || raw.langSet === true;
-        // Never chosen? Keep the Chinese-first default instead of flipping to English
-        // after the first save (bug: a new visitor's desk switched language on reload).
+        // Never chosen? Keep DEFAULT_LANG instead of taking a language the visitor
+        // never picked (bug: a new visitor's desk switched language on reload).
         const lang = current.langSet
           ? current.lang
           : langSet && isLang(raw.lang)

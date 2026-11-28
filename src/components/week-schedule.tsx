@@ -185,6 +185,12 @@ function ScheduleEditor() {
     setAwaitConfirm(false);
   }
 
+  function closeForm() {
+    setOpen(false);
+    setEditing(null);
+    setAwaitConfirm(false);
+  }
+
   return (
     <section
       className="desk-panel timetable-panel"
@@ -232,10 +238,7 @@ function ScheduleEditor() {
             <button
               type="button"
               className="icon-button"
-              onClick={() => {
-                setOpen(false);
-                setAwaitConfirm(false);
-              }}
+              onClick={closeForm}
               aria-label={c(lang, "cancel")}
             >
               <X size={18} />
@@ -321,13 +324,7 @@ function ScheduleEditor() {
                 ? c(lang, "saveAnyway")
                 : c(lang, isEditing ? "save" : "addClass")}
             </Button>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setOpen(false);
-                setAwaitConfirm(false);
-              }}
-            >
+            <Button variant="ghost" onClick={closeForm}>
               {c(lang, "cancel")}
             </Button>
           </div>

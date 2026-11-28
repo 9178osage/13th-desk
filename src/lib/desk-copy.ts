@@ -522,14 +522,6 @@ const copy = {
     "Lịch chính thức",
     "公式の学年暦",
   ],
-  beforeImportSaved: [
-    "A before-import backup was downloaded.",
-    "已下载导入前备份。",
-    "Se descargó una copia previa a la importación.",
-    "가져오기 전 백업을 내려받았어요.",
-    "Đã tải bản sao trước khi nhập.",
-    "取り込み前のバックアップをダウンロードしました。",
-  ],
   beforeImportStorageFail: [
     "Browser storage is full, so undo may not survive a refresh. A before-import backup was downloaded instead.",
     "浏览器存储已满，刷新后可能无法撤销；已另外下载导入前备份。",

@@ -98,7 +98,7 @@ test("real store preserves merged overflow through edits, reload, export and res
       assert.equal(hasDeskOverflow(snapshot.buckets), true);
       assert.deepEqual(JSON.parse(data.get(key)).state.buckets, snapshot.buckets);
       // An unrelated edit must not write back a truncated list.
-      useDesk.getState().setEarlyStart(true);
+      useDesk.getState().setDistrict("4j");
       assert.equal(JSON.parse(data.get(key)).state.buckets.uni[kind].length, DESK_LIMITS[kind] + 1);
       await useDesk.persist.rehydrate();
       assert.equal(getPersistedDeskState().buckets.uni[kind].length, DESK_LIMITS[kind] + 1);

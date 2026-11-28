@@ -2316,6 +2316,34 @@ test("editor state cannot outlive a replaced desk or point at the wrong slice", 
   assert.match(store, /if \(!cur\.levelSet\) \{/);
 });
 
+test("closing the week form also clears the row being edited", () => {
+  const week = readFileSync(join(import.meta.dirname, "../components/week-schedule.tsx"), "utf8");
+  assert.match(
+    week,
+    /function closeForm\(\) \{\s*setOpen\(false\);\s*setEditing\(null\);\s*setAwaitConfirm\(false\);\s*\}/,
+  );
+  assert.equal([...week.matchAll(/onClick=\{closeForm\}/g)].length, 2);
+});
+
+test("theme-color matches the paper background", () => {
+  const root = readFileSync(join(import.meta.dirname, "../routes/__root.tsx"), "utf8");
+  assert.match(root, /\{ name: "theme-color", content: "#f5f3ed" \}/);
+  const css = readFileSync(join(import.meta.dirname, "../styles.css"), "utf8");
+  assert.match(css, /--color-paper:\s*#f5f3ed/);
+});
+
+test("unused early-start setter and before-import copy are gone; default-language comments match English", () => {
+  const store = readFileSync(join(import.meta.dirname, "store.ts"), "utf8");
+  assert.doesNotMatch(store, /setEarlyStart/);
+  assert.match(store, /earlyStart: boolean/);
+  assert.doesNotMatch(store, /Chinese-first/);
+  const copy = readFileSync(join(import.meta.dirname, "desk-copy.ts"), "utf8");
+  assert.doesNotMatch(copy, /beforeImportSaved/);
+  const readme = readFileSync(join(import.meta.dirname, "../../README.md"), "utf8");
+  assert.doesNotMatch(readme, /TanStack Query|Start \/ Query/);
+  assert.match(readme, /\*\*TanStack\*\* Router \/ Start/);
+});
+
 import { canRestoreRow, refOf, removeRow, rowAt, updateRow, type RemovedRow } from "./row-ref.ts";
 /** Notes as the loader sees them: through the one identity migration. */
 function loadedNotes(notes: { id: string; text: string; done: boolean }[]) {

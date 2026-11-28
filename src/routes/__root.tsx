@@ -65,7 +65,7 @@ export const Route = createRootRoute({
         content:
           "Eugene Desk — a free student desk for Eugene, Oregon: today's tasks, weekly schedule, campus and town places, school dates, and a GPA calculator. No account; everything stays in your browser.",
       },
-      { name: "theme-color", content: "#f1ebe3" },
+      { name: "theme-color", content: "#f5f3ed" },
       { name: "referrer", content: "strict-origin-when-cross-origin" },
     ],
     links: [
