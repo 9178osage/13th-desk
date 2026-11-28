@@ -186,3 +186,10 @@ test("2026-11-28 P2-06: icons come one file each through src/components/icons.ts
   for (const [, path] of paths) assert.ok(existsSync(join(root, "node_modules", path)), path);
   assert.doesNotMatch(icons, /from "lucide-react";/);
 });
+
+test("2026-11-28 P2-02: scripts turn file URLs into paths with fileURLToPath, not .pathname", () => {
+  for (const name of readdirSync(join(root, "scripts")).filter((n) => n.endsWith(".mjs"))) {
+    // `.pathname` keeps %20 for the space in a path like "Eugene Student Web".
+    assert.doesNotMatch(read(`scripts/${name}`), /import\.meta\.url\)\.pathname/, name);
+  }
+});

@@ -12,6 +12,7 @@
 | `npm run typecheck`、`npm run lint`               | 分别检查 TypeScript 类型和代码规范。                                       |
 | `npm run check:links`、`npm run check:auth`       | 检查外部链接与开发环境和构建环境的认证配置。                               |
 | `npm run preview:restart`、`npm run preview:stop` | 在 Linux 沙箱中管理生产构建的预览服务。                                    |
+| `npm run preview`、`npm run smoke:routes`         | 在 macOS 等本机上预览生产构建并逐页冒烟，见下文「本机预览与逐页冒烟」。    |
 | `npm run posters`                                 | 用 Playwright 重新生成 `public/posters/` 里的六语海报（PDF 与 PNG）。      |
 
 ## 文件分组
@@ -26,3 +27,22 @@
 ## 测试发现
 
 `test-all.mjs` 会自动发现本目录**根层**的 `*.test.mjs`，其中 `grok-pwa-plugin.test.mjs` 在独立的空临时目录中运行；它还显式列出 `src/lib/` 下的 TypeScript 测试。新增根层脚本测试会自动纳入；新增其他目录的测试需要更新测试入口。GitHub Actions 的 Verification 工作流另外运行类型检查、lint、依赖审计和生产构建。
+
+## 本机预览与逐页冒烟（macOS）
+
+`preview:restart` / `preview:stop`（`preview.mjs`）只用于 Linux 沙箱，依赖沙箱里的进程管理；在 macOS 上请直接用下面两条命令，在两个终端里运行：
+
+```bash
+# 终端 1：先构建，再在 127.0.0.1:8081 预览生产构建（Ctrl+C 结束）
+VITE_AUTH_ENABLED=false npm run build
+npm run preview
+
+# 终端 2：五个页面在桌面和手机宽度各跑一遍
+npm run smoke:routes
+```
+
+`smoke:routes` 默认检查 `http://127.0.0.1:8081`，也可以传入别的地址，例如 `npm run smoke:routes -- http://127.0.0.1:8082`。退出码：0 正常，1 打不开页面，2 控制台报错，3 白屏或横向溢出。第一次运行前需要 `npx playwright install chromium`。
+
+## 休眠依赖（有意保留）
+
+`better-auth`、`pg`、`@types/pg` 和 `@electric-sql/pglite` 属于平台模板的登录与数据库模块（`src/lib/auth/`、`src/lib/app-data/`、`src/lib/db.ts`、`migrations/`）。本站不需要登录和数据库（`VITE_AUTH_ENABLED="false"`），生产构建不会打包这些模块，开发服务也不会挂载 `/auth/popup`。这些依赖是**有意保留**的：模板的类型检查、`check:auth` 和相关测试仍然引用它们，删除会改动平台模板的边界。如需真正移除，应作为单独的改动，同时删掉对应模块和测试。

@@ -96,7 +96,11 @@ test("DATABASE_URL: blank means unset and values are trimmed, for the migrator a
 
 test("the migrator skips a whitespace-only DATABASE_URL instead of opening a pool", async () => {
   const { spawnSync } = await import("node:child_process");
-  const result = spawnSync(process.execPath, [new URL("./migrate.mjs", import.meta.url).pathname], {
+  const { fileURLToPath } = await import("node:url");
+  // fileURLToPath, not URL.pathname: a checkout path with a space ("Eugene Student Web")
+  // would otherwise reach node as "Eugene%20Student%20Web" (audit 2026-11-28 P2-02).
+  const migrate = fileURLToPath(new URL("./migrate.mjs", import.meta.url));
+  const result = spawnSync(process.execPath, [migrate], {
     env: { ...process.env, DATABASE_URL: "   " },
     encoding: "utf8",
   });
